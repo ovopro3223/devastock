@@ -337,11 +337,27 @@ export function startEngine() {
   const ctx = _createContext();
   if (!ctx) return;
   if (ctx.state === 'suspended') {
-    _attachResumeListener();
+    ctx.resume().then(() => {
+      startEngine();
+    }).catch(console.error);
     return;
   }
 
   stopEngine();
+
+  // صوت انطلاق قصير
+  const revOsc = ctx.createOscillator();
+  const revGain = ctx.createGain();
+  revOsc.connect(revGain);
+  revGain.connect(ctx.destination);
+  revOsc.frequency.setValueAtTime(100, ctx.currentTime);
+  revOsc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
+  revGain.gain.setValueAtTime(0.2 * _volume, ctx.currentTime);
+  revGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+  revOsc.start();
+  revOsc.stop(ctx.currentTime + 0.2);
+
+  // ثم صوت المحرك المستمر
   _engineOsc = ctx.createOscillator();
   _engineGain = ctx.createGain();
 
@@ -357,7 +373,7 @@ export function startEngine() {
   _engineOsc.frequency.setValueAtTime(60, ctx.currentTime);
 
   _engineGain.gain.setValueAtTime(0, ctx.currentTime);
-  _engineGain.gain.linearRampToValueAtTime(Math.min(0.1, 0.04 * _volume), ctx.currentTime + 0.3);
+  _engineGain.gain.linearRampToValueAtTime(Math.min(0.3, 0.12 * _volume), ctx.currentTime + 0.3);
 
   _engineOsc.start();
 

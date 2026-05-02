@@ -9,7 +9,6 @@ export function renderAuthButton(user) {
   if (!btn || !dropdown) return;
 
   _currentUser = user;
-  console.log('Auth state changed:', user ? `Logged in as ${user.displayName}` : 'Logged out');
 
   if (user) {
     // مسجل دخول
@@ -21,10 +20,8 @@ export function renderAuthButton(user) {
     btn.classList.add('logged-in');
     btn.title = 'اضغط لفتح القائمة';
 
-    // إغلاق الـ dropdown
     dropdown.hidden = true;
 
-    // تحديث معلومات الـ dropdown
     const userNameEl = dropdown.querySelector('.auth-user-name');
     if (userNameEl) userNameEl.textContent = user.displayName ?? 'لاعب';
 
@@ -33,15 +30,19 @@ export function renderAuthButton(user) {
       dropdown.hidden = !dropdown.hidden;
     };
   } else {
-    // لم يسجل دخول
+    // لم يسجل دخول — اضغط = افتح نافذة Google مباشرة (يعمل في كل الصفحات)
     btn.innerHTML = '<span class="auth-icon">🔑</span><span>دخول</span>';
     btn.classList.remove('logged-in');
-    btn.title = 'فتح نافذة تسجيل الدخول';
+    btn.title = 'تسجيل الدخول بـ Google';
     dropdown.hidden = true;
 
-    btn.onclick = (e) => {
+    btn.onclick = async (e) => {
       e.stopPropagation();
-      // لا تفعل شيء — الـ modal يفتح من المجتمع فقط
+      try {
+        await signInWithGoogle();
+      } catch (err) {
+        console.error('Sign-in error:', err);
+      }
     };
   }
 }
@@ -50,7 +51,7 @@ export function renderAuthButton(user) {
 document.addEventListener('click', (e) => {
   const dropdown = document.getElementById('auth-dropdown');
   const btn = document.getElementById('auth-btn');
-  if (dropdown && !dropdown.hidden && e.target !== btn && !btn.contains(e.target)) {
+  if (dropdown && !dropdown.hidden && btn && e.target !== btn && !btn.contains(e.target)) {
     dropdown.hidden = true;
   }
 });
@@ -69,7 +70,6 @@ function setupAuthHandlers() {
   }
 }
 
-// استدعاء عند تحميل الصفحة
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', setupAuthHandlers);
 } else {

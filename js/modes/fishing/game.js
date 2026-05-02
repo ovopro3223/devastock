@@ -435,8 +435,12 @@ export class FishingGame {
 
   _loop = () => {
     if (!this.running || this.paused) return;
-    this._update();
-    this._draw();
+    try {
+      this._update();
+      this._draw();
+    } catch (e) {
+      console.error('Fishing loop error:', e);
+    }
     requestAnimationFrame(this._loop);
   };
 
@@ -631,6 +635,23 @@ export class FishingGame {
     }
   }
 
+  _drawRoundRect(x, y, w, h, radius) {
+    // بديل متوافق لـ ctx.roundRect (لا يدعمه Safari القديم)
+    const ctx = this.ctx;
+    const r = Math.min(radius, h / 2, w / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
   _drawStatus(text) {
     const ctx = this.ctx;
     ctx.save();
@@ -645,8 +666,7 @@ export class FishingGame {
     const y = this.H * 0.05;
 
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 18);
+    this._drawRoundRect(x, y, w, h, 18);
     ctx.fill();
     ctx.fillStyle = '#FFD700';
     ctx.fillText(text, this.W / 2, y + h / 2);
@@ -854,6 +874,7 @@ export class FishingGame {
         const letters = Object.entries(r.letters);
         let i = 0;
         const total = letters.reduce((s, [, n]) => s + n, 0);
+        if (total === 0) return;
         const cols = Math.ceil(Math.sqrt(total));
         const spacing = (radius * 1.4) / cols;
         let pos = 0;

@@ -65,43 +65,24 @@ export class SniperGame {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    if (e.pointerType === 'touch') {
-      if (x > this.W * 0.72 && this.touchControls.shootId === null) {
-        this.touchControls.shootId = e.pointerId;
-        this.crosshair.x = x;
-        this.crosshair.y = y;
-        this._shoot();
-        return;
-      }
-      if (this.touchControls.moveId === null) {
-        this.touchControls.moveId = e.pointerId;
-      }
-    }
-
-    if (this.touchControls.moveId === e.pointerId || e.pointerType !== 'touch') {
-      this.crosshair.x = x;
-      this.crosshair.y = y;
-      if (e.pointerType !== 'touch' && e.button === 0) {
-        this._shoot();
-      }
-    }
+    // اضغط/المس مكان → يحدد crosshair هناك ثم يطلق
+    this.crosshair.x = x;
+    this.crosshair.y = y;
+    this._shoot();
   }
 
   _onPointerMove(e) {
     if (!this.running || this.paused) return;
-    if (e.pointerType === 'touch' && this.touchControls.moveId !== e.pointerId) return;
-    const rect = this.canvas.getBoundingClientRect();
-    this.crosshair.x = e.clientX - rect.left;
-    this.crosshair.y = e.clientY - rect.top;
+    // تحديث crosshair فقط لو ما زال الإصبع مضغوطاً (للسحب) أو الفأرة على الشاشة
+    if (e.pointerType !== 'touch' || e.buttons > 0) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.crosshair.x = e.clientX - rect.left;
+      this.crosshair.y = e.clientY - rect.top;
+    }
   }
 
   _onPointerUp(e) {
-    if (this.touchControls.moveId === e.pointerId) {
-      this.touchControls.moveId = null;
-    }
-    if (this.touchControls.shootId === e.pointerId) {
-      this.touchControls.shootId = null;
-    }
+    // تنظيف
   }
 
   _resize() {
@@ -127,30 +108,25 @@ export class SniperGame {
   _shoot() {
     if (!this.running || this.paused) return;
 
-    // مع الزووم: نقطة الإصابة هي مركز الشاشة
-    // بدون زووم: نقطة الإصابة هي crosshair
-    let aimX, aimY;
-    if (this.zoom > 1) {
-      // عند الزووم، crosshair موجود في مركز الشاشة، لكن الـ scope يكبّر المنطقة حول crosshair الأصلي
-      aimX = this.crosshair.x;
-      aimY = this.crosshair.y;
-    } else {
-      aimX = this.crosshair.x;
-      aimY = this.crosshair.y;
-    }
+    // crosshair يحفظ إحداثيات الشاشة (مكان الضغط)
+    // الأهداف موجودة بإحداثيات الشاشة (peekX, peekY بدون تحويل)
+    // فالمقارنة مباشرة بدون تحويل
+    const aimX = this.crosshair.x;
+    const aimY = this.crosshair.y;
 
-    // تحقق من الإصابة - منطقة أكبر بدون زووم (أسهل)، أصغر مع زووم (يحتاج دقة)
-    const hitRadius = this.zoom > 1 ? 50 : 35;
+    // منطقة إصابة كبيرة لتسهيل اللعب (خاصة على الموبايل)
+    const hitRadius = this.zoom > 1 ? 70 : 55;
 
     let hit = null;
+    let bestDist = Infinity;
     for (const t of this.targets) {
-      if (t.shot || !t.peekVisible) continue;
+      if (t.shot) continue;
       const dx = t.peekX - aimX;
       const dy = t.peekY - aimY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < hitRadius) {
+      if (dist < hitRadius && dist < bestDist) {
         hit = t;
-        break;
+        bestDist = dist;
       }
     }
 
@@ -316,8 +292,12 @@ export class SniperGame {
     const dt = now - (this._lastTime || now);
     this._lastTime = now;
 
-    this._update(dt);
-    this._draw();
+    try {
+      this._update(dt);
+      this._draw();
+    } catch (e) {
+      console.error('Sniper loop error:', e);
+    }
     requestAnimationFrame(this._loop);
   };
 
@@ -360,38 +340,25 @@ export class SniperGame {
       ctx.fill();
     }
 
-    // إذا في زووم - تطبيق التكبير
-    if (this.zoom > 1) {
-      ctx.save();
-      // مركز الزووم على crosshair
-      const cx = this.crosshair.x;
-      const cy = this.crosshair.y;
-      ctx.translate(W / 2, H / 2);
-      ctx.scale(this.zoom, this.zoom);
-      ctx.translate(-cx, -cy);
-    }
-
-    // رسم الأشجار والأحرف
+    // رسم الأشجار والأحرف (بدون تحويل الزووم — لإصابة أدق)
     for (const t of this.targets) {
       this._drawTree(t.treeX, t.treeY);
 
       if (!t.shot) {
         const isZoom = this.zoom > 1;
-        ctx.fillStyle = isZoom ? '#FFD700' : 'rgba(255,215,0,0.18)';
-        ctx.font = isZoom ? 'bold 46px Cairo, Arial' : 'bold 18px Cairo, Arial';
+        // مع الزووم الحروف أوضح وأكبر
+        ctx.fillStyle = isZoom ? '#FFD700' : 'rgba(255,215,0,0.45)';
+        ctx.font = isZoom ? 'bold 38px Cairo, Arial' : 'bold 24px Cairo, Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        if (isZoom) {
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 3;
-          ctx.strokeText(t.char, t.peekX, t.peekY);
-        }
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = isZoom ? 3 : 2;
+        ctx.strokeText(t.char, t.peekX, t.peekY);
         ctx.fillText(t.char, t.peekX, t.peekY);
       }
     }
 
     if (this.zoom > 1) {
-      ctx.restore();
 
       // رسم scope overlay (دائرة سوداء على الأطراف)
       ctx.fillStyle = 'rgba(0,0,0,0.85)';

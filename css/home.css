@@ -69,34 +69,56 @@
   50%     { transform: translateY(-9px); }
 }
 
-/* ===== حاوية الدخول — تظهر دائماً فوق كل الصفحات ===== */
+/* ===== حاوية الدخول — فوق يسار ===== */
 .auth-container {
+  position: fixed;
+  top: 0.8rem;
+  left: 0.8rem;
+  z-index: 1000;
+}
+
+/* إخفاء زر الدخول داخل الألعاب */
+body.in-game .auth-container {
+  display: none;
+}
+
+/* إخفاء زر التنقل العلوي داخل الألعاب (لها أزرارها الخاصة) */
+body.in-game .topnav-container {
+  display: none;
+}
+
+/* ===== حاوية التنقل (إيقاف/رجوع) — فوق يمين ===== */
+.topnav-container {
   position: fixed;
   top: 0.8rem;
   right: 0.8rem;
   z-index: 1000;
 }
 
-/* إخفاء الزر داخل الألعاب */
-body.in-game .auth-container {
-  display: none;
-}
-
-/* ===== زر تسجيل الدخول ===== */
-.auth-btn {
+.topnav-btn {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.14);
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 999px;
-  padding: 0.3rem 0.75rem 0.3rem 0.5rem;
-  color: var(--color-dim);
-  font-size: 0.82rem;
-  font-family: var(--font);
+  color: var(--color-text);
+  font-size: 1.3rem;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
+  font-family: var(--font);
+}
+
+.topnav-btn:hover {
+  background: rgba(255,255,255,0.16);
+  border-color: rgba(255,215,0,0.4);
+}
+
+.topnav-btn:active {
+  transform: scale(0.92);
 }
 .auth-btn:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.25); }
 .auth-btn.logged-in { border-color: rgba(255,215,0,0.3); color: var(--color-text); }
@@ -108,11 +130,11 @@ body.in-game .auth-container {
 .auth-icon  { font-size: 0.9rem; }
 .auth-name  { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ===== dropdown القائمة ===== */
+/* ===== dropdown القائمة — يفتح من اليسار ===== */
 .auth-dropdown {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
   margin-top: 0.3rem;
   background: rgba(20,20,40,0.95);
   border: 1px solid rgba(255,215,0,0.25);

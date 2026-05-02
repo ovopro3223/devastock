@@ -19,14 +19,46 @@ const PAGE_IDS = [
 
 const GAME_PAGES = ['letter-rain', 'letter-blaze', 'taxi', 'fishing', 'sniper', 'casino'];
 
+// أهداف الرجوع لكل صفحة (لزر التنقل العلوي)
+const BACK_TARGETS = {
+  menu: 'home',
+  modes: 'menu',
+  stock: 'menu',
+  museum: 'menu',
+  'museum-cat': 'museum',
+  profile: 'menu',
+  community: 'menu',
+  settings: 'menu',
+  casino: 'modes',
+  taxi: 'modes',
+  fishing: 'modes',
+  sniper: 'modes',
+  'letter-rain': 'modes',
+  'letter-blaze': 'modes',
+};
+
+let _currentPage = 'home';
+
 export function showPage(pageId) {
+  _currentPage = pageId;
   PAGE_IDS.forEach(id => {
     const el = document.getElementById(`page-${id}`);
     if (el) el.classList.toggle('active', id === pageId);
   });
-  // إخفاء/إظهار زر تسجيل الدخول داخل الألعاب
   document.body.classList.toggle('in-game', GAME_PAGES.includes(pageId));
   if (pageId === 'home') refreshHomeRank();
+
+  // تحديث زر التنقل العلوي
+  const topnavBtn = document.getElementById('topnav-btn');
+  if (topnavBtn) {
+    if (pageId === 'home') {
+      topnavBtn.hidden = true;
+    } else {
+      topnavBtn.hidden = false;
+      topnavBtn.textContent = '←'; // سهم رجوع
+      topnavBtn.title = 'رجوع';
+    }
+  }
 }
 
 document.querySelectorAll('.btn-back').forEach(btn => {
@@ -55,6 +87,15 @@ initAuth((user) => {
 startBgRain('home-canvas');
 startBgRain('menu-canvas');
 showPage('home');
+
+// زر التنقل العلوي (يمين) — رجوع
+const topnavBtn = document.getElementById('topnav-btn');
+if (topnavBtn) {
+  topnavBtn.addEventListener('click', () => {
+    const target = BACK_TARGETS[_currentPage] || 'home';
+    showPage(target);
+  });
+}
 
 const loader = document.getElementById('app-loading');
 if (loader) {
