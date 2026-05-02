@@ -4,7 +4,7 @@ import { getAuth, GoogleAuthProvider,
          signInWithPopup, signOut,
          onAuthStateChanged }                         from 'firebase/auth';
 import { getFirestore, collection, query, where,
-         getDocs, doc, getDoc, setDoc, updateDoc,
+         getDocs, addDoc, doc, getDoc, setDoc, updateDoc,
          deleteDoc, serverTimestamp, arrayUnion, onSnapshot }   from 'firebase/firestore';
 import { FIREBASE_CONFIG }                            from './firebase-config.js';
 import { pullFromCloud, setupSync }                   from './cloud-sync.js';
@@ -132,36 +132,36 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
     return;
   }
   try {
-    const reqId = `${fromUid}_${toUid}`;
-    const reverseReqId = `${toUid}_${fromUid}`;
-
     // إذا كان هناك طلب متبادل (الطرف الآخر بعت طلب أول) → اقبل تلقائياً
-    const reverseRef = doc(db, 'friendRequests', reverseReqId);
-    const reverseDoc = await getDoc(reverseRef);
-    if (reverseDoc.exists() && reverseDoc.data().status === 'pending') {
-      console.log('✨ Mutual request detected - auto-accepting');
-      await acceptFriendRequest(reverseReqId, toUid, fromUid);
-      return { autoAccepted: true };
+    const reverseQuery = query(
+      collection(db, 'friendRequests'),
+      where('from', '==', toUid),
+      where('to', '==', fromUid),
+      where('status', '==', 'pending')
+    );
+    const reverseSnap = await getDocs(reverseQuery);
+    if (!reverseSnap.empty) {
+      const reverseDoc = reverseSnap.docs[0];
+      console.log('✨ Mutual request detected - auto-accepting', reverseDoc.id);
+      await acceptFriendRequest(reverseDoc.id, toUid, fromUid);
+      return true;
     }
 
-    // وإلا أنشئ طلب جديد
-    const reqRef = doc(db, 'friendRequests', reqId);
-    const existing = await getDoc(reqRef);
-    if (existing.exists()) {
-      const status = existing.data().status;
-      if (status === 'pending') {
-        console.log('⚠️ Request already sent');
-        return false;
-      }
-      if (status === 'accepted') {
-        console.log('⚠️ Request already accepted');
-        return false;
-      }
-      console.log('🔁 Existing request doc found with status:', status, '- deleting stale request and retrying');
-      await deleteDoc(reqRef);
+    // إذا كان هناك طلب سابق من نفس الشخص إلى نفس المستخدم بالفعل
+    const existingQuery = query(
+      collection(db, 'friendRequests'),
+      where('from', '==', fromUid),
+      where('to', '==', toUid),
+      where('status', '==', 'pending')
+    );
+    const existingSnap = await getDocs(existingQuery);
+    if (!existingSnap.empty) {
+      console.log('⚠️ Request already sent');
+      return false;
     }
 
-    await setDoc(reqRef, {
+    const friendRequestsRef = collection(db, 'friendRequests');
+    const newDoc = await addDoc(friendRequestsRef, {
       from: fromUid,
       to: toUid,
       fromName: fromName || 'لاعب',
@@ -169,7 +169,7 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
       status: 'pending',
       createdAt: serverTimestamp(),
     });
-    console.log('✅ Friend request sent successfully:', reqId);
+    console.log('✅ Friend request sent successfully:', newDoc.id);
     return true;
   } catch (e) {
     console.error('❌ Error sending request:', e.code, e.message);
