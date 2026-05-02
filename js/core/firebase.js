@@ -432,17 +432,31 @@ export function listenForForumLikes(postId, callback) {
 
 export async function createForumPost(authorUid, authorName, content) {
   try {
-    if (!authorUid || !content.trim()) return null;
+    if (!authorUid || !content.trim()) {
+      return { success: false, error: 'Invalid author or empty content.' };
+    }
     const postRef = await addDoc(collection(db, 'forumPosts'), {
       authorUid,
       authorName,
       content: content.trim(),
       createdAt: serverTimestamp(),
     });
-    return postRef.id;
+    return { success: true, id: postRef.id };
   } catch (e) {
     console.error('Error creating forum post:', e);
-    return null;
+    return { success: false, error: e.message || 'Unknown error' };
+  }
+}
+
+export async function deleteForumPost(postId, authorUid) {
+  try {
+    if (!postId || !authorUid) return { success: false, error: 'Invalid request.' };
+    const postRef = doc(db, 'forumPosts', postId);
+    await deleteDoc(postRef);
+    return { success: true };
+  } catch (e) {
+    console.error('Error deleting forum post:', e);
+    return { success: false, error: e.message || 'Unknown error' };
   }
 }
 

@@ -1,6 +1,6 @@
 // ===== صفحة المنتدى =====
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { signInWithGoogle, createForumPost, listenForForumPosts, listenForForumComments,
+import { signInWithGoogle, createForumPost, deleteForumPost, listenForForumPosts, listenForForumComments,
          listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost } from '../core/firebase.js';
 
 let _currentUser = null;
@@ -26,20 +26,13 @@ export function initForum(navigate) {
       if (!textarea) return;
       const content = textarea.value.trim();
       if (!content) return;
-      const createdId = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
-      if (createdId) {
-        textarea.value = '';
-        renderForumPosts();
-      } else {
-        alert('تعذَّر إنشاء الموضوع، حاول مرة أخرى.');
-      }
-    });
-  }
-
-  if (loginBtn) {
-    loginBtn.addEventListener('click', async () => {
-      await signInWithGoogle();
-    });
+        const result = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
+        if (result?.success) {
+          textarea.value = '';
+          renderForumPosts();
+        } else {
+          console.error('Forum post error:', result?.error);
+          alert(`تعذَّر إنشاء الموضوع، حاول مرة أخرى.\n${result?.error || ''}`);
   }
 
   onAuthStateChanged(auth, (user) => {
@@ -118,16 +111,30 @@ function renderForumPosts() {
       </div>
     `).join('') : `<div class="forum-comment-empty">لا توجد تعليقات بعد.</div>`;
 
+    const isAuthor = _currentUser && post.authorUid === _currentUser.uid;
+    const actionsHtml = `
+      <div class="forum-post-actions">
+        <button class="forum-action-btn like-btn ${liked ? 'liked' : ''}" onclick="window._toggleForumLike('${post.id}')">
+          ❤️ ${likes.length}
+        </button>
+        <button class="forum-action-btn comment-btn" onclick="document.getElementById('forum-comment-input-${post.id}').focus()">
+          💬 تعليق
+        </button>
+        ${isAuthor ? `<button class="forum-action-btn delete-btn" onclick="window._deleteForumPost('${post.id}')">🗑 حذف</button>` : ''}
+      </div>
+    `;
+
     return `
       <div class="forum-post-card">
         <div class="forum-post-header">
-          <div>
-            <div class="forum-post-author">${escapeHTML(post.authorName)}</div>
-            <div class="forum-post-meta">${dateLabel}</div>
+          <div class="forum-post-author-block">
+            <div class="forum-post-avatar">${escapeHTML(post.authorName.charAt(0) || '؟')}</div>
+            <div>
+              <div class="forum-post-author">${escapeHTML(post.authorName)}</div>
+              <div class="forum-post-meta">${dateLabel}</div>
+            </div>
           </div>
-          <button class="forum-like-btn ${liked ? 'liked' : ''}" onclick="window._toggleForumLike('${post.id}')">
-            ❤️ ${likes.length}
-          </button>
+          ${actionsHtml}
         </div>
         <div class="forum-post-content">${escapeHTML(post.content)}</div>
         <div class="forum-post-footer">
@@ -155,6 +162,17 @@ window._toggleForumLike = async function(postId) {
     await unlikeForumPost(postId, _currentUser.uid);
   } else {
     await likeForumPost(postId, _currentUser.uid);
+  }
+};
+
+window._deleteForumPost = async function(postId) {
+  if (!_currentUser) return;
+  const confirmed = confirm('هل أنت متأكد أنك تريد حذف هذا المنشور؟');
+  if (!confirmed) return;
+  const result = await deleteForumPost(postId, _currentUser.uid);
+  if (!result?.success) {
+    console.error('Delete forum post failed:', result?.error);
+    alert(`فشل حذف المنشور.\n${result?.error || ''}`);
   }
 };
 
