@@ -5,7 +5,7 @@ import { getAuth, GoogleAuthProvider,
          onAuthStateChanged }                         from 'firebase/auth';
 import { getFirestore, collection, query, where,
          getDocs, doc, getDoc, setDoc, updateDoc,
-         serverTimestamp, arrayUnion, onSnapshot }   from 'firebase/firestore';
+         deleteDoc, serverTimestamp, arrayUnion, onSnapshot }   from 'firebase/firestore';
 import { FIREBASE_CONFIG }                            from './firebase-config.js';
 import { pullFromCloud, setupSync }                   from './cloud-sync.js';
 
@@ -147,21 +147,35 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
     // وإلا أنشئ طلب جديد
     const reqRef = doc(db, 'friendRequests', reqId);
     const existing = await getDoc(reqRef);
-    if (existing.exists() && existing.data().status === 'pending') {
-      console.log('⚠️ Request already sent');
-      return;
+    if (existing.exists()) {
+      const status = existing.data().status;
+      if (status === 'pending') {
+        console.log('⚠️ Request already sent');
+        return false;
+      }
+      if (status === 'accepted') {
+        console.log('⚠️ Request already accepted');
+        return false;
+      }
+      if (status === 'rejected') {
+        console.log('🔁 Previous request rejected - deleting old request and retrying');
+        await deleteDoc(reqRef);
+      }
     }
 
     await setDoc(reqRef, {
       from: fromUid,
       to: toUid,
       fromName: fromName || 'لاعب',
+      toName: '',
       status: 'pending',
       createdAt: serverTimestamp(),
     });
     console.log('✅ Friend request sent successfully:', reqId);
+    return true;
   } catch (e) {
     console.error('❌ Error sending request:', e.code, e.message);
+    return false;
   }
 }
 
@@ -302,6 +316,49 @@ export async function getIncomingRequests(uid) {
   } catch (e) {
     console.error('Error fetching requests:', e);
     return [];
+  }
+}
+
+// الحصول على طلبات الصداقة المرسلة
+export async function getOutgoingRequests(uid) {
+  try {
+    const q = query(collection(db, 'friendRequests'), where('from', '==', uid), where('status', '==', 'pending'));
+    const snap = await getDocs(q);
+    const requests = [];
+    snap.forEach((doc) => {
+      requests.push({
+        id: doc.id,
+        toUid: doc.data().to,
+        toName: doc.data().toName || '',
+      });
+    });
+    return requests;
+  } catch (e) {
+    console.error('Error fetching outgoing requests:', e);
+    return [];
+  }
+}
+
+export function listenForOutgoingRequests(uid, callback) {
+  try {
+    const q = query(collection(db, 'friendRequests'), where('from', '==', uid), where('status', '==', 'pending'));
+    return onSnapshot(q, (snap) => {
+      const requests = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        requests.push({
+          id: doc.id,
+          toUid: data.to,
+          toName: data.toName || '',
+        });
+      });
+      callback(requests);
+    }, (error) => {
+      console.error('❌ Error listening for outgoing requests:', error.code, error.message);
+    });
+  } catch (e) {
+    console.error('❌ Error setting up outgoing requests listener:', e);
+    return () => {};
   }
 }
 

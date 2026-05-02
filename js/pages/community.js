@@ -2,8 +2,9 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getState, setState, removeState } from '../core/app-state.js';
 import { signInWithGoogle, getPlayers, getFriends, getIncomingRequests,
-         sendFriendRequest, acceptFriendRequest, rejectFriendRequest,
-         listenForIncomingRequests, getPlayerProfile,
+         getOutgoingRequests, sendFriendRequest, acceptFriendRequest,
+         rejectFriendRequest, listenForIncomingRequests,
+         listenForOutgoingRequests, getPlayerProfile,
          sendChatMessage, listenForMessages } from '../core/firebase.js';
 
 let _chatListenerUnsub = null;
@@ -14,6 +15,7 @@ let _currentUser = null;
 let _allPlayers = [];
 let _userFriends = [];
 let _incomingRequests = [];
+let _outgoingRequests = [];
 let _activeTab = 'all';
 
 function _friendRequestKey(fromUid, toUid) {
@@ -21,7 +23,8 @@ function _friendRequestKey(fromUid, toUid) {
 }
 
 function _hasSentRequest(fromUid, toUid) {
-  return getState(_friendRequestKey(fromUid, toUid), null) === 'pending';
+  return getState(_friendRequestKey(fromUid, toUid), null) === 'pending'
+    || _outgoingRequests.some(r => r.toUid === toUid);
 }
 
 function _markRequestSent(fromUid, toUid) {
@@ -65,17 +68,29 @@ export function initCommunity(showPage) {
       _requestsListenerUnsub();
       _requestsListenerUnsub = null;
     }
+    if (_outgoingRequestsListenerUnsub) {
+      _outgoingRequestsListenerUnsub();
+      _outgoingRequestsListenerUnsub = null;
+    }
 
     if (!user) {
       renderNotLoggedIn();
     } else {
       loadCommunityData();
 
-      // ابدأ الاستماع المباشر للطلبات
+      // ابدأ الاستماع المباشر للطلبات الواردة
       _requestsListenerUnsub = listenForIncomingRequests(user.uid, (requests) => {
         _incomingRequests = requests;
         if (_activeTab === 'requests') {
           renderRequests();
+        }
+      });
+
+      // ابدأ الاستماع المباشر للطلبات المرسلة
+      _outgoingRequestsListenerUnsub = listenForOutgoingRequests(user.uid, (requests) => {
+        _outgoingRequests = requests;
+        if (_activeTab === 'all') {
+          renderAllPlayers();
         }
       });
     }
@@ -83,6 +98,7 @@ export function initCommunity(showPage) {
 }
 
 let _requestsListenerUnsub = null;
+let _outgoingRequestsListenerUnsub = null;
 
 function setupCommunityAuthModal() {
   const modal = document.getElementById('community-auth-modal');
@@ -167,6 +183,15 @@ async function loadCommunityData() {
     } catch (e) {
       console.error('Error loading requests:', e.message);
       _incomingRequests = [];
+    }
+
+    // احصل على طلبات الصداقة المرسلة
+    try {
+      _outgoingRequests = await getOutgoingRequests(_currentUser.uid);
+      console.log('Outgoing requests loaded:', _outgoingRequests.length);
+    } catch (e) {
+      console.error('Error loading outgoing requests:', e.message);
+      _outgoingRequests = [];
     }
   }
 
@@ -312,9 +337,12 @@ function renderRequests() {
 window._addFriend = async function(toUid, toName) {
   if (!_currentUser) return;
 
-  _markRequestSent(_currentUser.uid, toUid);
   const fromName = _currentUser.displayName || 'لاعب';
-  await sendFriendRequest(_currentUser.uid, toUid, fromName);
+  const success = await sendFriendRequest(_currentUser.uid, toUid, fromName);
+  if (success) {
+    _markRequestSent(_currentUser.uid, toUid);
+    _outgoingRequests.push({ toUid, toName });
+  }
   renderAllPlayers();
 };
 

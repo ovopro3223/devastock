@@ -8,10 +8,10 @@ const LETTER_SPACING = 220;   // مسافة عمودية بين الأحرف
 const TREE_SPAWN_RATE = 0.020;
 const ITEM_SPAWN_RATE = 0.010;
 const OPPOSING_CAR_SPAWN_RATE = 0.008; // احتمال ظهور سيارة معاكسة
-const CAR_MAX_SPEED = 7;      // السرعة الأفقية القصوى للسيارة
-const CAR_ACCEL = 0.35;       // تسارع الانتقال
-const CAR_FRICTION = 0.85;    // احتكاك (لتقليل السرعة عند ترك المفتاح)
-const ROAD_WIDTH_RATIO = 0.52;  // نسبة عرض الطريق من عرض الشاشة
+const CAR_MAX_SPEED = 5;      // السرعة الأفقية القصوى للسيارة
+const CAR_ACCEL = 0.22;       // تسارع الانتقال
+const CAR_FRICTION = 0.88;    // احتكاك (لتقليل السرعة عند ترك المفتاح)
+const ROAD_WIDTH_RATIO = 0.72;  // نسبة عرض الطريق من عرض الشاشة (أعرض طريق)
 const CAR_WIDTH_RATIO = 0.34;  // نسبة عرض السيارة = شارع واحد من الثلاث (~1/3)
 const ROAD_TOP_WIDTH_RATIO = 0.18; // طول الطريق عند الأفق
 const ROAD_SCROLL_HORIZON = 0.18; // موقع الأفق بالنسبة للارتفاع
@@ -40,7 +40,7 @@ export class TaxiGame {
     this.roadOffset = 0;
     this.roadTargetOffset = 0;
     this.scrollY = 0;
-    this.speed = 5;
+    this.speed = 1.9;        // سرعة بداية أبطأ
     this.lives = 3;
     this.score = 0;
 
@@ -174,6 +174,7 @@ export class TaxiGame {
     this._resize();
     this.lives = 3;
     this.score = 0;
+    this.speed = 1.9;
     this.letters = [];
     this.trees = [];
     this.items = [];
@@ -473,9 +474,9 @@ export class TaxiGame {
     this.items         = this.items.filter(i => i.y < this.H + 80 && !i.collected);
     this.opposingCars  = this.opposingCars.filter(oc => oc.y < this.H + 100 && !oc.hit);
 
-    // تسريع تدريجي
-    if (this.scrollY % 1500 < this.speed) {
-      this.speed = Math.min(12, this.speed + 0.3);
+    // تسريع تدريجي بطيء (يصل لـ 5.5 كحد أقصى)
+    if (this.scrollY % 2500 < this.speed) {
+      this.speed = Math.min(5.5, this.speed + 0.1);
     }
   }
 
@@ -633,70 +634,174 @@ export class TaxiGame {
     const ctx = this.ctx;
     const w = this.car.width;
     const h = this.car.height;
-    const baseY = y + h * 0.1;
+    const top = y;
+    const bottom = y + h;
 
-    // ظل السيارة
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    // ===== ظل السيارة (تحت) =====
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
     ctx.beginPath();
-    ctx.ellipse(x, baseY + h * 0.65, w * 0.48, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, bottom + 8, w * 0.5, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // رسم السيارة (رسم جميل دائماً)
-    const bodyGradient = ctx.createLinearGradient(0, baseY - h * 0.2, 0, baseY + h);
-    bodyGradient.addColorStop(0, '#fff567');
-    bodyGradient.addColorStop(1, '#d7ae14');
-    ctx.fillStyle = bodyGradient;
+    // ===== العجلات الخلفية (تظهر من الأطراف) =====
+    const wheelR = w * 0.13;
+    ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
-    ctx.moveTo(x - w / 2, baseY);
-    ctx.lineTo(x + w / 2, baseY);
-    ctx.lineTo(x + w / 2 - 8, baseY + h);
-    ctx.lineTo(x - w / 2 + 8, baseY + h);
+    ctx.arc(x - w * 0.45, bottom - h * 0.18, wheelR, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.45, bottom - h * 0.18, wheelR, 0, Math.PI * 2);
+    ctx.fill();
+    // الجنط (rim)
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(x - w * 0.45, bottom - h * 0.18, wheelR * 0.55, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.45, bottom - h * 0.18, wheelR * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.beginPath();
+    ctx.arc(x - w * 0.45, bottom - h * 0.18, wheelR * 0.25, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.45, bottom - h * 0.18, wheelR * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ===== العجلات الأمامية =====
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath();
+    ctx.arc(x - w * 0.45, top + h * 0.22, wheelR, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.45, top + h * 0.22, wheelR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(x - w * 0.45, top + h * 0.22, wheelR * 0.55, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.45, top + h * 0.22, wheelR * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.beginPath();
+    ctx.arc(x - w * 0.45, top + h * 0.22, wheelR * 0.25, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.45, top + h * 0.22, wheelR * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ===== جسم السيارة الأصفر =====
+    const bodyGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+    bodyGrad.addColorStop(0,    '#D4A410');
+    bodyGrad.addColorStop(0.15, '#FFE066');
+    bodyGrad.addColorStop(0.5,  '#FFD700');
+    bodyGrad.addColorStop(0.85, '#FFE066');
+    bodyGrad.addColorStop(1,    '#D4A410');
+    ctx.fillStyle = bodyGrad;
+    // شكل السيارة بانحناءات (مقدمة + خلفية مدورة)
+    const bodyMargin = w * 0.06;
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2 + bodyMargin, top + h * 0.15);
+    // الكابوت الأمامي (منحني)
+    ctx.quadraticCurveTo(x - w / 2, top + h * 0.05, x - w / 2 + 4, top + h * 0.30);
+    ctx.lineTo(x - w / 2 + 4, bottom - h * 0.30);
+    // الصندوق الخلفي
+    ctx.quadraticCurveTo(x - w / 2, bottom - h * 0.05, x - w / 2 + bodyMargin, bottom - h * 0.15);
+    ctx.lineTo(x + w / 2 - bodyMargin, bottom - h * 0.15);
+    ctx.quadraticCurveTo(x + w / 2, bottom - h * 0.05, x + w / 2 - 4, bottom - h * 0.30);
+    ctx.lineTo(x + w / 2 - 4, top + h * 0.30);
+    ctx.quadraticCurveTo(x + w / 2, top + h * 0.05, x + w / 2 - bodyMargin, top + h * 0.15);
     ctx.closePath();
     ctx.fill();
-
-    const roofW = w * 0.65;
-    const roofH = h * 0.55 * 0.45;
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.beginPath();
-    ctx.moveTo(x - roofW / 2, baseY + roofH * 0.2);
-    ctx.lineTo(x + roofW / 2, baseY + roofH * 0.2);
-    ctx.lineTo(x + roofW / 2 - 6, baseY + roofH + roofH * 0.1);
-    ctx.lineTo(x - roofW / 2 + 6, baseY + roofH + roofH * 0.1);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(52,152,219,0.85)';
-    ctx.beginPath();
-    ctx.moveTo(x - roofW / 2 + 8, baseY + roofH * 0.25);
-    ctx.lineTo(x + roofW / 2 - 8, baseY + roofH * 0.25);
-    ctx.lineTo(x + roofW / 2 - 12, baseY + roofH + roofH * 0.05);
-    ctx.lineTo(x - roofW / 2 + 12, baseY + roofH + roofH * 0.05);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = '#1A1A2E';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = '#1A1A2E';
-    ctx.fillRect(x - w / 2 + 12, baseY + h * 0.35, w * 0.25, h * 0.16);
-    ctx.fillRect(x + w / 2 - 12 - w * 0.25, baseY + h * 0.35, w * 0.25, h * 0.16);
-
-    const wheelW = w * 0.16;
-    const wheelH = wheelW * 0.8;
-    ctx.fillStyle = '#1A1A2E';
+    // ===== الزجاج الأمامي (windshield) =====
+    const winY1 = top + h * 0.32;
+    const winY2 = top + h * 0.48;
+    const winInset = w * 0.13;
+    const wsGrad = ctx.createLinearGradient(0, winY1, 0, winY2);
+    wsGrad.addColorStop(0, 'rgba(40, 60, 100, 0.95)');
+    wsGrad.addColorStop(1, 'rgba(120, 150, 200, 0.85)');
+    ctx.fillStyle = wsGrad;
     ctx.beginPath();
-    ctx.ellipse(x - w * 0.34, baseY + h + wheelH * 0.4, wheelW, wheelH, 0, 0, Math.PI * 2);
+    ctx.moveTo(x - w / 2 + winInset + 4, winY1);
+    ctx.lineTo(x + w / 2 - winInset - 4, winY1);
+    ctx.lineTo(x + w / 2 - winInset - 8, winY2);
+    ctx.lineTo(x - w / 2 + winInset + 8, winY2);
+    ctx.closePath();
     ctx.fill();
+    // لمعة الزجاج
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.beginPath();
-    ctx.ellipse(x + w * 0.34, baseY + h + wheelH * 0.4, wheelW, wheelH, 0, 0, Math.PI * 2);
+    ctx.moveTo(x - w / 2 + winInset + 8, winY1 + 2);
+    ctx.lineTo(x - w * 0.05, winY1 + 2);
+    ctx.lineTo(x - w * 0.15, winY2 - 2);
+    ctx.lineTo(x - w / 2 + winInset + 12, winY2 - 2);
+    ctx.closePath();
     ctx.fill();
 
+    // ===== سقف السيارة (المنطقة بين الزجاج الأمامي والخلفي) =====
+    const roofGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+    roofGrad.addColorStop(0, '#B8860B');
+    roofGrad.addColorStop(0.5, '#FFD700');
+    roofGrad.addColorStop(1, '#B8860B');
+    ctx.fillStyle = roofGrad;
+    ctx.fillRect(x - w / 2 + winInset + 8, winY2, w - 2 * (winInset + 8), h * 0.10);
+
+    // علامة TAXI على السقف
     ctx.fillStyle = '#1A1A2E';
-    ctx.font = 'bold 10px Cairo, Arial';
+    ctx.fillRect(x - w * 0.18, winY2 + 2, w * 0.36, h * 0.06);
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${Math.round(h * 0.045)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('TAXI', x, baseY + h * 0.6);
+    ctx.fillText('TAXI', x, winY2 + h * 0.05);
+
+    // ===== الزجاج الخلفي =====
+    const rwY1 = top + h * 0.58;
+    const rwY2 = top + h * 0.72;
+    ctx.fillStyle = wsGrad;
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2 + winInset + 8, rwY1);
+    ctx.lineTo(x + w / 2 - winInset - 8, rwY1);
+    ctx.lineTo(x + w / 2 - winInset - 4, rwY2);
+    ctx.lineTo(x - w / 2 + winInset + 4, rwY2);
+    ctx.closePath();
+    ctx.fill();
+
+    // ===== المصابيح الأمامية =====
+    const hlSize = w * 0.10;
+    const hlGrad = ctx.createRadialGradient(x - w * 0.30, top + h * 0.10, 0, x - w * 0.30, top + h * 0.10, hlSize * 1.5);
+    hlGrad.addColorStop(0, '#FFFFFF');
+    hlGrad.addColorStop(0.5, '#FFF8DC');
+    hlGrad.addColorStop(1, 'rgba(255,248,220,0.4)');
+    ctx.fillStyle = hlGrad;
+    ctx.beginPath();
+    ctx.ellipse(x - w * 0.30, top + h * 0.10, hlSize, hlSize * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.30, top + h * 0.10, hlSize, hlSize * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ===== المصابيح الخلفية (حمراء) =====
+    ctx.fillStyle = '#E74C3C';
+    ctx.beginPath();
+    ctx.ellipse(x - w * 0.30, bottom - h * 0.08, hlSize * 0.8, hlSize * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.30, bottom - h * 0.08, hlSize * 0.8, hlSize * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ===== المرايا الجانبية =====
+    ctx.fillStyle = '#1A1A2E';
+    ctx.fillRect(x - w / 2 - 4, top + h * 0.32, 6, h * 0.05);
+    ctx.fillRect(x + w / 2 - 2, top + h * 0.32, 6, h * 0.05);
+
+    // ===== لوحة الترخيص =====
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(x - w * 0.13, bottom - h * 0.04, w * 0.26, h * 0.04);
+    ctx.fillStyle = '#1A1A2E';
+    ctx.font = `bold ${Math.round(h * 0.025)}px Arial`;
+    ctx.fillText('TX-007', x, bottom - h * 0.022);
+
+    // ===== خط الباب الأوسط =====
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2 + 4, top + h * 0.5);
+    ctx.lineTo(x + w / 2 - 4, top + h * 0.5);
+    ctx.stroke();
   }
 
   _drawOpposingCar(x, y, color, scale = 1) {
