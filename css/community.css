@@ -1,0 +1,693 @@
+/* ===== صفحة المجتمع ===== */
+#page-community {
+  background: linear-gradient(160deg, #1A1A2E 0%, #0F0F1E 50%, #16213E 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.community-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 1rem;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.community-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.community-sidebar {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+}
+
+.community-sidebar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 520px;
+  padding: 1.2rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.community-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--color-text);
+}
+
+.community-sidebar-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-gold);
+}
+
+.community-sidebar-header p {
+  margin: 0;
+  color: var(--color-dim);
+  font-size: 0.9rem;
+}
+
+/* ===== التبويبات ===== */
+.community-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255,215,0,0.1);
+}
+
+.community-tab {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-dim);
+  font-size: 0.9rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.community-tab:hover {
+  color: var(--color-gold);
+}
+
+.community-tab.active {
+  color: var(--color-gold);
+  border-bottom-color: var(--color-gold);
+}
+
+/* ===== البحث ===== */
+.community-search {
+  display: flex;
+}
+
+.community-search input {
+  flex: 1;
+  padding: 0.8rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,215,0,0.15);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  outline: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.community-search input::placeholder {
+  color: var(--color-dim);
+}
+
+.community-search input:focus {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,215,0,0.3);
+}
+
+/* ===== محتوى التبويب ===== */
+.community-tab-content {
+  display: none;
+}
+
+.community-tab-content[style*="display: block"] {
+  display: block;
+  animation: contentFadeIn 0.2s ease forwards;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ===== قائمة اللاعبين ===== */
+.community-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.community-player-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.8rem;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+  backdrop-filter: blur(8px);
+}
+
+.community-player-card:hover {
+  background: rgba(255,215,0,0.06);
+  border-color: rgba(255,215,0,0.25);
+  transform: translateY(-2px);
+}
+
+.community-player-rank {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.community-player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.community-player-name {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.community-player-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-dim);
+}
+
+.community-player-score {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.community-player-score-label {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+.community-player-button {
+  padding: 0.5rem 1rem;
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.2);
+  border-radius: 0.4rem;
+  color: var(--color-gold);
+  font-size: 0.8rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.community-player-button:hover {
+  background: rgba(255,215,0,0.2);
+  border-color: rgba(255,215,0,0.4);
+}
+
+.community-player-button.sent,
+.community-player-button.friend {
+  background: transparent;
+  border-color: rgba(100,200,100,0.3);
+  color: var(--color-dim);
+  cursor: default;
+}
+
+.community-player-button.friend {
+  color: var(--color-gold);
+}
+
+/* ===== طلب الصداقة ===== */
+.community-request-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255,215,0,0.05);
+  border: 1px solid rgba(255,215,0,0.15);
+  border-radius: 0.6rem;
+}
+
+.community-request-info {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.community-request-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.community-request-btn {
+  padding: 0.5rem 0.8rem;
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.2);
+  border-radius: 0.4rem;
+  color: var(--color-gold);
+  font-size: 0.8rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.community-request-btn:hover {
+  background: rgba(255,215,0,0.2);
+  border-color: rgba(255,215,0,0.4);
+}
+
+.community-request-btn.reject {
+  background: rgba(200,100,100,0.1);
+  border-color: rgba(200,100,100,0.2);
+  color: var(--color-dim);
+}
+
+.community-request-btn.reject:hover {
+  background: rgba(200,100,100,0.2);
+  border-color: rgba(200,100,100,0.4);
+}
+
+.community-chat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 420px;
+  max-height: 520px;
+}
+
+.community-chat-panel.hidden {
+  display: none;
+}
+
+.community-chat-panel-top {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.chat-contact-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at top left, rgba(255,215,0,0.3), rgba(255,255,255,0.08));
+  color: var(--color-gold);
+  font-size: 1.4rem;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.chat-contact-name {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.chat-contact-status {
+  font-size: 0.82rem;
+  color: var(--color-dim);
+}
+
+.community-chat-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-dim);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.community-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.community-chat-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(0,0,0,0.22);
+  border-radius: 0.85rem;
+}
+
+.community-chat-form input {
+  flex: 1;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,215,0,0.15);
+  border-radius: 0.75rem;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.community-chat-form input:focus {
+  border-color: rgba(255,215,0,0.35);
+}
+
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 84%;
+  padding: 0.85rem 1rem;
+  border-radius: 1.2rem;
+  word-break: break-word;
+  font-size: 0.9rem;
+  animation: chatMsgIn 0.18s ease forwards;
+}
+
+.chat-message.sent {
+  align-self: flex-end;
+  background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(243,156,18,0.12));
+  border: 1px solid rgba(255,215,0,0.28);
+  color: var(--color-text);
+}
+
+.chat-message.received {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--color-text);
+}
+
+.chat-message-time {
+  font-size: 0.68rem;
+  color: var(--color-dim);
+  margin-top: 0.3rem;
+  align-self: flex-end;
+}
+
+.community-chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  min-height: 420px;
+  padding: 1rem;
+  color: var(--color-dim);
+  text-align: center;
+}
+
+.community-empty-hero {
+  font-size: 3rem;
+}
+
+@media (max-width: 880px) {
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .community-sidebar {
+    position: static;
+  }
+}
+
+/* ===== فارغة ===== */
+.community-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-dim);
+  font-size: 0.9rem;
+}
+
+.community-empty-emoji {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== بروفايل لاعب ===== */
+.player-profile-box {
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+}
+
+.player-profile-close {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-dim);
+  font-size: 1.6rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+.player-profile-close:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text);
+}
+
+.player-profile-emoji {
+  font-size: 4rem;
+  margin: 0.5rem 0;
+}
+
+.player-profile-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.3rem;
+}
+
+.player-profile-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,215,0,0.08);
+  border: 1px solid rgba(255,215,0,0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--color-gold);
+  margin-bottom: 1rem;
+}
+
+.player-profile-stats {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.player-profile-stat {
+  text-align: center;
+}
+.player-profile-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+.player-profile-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-dim);
+  margin-top: 0.2rem;
+}
+
+.player-profile-bio {
+  margin: 1rem 0;
+  color: var(--color-dim);
+  font-style: italic;
+  font-size: 0.9rem;
+  padding: 0.6rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 0.5rem;
+}
+
+.player-profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.player-profile-actions .btn {
+  flex: 1;
+}
+
+/* ===== الشات ===== */
+.chat-modal-box {
+  max-width: 480px;
+  width: 92%;
+  height: 80vh;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255,215,0,0.15);
+  background: rgba(255,215,0,0.05);
+}
+
+.chat-back-btn {
+  background: none;
+  border: none;
+  color: var(--color-dim);
+  font-size: 1.6rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+.chat-back-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text);
+}
+
+#chat-with-name {
+  font-weight: 700;
+  color: var(--color-gold);
+  font-size: 1.05rem;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  padding: 0.6rem 0.9rem;
+  border-radius: 1rem;
+  word-break: break-word;
+  font-size: 0.9rem;
+  animation: chatMsgIn 0.2s ease forwards;
+}
+
+@keyframes chatMsgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.chat-message.sent {
+  align-self: flex-end;
+  background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(243,156,18,0.1));
+  border: 1px solid rgba(255,215,0,0.25);
+  color: var(--color-text);
+}
+
+.chat-message.received {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--color-text);
+}
+
+.chat-message-time {
+  font-size: 0.65rem;
+  color: var(--color-dim);
+  margin-top: 0.2rem;
+  align-self: flex-end;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-top: 1px solid rgba(255,215,0,0.15);
+  background: rgba(0,0,0,0.2);
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 0.7rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,215,0,0.15);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  outline: none;
+}
+.chat-form input:focus {
+  border-color: rgba(255,215,0,0.4);
+}
+
+.chat-send-btn {
+  padding: 0.7rem 1.2rem;
+  background: linear-gradient(135deg, #FFD700, #F39C12);
+  border: none;
+  border-radius: 0.5rem;
+  color: #1A1A2E;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.chat-send-btn:hover {
+  transform: scale(1.03);
+}
+
+/* ===== رسالة تسجيل الدخول ===== */
+.community-login-prompt {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: rgba(255,215,0,0.05);
+  border: 1px solid rgba(255,215,0,0.15);
+  border-radius: 1rem;
+  margin: 2rem 0;
+}
+
+.community-login-emoji {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.community-login-prompt h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  margin-bottom: 0.5rem;
+}
+
+.community-login-prompt p {
+  color: var(--color-dim);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.community-login-prompt .btn {
+  margin: 0 auto;
+}
