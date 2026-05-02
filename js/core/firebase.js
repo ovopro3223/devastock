@@ -5,7 +5,7 @@ import { getAuth, GoogleAuthProvider,
          onAuthStateChanged }                         from 'firebase/auth';
 import { getFirestore, collection, query, where,
          getDocs, addDoc, doc, getDoc, setDoc, updateDoc,
-         deleteDoc, serverTimestamp, arrayUnion, onSnapshot }   from 'firebase/firestore';
+         deleteDoc, serverTimestamp, arrayUnion, orderBy, onSnapshot }   from 'firebase/firestore';
 import { FIREBASE_CONFIG }                            from './firebase-config.js';
 import { pullFromCloud, setupSync }                   from './cloud-sync.js';
 
@@ -85,6 +85,8 @@ export async function getPlayers() {
       players.push({
         uid: doc.id,
         displayName: data.displayName || 'لاعب',
+        avatar: data.avatar || '👤',
+        avatarImage: data.avatarImage || '',
         score: data.score || 0,
         rankEmoji: data.rankEmoji || '🌱',
         rankLabel: data.rankLabel || 'مبتدئ',
@@ -108,12 +110,15 @@ export async function getFriends(uid) {
     for (const friendUid of friends) {
       const friendDoc = await getDoc(doc(db, 'leaderboard', friendUid));
       if (friendDoc.exists()) {
+        const friendData = friendDoc.data();
         friendsData.push({
           uid: friendUid,
-          displayName: friendDoc.data().displayName || 'لاعب',
-          score: friendDoc.data().score || 0,
-          rankEmoji: friendDoc.data().rankEmoji || '🌱',
-          rankLabel: friendDoc.data().rankLabel || 'مبتدئ',
+          displayName: friendData.displayName || 'لاعب',
+          avatar: friendData.avatar || '👤',
+          avatarImage: friendData.avatarImage || '',
+          score: friendData.score || 0,
+          rankEmoji: friendData.rankEmoji || '🌱',
+          rankLabel: friendData.rankLabel || 'مبتدئ',
         });
       }
     }
@@ -246,16 +251,21 @@ export async function getPlayerProfile(uid) {
   try {
     const lbDoc = await getDoc(doc(db, 'leaderboard', uid));
     const userDoc = await getDoc(doc(db, 'users', uid));
+    const lbData = lbDoc.exists() ? lbDoc.data() : {};
+    const userData = userDoc.exists() ? userDoc.data() : {};
+    const profile = userData.profile || {};
 
     return {
       uid,
-      displayName: lbDoc.data()?.displayName || 'لاعب',
-      score: lbDoc.data()?.score || 0,
-      totalLetters: lbDoc.data()?.totalLetters || 0,
-      rankEmoji: lbDoc.data()?.rankEmoji || '🌱',
-      rankLabel: lbDoc.data()?.rankLabel || 'لفل 1',
-      profile: userDoc.data()?.profile || {},
-      friends: userDoc.data()?.friends || [],
+      displayName: profile.name || lbData.displayName || 'لاعب',
+      avatar: profile.avatar || lbData.avatar || '👤',
+      avatarImage: profile.avatarImage || '',
+      score: lbData.score || 0,
+      totalLetters: lbData.totalLetters || 0,
+      rankEmoji: lbData.rankEmoji || '🌱',
+      rankLabel: lbData.rankLabel || 'لفل 1',
+      profile,
+      friends: userData.friends || [],
     };
   } catch (e) {
     console.error('Error fetching profile:', e);
@@ -357,6 +367,118 @@ export function listenForOutgoingRequests(uid, callback) {
   } catch (e) {
     console.error('❌ Error setting up outgoing requests listener:', e);
     return () => {};
+  }
+}
+
+export function listenForForumPosts(callback) {
+  try {
+    const q = query(collection(db, 'forumPosts'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snap) => {
+      const posts = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        posts.push({
+          id: doc.id,
+          authorUid: data.authorUid,
+          authorName: data.authorName || 'لاعب',
+          content: data.content || '',
+          createdAt: data.createdAt?.toDate() || new Date(),
+        });
+      });
+      callback(posts);
+    });
+  } catch (e) {
+    console.error('Error listening for forum posts:', e);
+    return () => {};
+  }
+}
+
+export function listenForForumComments(postId, callback) {
+  try {
+    const q = query(collection(db, 'forumPosts', postId, 'comments'), orderBy('createdAt', 'asc'));
+    return onSnapshot(q, (snap) => {
+      const comments = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        comments.push({
+          id: doc.id,
+          authorUid: data.authorUid,
+          authorName: data.authorName || 'لاعب',
+          content: data.content || '',
+          createdAt: data.createdAt?.toDate() || new Date(),
+        });
+      });
+      callback(comments);
+    });
+  } catch (e) {
+    console.error('Error listening for forum comments:', e);
+    return () => {};
+  }
+}
+
+export function listenForForumLikes(postId, callback) {
+  try {
+    const q = query(collection(db, 'forumPosts', postId, 'likes'));
+    return onSnapshot(q, (snap) => {
+      const likes = [];
+      snap.forEach((doc) => likes.push(doc.id));
+      callback(likes);
+    });
+  } catch (e) {
+    console.error('Error listening for forum likes:', e);
+    return () => {};
+  }
+}
+
+export async function createForumPost(authorUid, authorName, content) {
+  try {
+    if (!authorUid || !content.trim()) return null;
+    const postRef = await addDoc(collection(db, 'forumPosts'), {
+      authorUid,
+      authorName,
+      content: content.trim(),
+      createdAt: serverTimestamp(),
+    });
+    return postRef.id;
+  } catch (e) {
+    console.error('Error creating forum post:', e);
+    return null;
+  }
+}
+
+export async function addForumComment(postId, authorUid, authorName, content) {
+  try {
+    if (!postId || !authorUid || !content.trim()) return null;
+    const commentRef = await addDoc(collection(db, 'forumPosts', postId, 'comments'), {
+      authorUid,
+      authorName,
+      content: content.trim(),
+      createdAt: serverTimestamp(),
+    });
+    return commentRef.id;
+  } catch (e) {
+    console.error('Error adding forum comment:', e);
+    return null;
+  }
+}
+
+export async function likeForumPost(postId, userUid) {
+  try {
+    if (!postId || !userUid) return;
+    await setDoc(doc(db, 'forumPosts', postId, 'likes', userUid), {
+      createdAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('Error liking forum post:', e);
+  }
+}
+
+export async function unlikeForumPost(postId, userUid) {
+  try {
+    if (!postId || !userUid) return;
+    await deleteDoc(doc(db, 'forumPosts', postId, 'likes', userUid));
+  } catch (e) {
+    console.error('Error unliking forum post:', e);
   }
 }
 

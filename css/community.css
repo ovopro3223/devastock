@@ -192,6 +192,25 @@
   color: var(--color-dim);
 }
 
+.community-player-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,0.08);
+  color: var(--color-gold);
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.community-player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .community-player-score {
   display: flex;
   gap: 0.25rem;
@@ -423,6 +442,194 @@
   }
 }
 
+/* ===== صفحة المنتدى ===== */
+.forum-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(280px, 1fr);
+  gap: 1.2rem;
+}
+
+.forum-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forum-sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.forum-sidebar-card,
+.forum-create-panel,
+.forum-post-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 1rem;
+  padding: 1.2rem;
+  backdrop-filter: blur(12px);
+}
+
+.forum-create-panel h3 {
+  margin: 0 0 0.75rem;
+}
+
+.forum-post-form textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255,215,0,0.15);
+  background: rgba(255,255,255,0.06);
+  color: var(--color-text);
+  font-family: var(--font);
+  resize: vertical;
+  outline: none;
+}
+
+.forum-post-form textarea:focus {
+  border-color: rgba(255,215,0,0.35);
+}
+
+.forum-post-list,
+.forum-comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.forum-post-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forum-post-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.forum-post-author {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.forum-post-meta {
+  color: var(--color-dim);
+  font-size: 0.85rem;
+}
+
+.forum-post-content {
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.forum-post-footer {
+  color: var(--color-dim);
+  font-size: 0.85rem;
+}
+
+.forum-like-btn {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(255,215,0,0.2);
+  background: rgba(255,215,0,0.08);
+  color: var(--color-gold);
+  border-radius: 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.forum-like-btn.liked {
+  background: rgba(255,215,0,0.2);
+}
+
+.forum-comments-section {
+  gap: 0.65rem;
+}
+
+.forum-comment {
+  padding: 0.85rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.85rem;
+}
+
+.forum-comment-author {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin-bottom: 0.35rem;
+}
+
+.forum-comment-text {
+  color: var(--color-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.forum-comment-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+}
+
+.forum-comment-form input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255,215,0,0.15);
+  background: rgba(255,255,255,0.06);
+  color: var(--color-text);
+  outline: none;
+}
+
+.forum-comment-form input:focus {
+  border-color: rgba(255,215,0,0.35);
+}
+
+.forum-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-dim);
+}
+
+.forum-empty-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.forum-login-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.forum-sidebar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forum-profile-summary {
+  color: var(--color-dim);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 880px) {
+  .forum-grid {
+    grid-template-columns: 1fr;
+  }
+  .forum-sidebar {
+    position: static;
+  }
+}
+
 /* ===== فارغة ===== */
 .community-empty {
   text-align: center;
@@ -462,6 +669,28 @@
 .player-profile-close:hover {
   background: rgba(255,255,255,0.08);
   color: var(--color-text);
+}
+
+.player-profile-avatar {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 0.8rem;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,0.08);
+}
+
+.player-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-profile-avatar-emoji {
+  font-size: 2.5rem;
+  color: var(--color-gold);
 }
 
 .player-profile-emoji {

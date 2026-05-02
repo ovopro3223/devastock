@@ -5,6 +5,7 @@ import { initModes }   from './pages/modes.js';
 import { initStock }   from './pages/stock.js';
 import { initMuseum }  from './pages/museum.js';
 import { initProfile } from './pages/profile.js';
+import { initForum }   from './pages/forum.js';
 import { initSettings } from './pages/settings.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
@@ -13,7 +14,7 @@ import { renderAuthButton } from './core/auth-ui.js';
 
 const PAGE_IDS = [
   'home', 'menu', 'modes', 'letter-rain', 'letter-blaze',
-  'stock', 'museum', 'museum-cat', 'profile', 'community', 'casino',
+  'stock', 'museum', 'museum-cat', 'profile', 'community', 'forum', 'casino',
   'taxi', 'fishing', 'sniper', 'settings',
 ];
 
@@ -28,6 +29,7 @@ const BACK_TARGETS = {
   'museum-cat': 'museum',
   profile: 'menu',
   community: 'menu',
+  forum: 'menu',
   settings: 'menu',
   casino: 'modes',
   taxi: 'modes',
@@ -84,6 +86,7 @@ initAuth((user) => {
   if (user) refreshHomeRank();
 });
 
+initForum(showPage);
 startBgRain('home-canvas');
 startBgRain('menu-canvas');
 showPage('home');

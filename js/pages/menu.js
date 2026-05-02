@@ -3,6 +3,7 @@ import { renderStock }      from './stock.js';
 import { renderMuseumMain } from './museum.js';
 import { renderProfile }    from './profile.js';
 import { initCommunity }    from './community.js';
+import { initForum }        from './forum.js';
 import { listenForIncomingRequests, signInWithGoogle, signOutUser } from '../core/firebase.js';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
@@ -40,8 +41,18 @@ export function initMenu(navigate) {
     navigate('community');
   });
 
+  const forumBtn = document.createElement('button');
+  forumBtn.id = 'btn-forum-menu';
+  forumBtn.className = 'btn btn-menu';
+  forumBtn.textContent = '📝 المنتدى';
+  forumBtn.addEventListener('click', () => {
+    initForum(navigate);
+    navigate('forum');
+  });
+
   const menuNav = document.querySelector('.menu-nav');
   menuNav.insertBefore(communityBtn, document.getElementById('btn-settings'));
+  menuNav.insertBefore(forumBtn, document.getElementById('btn-settings'));
 
   // ===== زر تسجيل الدخول / الخروج في القائمة =====
   const menuAuthBtn = document.getElementById('btn-menu-auth');

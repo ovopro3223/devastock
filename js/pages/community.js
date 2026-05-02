@@ -265,9 +265,13 @@ function renderAllPlayers() {
       buttonHTML = `<button class="community-player-button" onclick="window._addFriend('${player.uid}', '${player.displayName}')">أضف</button>`;
     }
 
+    const avatarHtml = player.avatarImage
+      ? `<img class="community-player-avatar" src="${player.avatarImage}" alt="Avatar">`
+      : `<div class="community-player-avatar">${player.avatar || player.rankEmoji}</div>`;
+
     return `
       <div class="community-player-card" onclick="window._viewProfile('${player.uid}')">
-        <span class="community-player-rank">${player.rankEmoji}</span>
+        ${avatarHtml}
         <div class="community-player-info">
           <div class="community-player-name">${player.displayName}</div>
           <div class="community-player-stats">
@@ -295,18 +299,23 @@ function renderFriends() {
     return;
   }
 
-  container.innerHTML = filtered.map(friend => `
-    <div class="community-player-card" onclick="window._viewProfile('${friend.uid}')">
-      <span class="community-player-rank">${friend.rankEmoji}</span>
-      <div class="community-player-info">
-        <div class="community-player-name">${friend.displayName}</div>
-        <div class="community-player-stats">
-          <span>${friend.rankLabel}</span>
+  container.innerHTML = filtered.map(friend => {
+    const avatarHtml = friend.avatarImage
+      ? `<img class="community-player-avatar" src="${friend.avatarImage}" alt="Avatar">`
+      : `<div class="community-player-avatar">${friend.avatar || friend.rankEmoji}</div>`;
+    return `
+      <div class="community-player-card" onclick="window._viewProfile('${friend.uid}')">
+        ${avatarHtml}
+        <div class="community-player-info">
+          <div class="community-player-name">${friend.displayName}</div>
+          <div class="community-player-stats">
+            <span>${friend.rankLabel}</span>
+          </div>
         </div>
+        <button class="community-player-button" onclick="event.stopPropagation(); window._openChat('${friend.uid}', '${friend.displayName}')">💬 شات</button>
       </div>
-      <button class="community-player-button" onclick="event.stopPropagation(); window._openChat('${friend.uid}', '${friend.displayName}')">💬 شات</button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderRequests() {
@@ -327,7 +336,7 @@ function renderRequests() {
       <div class="community-request-info">${req.fromName}</div>
       <div class="community-request-actions">
         <button class="community-request-btn" onclick="window._acceptRequest('${req.id}', '${req.fromUid}', ${i})">قبول</button>
-        <button class="community-request-btn reject" onclick="window._rejectRequest('${req.id}', ${i})">رفض</button>
+        <button class="community-request-btn reject" onclick="window._rejectRequest('${req.id}', '${req.fromUid}', ${i})">رفض</button>
       </div>
     </div>
   `).join('');
@@ -358,12 +367,10 @@ window._acceptRequest = async function(reqId, fromUid, index) {
   switchTab('requests');
 };
 
-window._rejectRequest = async function(reqId, index) {
+window._rejectRequest = async function(reqId, fromUid, index) {
   if (!_currentUser) return;
 
   await rejectFriendRequest(reqId);
-  // The sender may cancel or retry later, so we clear local request state
-  const [fromUid] = reqId.split('_');
   _clearFriendRequest(fromUid, _currentUser.uid);
   _incomingRequests.splice(index, 1);
   renderRequests();
@@ -410,7 +417,12 @@ window._viewProfile = async function(uid) {
     }
   }
 
+  const avatarHtml = profile.avatarImage
+    ? `<div class="player-profile-avatar"><img src="${profile.avatarImage}" alt="Avatar"></div>`
+    : `<div class="player-profile-avatar player-profile-avatar-emoji">${profile.avatar}</div>`;
+
   content.innerHTML = `
+    ${avatarHtml}
     <div class="player-profile-emoji">${profile.rankEmoji}</div>
     <div class="player-profile-name">${profile.displayName}</div>
     <div class="player-profile-rank">${profile.rankEmoji} ${profile.rankLabel}</div>
@@ -422,12 +434,14 @@ window._viewProfile = async function(uid) {
       </div>
       <div class="player-profile-stat">
         <div class="player-profile-stat-value">${profile.friends?.length || 0}</div>
-        <div class="player-profile-stat-label">صديق</div>
+        <div class="player-profile-stat-label">أصدقاء</div>
       </div>
     </div>
 
     ${userProfile.bio ? `<div class="player-profile-bio">"${userProfile.bio}"</div>` : ''}
     ${userProfile.city ? `<div style="color:#888;font-size:0.85rem">📍 ${userProfile.city}</div>` : ''}
+    ${userProfile.age ? `<div style="color:#888;font-size:0.85rem">🎂 العمر: ${userProfile.age}</div>` : ''}
+    ${userProfile.hobbies ? `<div style="color:#888;font-size:0.85rem">⭐ الهوايات: ${userProfile.hobbies}</div>` : ''}
 
     ${actionsHTML}
   `;

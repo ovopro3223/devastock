@@ -554,7 +554,8 @@ export class TaxiGame {
     for (const t of this.trees) {
       if (t.onRoad) {
         const roadWidthAtY = this._roadWidthAt(t.y);
-        const tx = W / 2 + t.x * roadWidthAtY * 0.45;
+        const centerAtY = this._roadCenterAt(t.y);
+        const tx = centerAtY + t.x * roadWidthAtY * 0.45;
         this._drawTree(tx, t.y, 28, 0.8);
       } else {
         const tx = W / 2 + t.side * t.offset * W;
@@ -566,9 +567,10 @@ export class TaxiGame {
     for (const l of this.letters) {
       if (l.collected) continue;
       const roadWidthAtY = this._roadWidthAt(l.y);
-      const lx = W / 2 + l.x * roadWidthAtY * 0.46;
+      const centerAtY = this._roadCenterAt(l.y);
+      const lx = centerAtY + l.x * roadWidthAtY * 0.46;
       const ly = l.y;
-      const size = Math.min(42, Math.max(24, 22 + (ly / H) * 20));
+      const size = Math.round(Math.min(40, Math.max(26, 28 + (ly / H) * 12)));
       const gradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, size);
       gradient.addColorStop(0, '#FFF1B5');
       gradient.addColorStop(0.4, '#FFD700');
@@ -591,7 +593,8 @@ export class TaxiGame {
     for (const item of this.items) {
       if (item.collected) continue;
       const roadWidthAtY = this._roadWidthAt(item.y);
-      const ix = W / 2 + item.x * roadWidthAtY * 0.46;
+      const centerAtY = this._roadCenterAt(item.y);
+      const ix = centerAtY + item.x * roadWidthAtY * 0.46;
       this._drawItem(ix, item.y, item.type, roadWidthAtY * 0.08);
     }
 
@@ -599,7 +602,8 @@ export class TaxiGame {
     for (const oc of this.opposingCars) {
       if (oc.hit) continue;
       const roadWidthAtY = this._roadWidthAt(oc.y);
-      const ocx = W / 2 + oc.x * roadWidthAtY * 0.45;
+      const centerAtY = this._roadCenterAt(oc.y);
+      const ocx = centerAtY + oc.x * roadWidthAtY * 0.45;
       // حجم نسبي مع البعد
       const scale = Math.max(0.35, oc.y / H);
       this._drawOpposingCar(ocx, oc.y, oc.color, scale);

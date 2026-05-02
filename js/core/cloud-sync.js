@@ -102,6 +102,7 @@ async function _updateLeaderboard() {
     await setDoc(doc(_db, 'leaderboard', _uid), {
       displayName:  profile.name || 'لاعب مجهول',
       avatar:       profile.avatar || '👤',
+      avatarImage:  profile.avatarImage || '',
       score:        level,
       totalLetters: total,
       rankLabel:    `لفل ${level}`,

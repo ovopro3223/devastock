@@ -631,6 +631,44 @@
     </div>
   </section>
 
+  <!-- ===== صفحة المنتدى ===== -->
+  <section id="page-forum" class="page">
+    <div class="forum-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">📝 المنتدى</h2>
+
+      <div class="forum-grid">
+        <main class="forum-main">
+          <div id="forum-create-panel" class="forum-create-panel">
+            <h3>انشر موضوعاً جديداً</h3>
+            <form id="forum-post-form" class="forum-post-form">
+              <textarea id="forum-post-input" rows="4" placeholder="ما الجديد؟"></textarea>
+              <button type="submit" class="btn btn-primary">نشر</button>
+            </form>
+          </div>
+
+          <div id="forum-login-prompt" class="forum-login-prompt" hidden>
+            <div class="forum-empty-emoji">🔐</div>
+            <div>سجّل دخول لتتمكن من المشاركة في المنتدى.</div>
+            <button class="btn btn-primary" id="forum-login-btn">تسجيل الدخول</button>
+          </div>
+
+          <div id="forum-posts-list" class="forum-posts-list"></div>
+        </main>
+
+        <aside class="forum-sidebar">
+          <div class="forum-sidebar-card">
+            <h3>مرحبا بك في المنتدى</h3>
+            <p>ناقش استراتيجيات اللعب، شارك إنجازاتك، أو اطلب نصائح من المجتمع.</p>
+            <div class="forum-profile-summary">
+              <div>الحالة: <span id="forum-user-label">ضيف</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== صفحة المتحف — الفئات ===== -->
   <section id="page-museum" class="page">
     <div class="museum-main-container">
