@@ -342,6 +342,8 @@ window._addFriend = async function(toUid, toName) {
   if (success) {
     _markRequestSent(_currentUser.uid, toUid);
     _outgoingRequests.push({ toUid, toName });
+  } else {
+    alert('فشل إرسال طلب الصداقة، الرجاء التأكد من صلاحيات Firestore أو إعادة تحميل الصفحة.');
   }
   renderAllPlayers();
 };

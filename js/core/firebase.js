@@ -157,10 +157,8 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
         console.log('⚠️ Request already accepted');
         return false;
       }
-      if (status === 'rejected') {
-        console.log('🔁 Previous request rejected - deleting old request and retrying');
-        await deleteDoc(reqRef);
-      }
+      console.log('🔁 Existing request doc found with status:', status, '- deleting stale request and retrying');
+      await deleteDoc(reqRef);
     }
 
     await setDoc(reqRef, {

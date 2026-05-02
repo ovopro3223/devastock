@@ -9,11 +9,11 @@ const TREE_SPAWN_RATE = 0.020;
 const ITEM_SPAWN_RATE = 0.010;
 const OPPOSING_CAR_SPAWN_RATE = 0.008; // احتمال ظهور سيارة معاكسة
 const CAR_MAX_SPEED = 5;      // السرعة الأفقية القصوى للسيارة
-const CAR_ACCEL = 0.22;       // تسارع الانتقال
-const CAR_FRICTION = 0.88;    // احتكاك (لتقليل السرعة عند ترك المفتاح)
-const ROAD_WIDTH_RATIO = 0.72;  // نسبة عرض الطريق من عرض الشاشة (أعرض طريق)
+const CAR_ACCEL = 0.18;       // تسارع الانتقال
+const CAR_FRICTION = 0.92;    // احتكاك (لتقليل السرعة عند ترك المفتاح)
+const ROAD_WIDTH_RATIO = 0.78;  // نسبة عرض الطريق من عرض الشاشة (أعرض طريق)
 const CAR_WIDTH_RATIO = 0.34;  // نسبة عرض السيارة = شارع واحد من الثلاث (~1/3)
-const ROAD_TOP_WIDTH_RATIO = 0.18; // طول الطريق عند الأفق
+const ROAD_TOP_WIDTH_RATIO = 0.24; // طول الطريق عند الأفق
 const ROAD_SCROLL_HORIZON = 0.18; // موقع الأفق بالنسبة للارتفاع
 const ROAD_OFFSET_MAX = 0.3;      // انحراف الطريق الأقصى
 const ROAD_CURVE_SPEED = 0.018;   // سرعة تغيير المنحنى
@@ -40,7 +40,7 @@ export class TaxiGame {
     this.roadOffset = 0;
     this.roadTargetOffset = 0;
     this.scrollY = 0;
-    this.speed = 1.9;        // سرعة بداية أبطأ
+    this.speed = 1.3;        // سرعة بداية أبطأ
     this.lives = 3;
     this.score = 0;
 
@@ -474,9 +474,9 @@ export class TaxiGame {
     this.items         = this.items.filter(i => i.y < this.H + 80 && !i.collected);
     this.opposingCars  = this.opposingCars.filter(oc => oc.y < this.H + 100 && !oc.hit);
 
-    // تسريع تدريجي بطيء (يصل لـ 5.5 كحد أقصى)
+    // تسريع تدريجي بطيء (يصل لـ 4.2 كحد أقصى)
     if (this.scrollY % 2500 < this.speed) {
-      this.speed = Math.min(5.5, this.speed + 0.1);
+      this.speed = Math.min(4.2, this.speed + 0.08);
     }
   }
 
@@ -568,7 +568,7 @@ export class TaxiGame {
       const roadWidthAtY = this._roadWidthAt(l.y);
       const lx = W / 2 + l.x * roadWidthAtY * 0.46;
       const ly = l.y;
-      const size = 24 + (1 - ly / H) * 10;
+      const size = Math.min(42, Math.max(24, 22 + (ly / H) * 20));
       const gradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, size);
       gradient.addColorStop(0, '#FFF1B5');
       gradient.addColorStop(0.4, '#FFD700');
