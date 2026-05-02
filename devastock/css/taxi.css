@@ -1,0 +1,27 @@
+/* ===== نمط تاكسي الأحرف 🚕 ===== */
+#page-taxi {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #7ec0ef 0%, #4d90c2 40%, #2d4a73 100%);
+  overflow: hidden;
+}
+
+#taxi-canvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.15), 0 24px 72px rgba(0, 0, 0, 0.25);
+  border-radius: 18px;
+  background: radial-gradient(circle at center top, rgba(255,255,255,0.08), transparent 32%);
+}
+
+.hud-bonus {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: #FFD700;
+  opacity: 0.95;
+}
