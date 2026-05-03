@@ -356,61 +356,65 @@ export class SniperGame {
       ctx.fill();
     }
 
-    // رسم الأشجار والأحرف (بدون تحويل الزووم — لإصابة أدق)
+    // رسم الأشجار والأحرف
+    const isZoom = this.zoom > 1;
     for (const t of this.targets) {
       this._drawTree(t.treeX, t.treeY);
 
       if (!t.shot) {
-        const isZoom = this.zoom > 1;
-        // مع الزووم الحروف أوضح وأكبر
-        ctx.fillStyle = isZoom ? '#FFD700' : 'rgba(255,215,0,0.45)';
-        ctx.font = isZoom ? 'bold 38px Cairo, Arial' : 'bold 24px Cairo, Arial';
+        // الحروف دائماً واضحة، أكبر وأبرز عند الزووم
+        ctx.fillStyle = '#FFD700';
+        ctx.font = `bold ${isZoom ? 44 : 28}px Cairo, Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = isZoom ? 3 : 2;
+        ctx.lineWidth = isZoom ? 4 : 2.5;
         ctx.strokeText(t.char, t.peekX, t.peekY);
         ctx.fillText(t.char, t.peekX, t.peekY);
       }
     }
 
-    if (this.zoom > 1) {
+    if (isZoom) {
+      // ===== scope يتبع الـ crosshair =====
+      const cx = this.crosshair.x;
+      const cy = this.crosshair.y;
+      const radius = Math.min(W, H) * 0.32;
 
-      // رسم scope overlay (دائرة سوداء على الأطراف)
-      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      // قناع خفيف (40% بدل 85%) — الكل لسه يبين بس مظلم خارج الدائرة
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
       ctx.beginPath();
       ctx.rect(0, 0, W, H);
-      ctx.arc(W / 2, H / 2, Math.min(W, H) * 0.35, 0, Math.PI * 2, true);
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2, true);
       ctx.fill();
+      ctx.restore();
 
-      // إطار الـ scope
+      // إطار scope
       ctx.strokeStyle = '#1A1A1A';
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 6;
       ctx.beginPath();
-      ctx.arc(W / 2, H / 2, Math.min(W, H) * 0.35, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.stroke();
 
-      // خطوط الـ scope (cross)
-      ctx.strokeStyle = 'rgba(255,0,0,0.6)';
-      ctx.lineWidth = 1;
+      // خطوط scope cross
+      ctx.strokeStyle = 'rgba(255,0,0,0.65)';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(W / 2 - Math.min(W, H) * 0.35, H / 2);
-      ctx.lineTo(W / 2 + Math.min(W, H) * 0.35, H / 2);
-      ctx.moveTo(W / 2, H / 2 - Math.min(W, H) * 0.35);
-      ctx.lineTo(W / 2, H / 2 + Math.min(W, H) * 0.35);
+      ctx.moveTo(cx - radius, cy);
+      ctx.lineTo(cx + radius, cy);
+      ctx.moveTo(cx, cy - radius);
+      ctx.lineTo(cx, cy + radius);
       ctx.stroke();
 
       // نقطة وسط
       ctx.fillStyle = '#FF0000';
       ctx.beginPath();
-      ctx.arc(W / 2, H / 2, 3, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      // crosshair بسيط بدون زووم
       this._drawCrosshair();
     }
 
-    // رسم القناصة في الأسفل
     this._drawSniper();
   }
 

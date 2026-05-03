@@ -96,40 +96,52 @@
       </div>
 
       <nav class="menu-nav">
-        <div class="menu-grid">
-          <button id="btn-museum-menu" class="menu-card menu-card-museum">
-            <span class="menu-card-icon">🏛</span>
-            <span class="menu-card-label">المتحف</span>
-          </button>
-          <button id="btn-stock-menu" class="menu-card menu-card-stock">
-            <span class="menu-card-icon">📦</span>
-            <span class="menu-card-label">المخزن</span>
-          </button>
-          <button id="btn-profile-menu" class="menu-card menu-card-profile">
-            <span class="menu-card-icon">👤</span>
-            <span class="menu-card-label">ملفي</span>
-          </button>
-          <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
-            <span class="menu-card-icon">🏆</span>
-            <span class="menu-card-label">الإنجازات</span>
-            <span id="achievements-badge" class="notification-badge" hidden>0</span>
-          </button>
-          <button id="btn-challenges-menu" class="menu-card menu-card-challenges">
-            <span class="menu-card-icon">⚔️</span>
-            <span class="menu-card-label">التحديات</span>
-            <span id="challenges-badge" class="notification-badge" hidden>0</span>
-          </button>
-          <button id="btn-community-menu" class="menu-card menu-card-community">
-            <span class="menu-card-icon">👥</span>
-            <span class="menu-card-label">المجتمع</span>
-            <span id="community-badge" class="notification-badge" hidden>0</span>
-          </button>
-          <button id="btn-forum-menu" class="menu-card menu-card-forum">
-            <span class="menu-card-icon">📝</span>
-            <span class="menu-card-label">المنتدى</span>
-          </button>
+        <!-- قسم: التقدم -->
+        <div class="menu-section">
+          <h3 class="menu-section-title">📈 التقدم</h3>
+          <div class="menu-grid">
+            <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
+              <span class="menu-card-icon">🏆</span>
+              <span class="menu-card-label">الإنجازات</span>
+              <span id="achievements-badge" class="notification-badge" hidden>0</span>
+            </button>
+            <button id="btn-challenges-menu" class="menu-card menu-card-challenges">
+              <span class="menu-card-icon">⚔️</span>
+              <span class="menu-card-label">التحديات</span>
+              <span id="challenges-badge" class="notification-badge" hidden>0</span>
+            </button>
+            <button id="btn-museum-menu" class="menu-card menu-card-museum">
+              <span class="menu-card-icon">🏛</span>
+              <span class="menu-card-label">المتحف</span>
+            </button>
+            <button id="btn-stock-menu" class="menu-card menu-card-stock">
+              <span class="menu-card-icon">📦</span>
+              <span class="menu-card-label">المخزن</span>
+            </button>
+          </div>
         </div>
 
+        <!-- قسم: اجتماعي -->
+        <div class="menu-section">
+          <h3 class="menu-section-title">👥 اجتماعي</h3>
+          <div class="menu-grid menu-grid-3">
+            <button id="btn-profile-menu" class="menu-card menu-card-profile">
+              <span class="menu-card-icon">👤</span>
+              <span class="menu-card-label">ملفي</span>
+            </button>
+            <button id="btn-community-menu" class="menu-card menu-card-community">
+              <span class="menu-card-icon">👥</span>
+              <span class="menu-card-label">المجتمع</span>
+              <span id="community-badge" class="notification-badge" hidden>0</span>
+            </button>
+            <button id="btn-forum-menu" class="menu-card menu-card-forum">
+              <span class="menu-card-icon">📝</span>
+              <span class="menu-card-label">المنتدى</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- شريط أسفل -->
         <div class="menu-footer">
           <button id="btn-menu-auth" class="btn-menu-mini btn-menu-auth">🔑 تسجيل</button>
           <button id="btn-settings" class="btn-menu-mini">⚙️ إعدادات</button>
@@ -444,25 +456,43 @@
         <div class="casino-result" id="casino-result"></div>
       </div>
 
+      <!-- اختيار الرهان -->
+      <div class="casino-bet-section">
+        <div class="casino-bet-label">رهانك الحالي:</div>
+        <div class="casino-bet-amount" id="casino-bet-amount">20</div>
+        <div class="casino-bet-options">
+          <button class="casino-bet-btn" data-bet="20">20</button>
+          <button class="casino-bet-btn" data-bet="50">50</button>
+          <button class="casino-bet-btn" data-bet="100">100</button>
+          <button class="casino-bet-btn" data-bet="250">250</button>
+          <button class="casino-bet-btn" data-bet="500">500</button>
+          <button class="casino-bet-btn" data-bet="1000">1000</button>
+        </div>
+      </div>
+
       <!-- زر الدوران -->
       <button class="casino-spin-btn" id="casino-spin-btn">
-        🎲 دوّر — تكلفة 5 أحرف
+        🎲 دوّر
       </button>
 
-      <!-- قواعد اللعبة -->
+      <!-- جدول الجوائز (يتحدث ديناميكياً مع الرهان) -->
       <div class="casino-rules">
-        <h3>قواعد اللعبة</h3>
-        <div class="casino-rule">
+        <h3>الجوائز (حسب الرهان)</h3>
+        <div class="casino-rule rule-mega">
+          <span class="casino-rule-icon">💎</span>
+          <span>ميجا جاكبوت (3× نادر) → <b id="casino-prize-mega">×100</b></span>
+        </div>
+        <div class="casino-rule rule-jackpot">
           <span class="casino-rule-icon">🎰</span>
-          <span>3 أحرف متطابقة → اكسب <b>100</b> حرف من نوعها</span>
+          <span>جاكبوت (3 متطابقة) → <b id="casino-prize-jackpot">×50</b></span>
         </div>
-        <div class="casino-rule">
+        <div class="casino-rule rule-double">
           <span class="casino-rule-icon">🎁</span>
-          <span>2 أحرف متطابقة → اكسب <b>25</b> حرف من نوعها</span>
+          <span>2 متطابقة → <b id="casino-prize-double">×5</b></span>
         </div>
-        <div class="casino-rule">
+        <div class="casino-rule rule-loss">
           <span class="casino-rule-icon">💸</span>
-          <span>بدون تطابق → تخسر 5 أحرف</span>
+          <span>بدون تطابق → خسارة الرهان</span>
         </div>
       </div>
     </div>

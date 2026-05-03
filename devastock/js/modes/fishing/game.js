@@ -639,9 +639,124 @@ export class FishingGame {
     }
 
     // ===== شريط الحالة =====
-    if (this.statusText) {
+    if (this.statusText && this.net.state !== NET_SHOWING) {
       this._drawStatus(this.statusText);
     }
+
+    // ===== لوحة نتيجة الصيد (تظهر فقط عند SHOWING) =====
+    if (this.net.state === NET_SHOWING) {
+      this._drawCatchPanel();
+    }
+  }
+
+  _drawCatchPanel() {
+    const ctx = this.ctx;
+    const W = this.W, H = this.H;
+    const r = this.net.result;
+
+    // بانر العنوان حسب النوع
+    let title = '';
+    let titleColor = '#FFD700';
+    let isLoss = false;
+
+    if (!r) {
+      title = '🌊 الشبكة فارغة';
+      titleColor = '#9eb0c2';
+    } else if (r.type === 'loss') {
+      title = '💸 وقعت أحرف!';
+      titleColor = '#FF6B6B';
+      isLoss = true;
+    } else if (r.type === 'big')    title = '🎉 صيد كبير!';
+    else if (r.type === 'medium')   title = '🐠 صيد جيد';
+    else                            title = '🐟 صيد';
+
+    const letterEntries = (r && r.letters) ? Object.entries(r.letters) : [];
+    const totalLetters = letterEntries.reduce((s, [, n]) => s + n, 0);
+
+    // أبعاد اللوحة
+    const chipSize = Math.min(72, W * 0.16);
+    const chipsPerRow = Math.min(letterEntries.length || 1, Math.floor((W * 0.85) / (chipSize + 12)));
+    const rows = Math.max(1, Math.ceil((letterEntries.length || 1) / chipsPerRow));
+    const panelW = Math.min(W * 0.9, Math.max(280, chipsPerRow * (chipSize + 12) + 32));
+    const panelH = 70 + (letterEntries.length > 0 ? rows * (chipSize + 14) + 20 : 30) + 40;
+    const panelX = (W - panelW) / 2;
+    const panelY = H * 0.18;
+
+    // خلفية اللوحة
+    ctx.save();
+    ctx.fillStyle = 'rgba(8, 22, 40, 0.92)';
+    this._drawRoundRect(panelX, panelY, panelW, panelH, 18);
+    ctx.fill();
+    ctx.strokeStyle = isLoss ? 'rgba(255,107,107,0.6)' : 'rgba(255,215,0,0.55)';
+    ctx.lineWidth = 2;
+    this._drawRoundRect(panelX, panelY, panelW, panelH, 18);
+    ctx.stroke();
+
+    // العنوان
+    ctx.fillStyle = titleColor;
+    ctx.font = `bold ${Math.round(panelW * 0.06)}px Cairo, Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(title, W / 2, panelY + 32);
+
+    // الرقاقات (chips)
+    if (letterEntries.length > 0) {
+      const startY = panelY + 70;
+      let i = 0;
+      for (const [char, count] of letterEntries) {
+        const col = i % chipsPerRow;
+        const row = Math.floor(i / chipsPerRow);
+        const totalRowWidth = chipsPerRow * (chipSize + 12) - 12;
+        const rowStartX = (W - totalRowWidth) / 2;
+        const cx = rowStartX + col * (chipSize + 12);
+        const cy = startY + row * (chipSize + 14);
+
+        // خلفية الرقاقة
+        const grad = ctx.createLinearGradient(cx, cy, cx, cy + chipSize);
+        if (isLoss) {
+          grad.addColorStop(0, 'rgba(255,107,107,0.20)');
+          grad.addColorStop(1, 'rgba(140,30,30,0.20)');
+        } else {
+          grad.addColorStop(0, 'rgba(255,215,0,0.20)');
+          grad.addColorStop(1, 'rgba(180,140,0,0.10)');
+        }
+        ctx.fillStyle = grad;
+        this._drawRoundRect(cx, cy, chipSize, chipSize, 12);
+        ctx.fill();
+        ctx.strokeStyle = isLoss ? 'rgba(255,107,107,0.5)' : 'rgba(255,215,0,0.45)';
+        ctx.lineWidth = 1.5;
+        this._drawRoundRect(cx, cy, chipSize, chipSize, 12);
+        ctx.stroke();
+
+        // الحرف الكبير
+        ctx.fillStyle = isLoss ? '#FFB0B0' : '#FFD700';
+        ctx.font = `bold ${Math.round(chipSize * 0.55)}px Cairo, Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(char, cx + chipSize / 2, cy + chipSize * 0.42);
+
+        // العدد ×n
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${Math.round(chipSize * 0.22)}px Cairo, Arial`;
+        ctx.fillText(`×${count}`, cx + chipSize / 2, cy + chipSize * 0.82);
+
+        i++;
+      }
+
+      // الإجمالي
+      ctx.fillStyle = isLoss ? '#FF8080' : '#FFFFFF';
+      ctx.font = `bold ${Math.round(panelW * 0.045)}px Cairo, Arial`;
+      ctx.fillText(
+        isLoss ? `الإجمالي المفقود: ${totalLetters}` : `الإجمالي المربوح: ${totalLetters}`,
+        W / 2, panelY + panelH - 30
+      );
+    }
+
+    // تلميح للإغلاق
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = `${Math.round(panelW * 0.035)}px Cairo, Arial`;
+    ctx.fillText('انقر للمتابعة', W / 2, panelY + panelH - 10);
+    ctx.restore();
   }
 
   _drawRoundRect(x, y, w, h, radius) {
@@ -875,36 +990,17 @@ export class FishingGame {
       ctx.shadowBlur = 0;
     }
 
-    // إذا تعرض النتيجة → الشبكة فيها أحرف
-    if ((this.net.state === NET_PULLING || this.net.state === NET_SHOWING) && this.net.result) {
-      const r = this.net.result;
-      if (r.letters && r.type !== 'loss') {
-        // أرسم الأحرف داخل الشبكة
-        const letters = Object.entries(r.letters);
-        let i = 0;
-        const total = letters.reduce((s, [, n]) => s + n, 0);
-        if (total === 0) return;
-        const cols = Math.ceil(Math.sqrt(total));
-        const spacing = (radius * 1.4) / cols;
-        let pos = 0;
-        for (const [char, count] of letters) {
-          for (let c = 0; c < count; c++) {
-            const col = pos % cols;
-            const row = Math.floor(pos / cols);
-            const lx = x - radius * 0.7 + col * spacing + spacing / 2;
-            const ly = y - radius * 0.7 + row * spacing + spacing / 2;
-            ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 14px Cairo, Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.strokeText(char, lx, ly);
-            ctx.fillText(char, lx, ly);
-            pos++;
-          }
-        }
-      }
+    // إذا تعرض النتيجة → علامة ✨ على الشبكة (التفاصيل بـ _drawCatchPanel)
+    if ((this.net.state === NET_PULLING || this.net.state === NET_SHOWING)
+        && this.net.result && this.net.result.letters && this.net.result.type !== 'loss') {
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 22px Cairo, Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 5;
+      ctx.fillText('✨', x, y);
+      ctx.shadowBlur = 0;
     }
 
     ctx.restore();
