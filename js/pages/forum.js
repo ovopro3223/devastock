@@ -26,13 +26,19 @@ export function initForum(navigate) {
       if (!textarea) return;
       const content = textarea.value.trim();
       if (!content) return;
-        const result = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
-        if (result?.success) {
-          textarea.value = '';
-          renderForumPosts();
-        } else {
-          console.error('Forum post error:', result?.error);
-          alert(`تعذَّر إنشاء الموضوع، حاول مرة أخرى.\n${result?.error || ''}`);
+      const result = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
+      if (result?.success) {
+        textarea.value = '';
+        renderForumPosts();
+      } else {
+        console.error('Forum post error:', result?.error);
+        alert(`تعذَّر إنشاء الموضوع، حاول مرة أخرى.\n${result?.error || ''}`);
+      }
+    });
+  }
+
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => signInWithGoogle());
   }
 
   onAuthStateChanged(auth, (user) => {
