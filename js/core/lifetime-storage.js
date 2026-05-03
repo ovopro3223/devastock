@@ -1,9 +1,26 @@
 import { getState, setState } from './app-state.js';
+import { getStock } from './storage.js';
 
 function load() {
   return getState('lifetime', {});
 }
 function save(d) { setState('lifetime', d); }
+
+// مزامنة lifetime مع stock — لو في حروف بالمخزن أكثر مما هو مسجل بـ lifetime
+// (يحدث لو المستخدم جمع حروف قبل ما ينضاف نظام lifetime، أو لو سحب من السحابة بيانات قديمة)
+// اللفل لازم يعكس الأقصى المجمَّع تاريخياً، فنرفع lifetime ليعكس الأقل ممكن من الأقصى الفعلي
+export function syncLifetimeWithStock() {
+  const stock = getStock();
+  const lifetime = load();
+  let changed = false;
+  for (const [char, count] of Object.entries(stock)) {
+    if ((lifetime[char] || 0) < count) {
+      lifetime[char] = count;
+      changed = true;
+    }
+  }
+  if (changed) save(lifetime);
+}
 
 // تسجيل حرف (أو أكثر) في السجل التراكمي
 export function recordLetter(char, count = 1) {

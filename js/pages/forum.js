@@ -2,6 +2,7 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { signInWithGoogle, createForumPost, deleteForumPost, listenForForumPosts, listenForForumComments,
          listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost } from '../core/firebase.js';
+import { canAffordText, spendForText } from '../core/storage.js';
 
 let _currentUser = null;
 let _posts = [];
@@ -26,8 +27,14 @@ export function initForum(navigate) {
       if (!textarea) return;
       const content = textarea.value.trim();
       if (!content) return;
+      const check = canAffordText(content);
+      if (!check.ok) {
+        alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+        return;
+      }
       const result = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
       if (result?.success) {
+        spendForText(content);
         textarea.value = '';
         renderForumPosts();
       } else {
@@ -192,7 +199,13 @@ window._submitForumComment = async function(event, postId) {
   if (!input) return;
   const content = input.value.trim();
   if (!content) return;
+  const check = canAffordText(content);
+  if (!check.ok) {
+    alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+    return;
+  }
   await addForumComment(postId, _currentUser.uid, _currentUser.displayName || 'لاعب', content);
+  spendForText(content);
   input.value = '';
 };
 

@@ -6,6 +6,7 @@ import { signInWithGoogle, getPlayers, getFriends, getIncomingRequests,
          rejectFriendRequest, listenForIncomingRequests,
          listenForOutgoingRequests, getPlayerProfile,
          sendChatMessage, listenForMessages } from '../core/firebase.js';
+import { canAffordText, spendForText } from '../core/storage.js';
 
 let _chatListenerUnsub = null;
 let _chatPartnerUid = null;
@@ -544,9 +545,15 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       if (!_currentUser || !_chatPartnerUid || !chatInput.value.trim()) return;
       const text = chatInput.value;
+      const check = canAffordText(text);
+      if (!check.ok) {
+        alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+        return;
+      }
       chatInput.value = '';
       const fromName = _currentUser.displayName || 'لاعب';
       await sendChatMessage(_currentUser.uid, _chatPartnerUid, fromName, text);
+      spendForText(text);
     };
   }
 
@@ -569,9 +576,15 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       if (!_currentUser || !_chatPartnerUid || !sidebarInput?.value.trim()) return;
       const text = sidebarInput.value;
+      const check = canAffordText(text);
+      if (!check.ok) {
+        alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+        return;
+      }
       sidebarInput.value = '';
       const fromName = _currentUser.displayName || 'لاعب';
       await sendChatMessage(_currentUser.uid, _chatPartnerUid, fromName, text);
+      spendForText(text);
     };
   }
 });

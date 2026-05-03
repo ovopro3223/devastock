@@ -11,6 +11,7 @@ import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
 import { renderAuthButton } from './core/auth-ui.js';
+import { syncLifetimeWithStock } from './core/lifetime-storage.js';
 
 const PAGE_IDS = [
   'home', 'menu', 'modes', 'letter-rain', 'letter-blaze',
@@ -70,6 +71,9 @@ document.querySelectorAll('.btn-back').forEach(btn => {
   });
 });
 
+// مزامنة lifetime مع stock قبل أي شيء يعتمد على اللفل
+syncLifetimeWithStock();
+
 // تهيئة الصفحات
 initHome(showPage);
 initMenu(showPage);
@@ -82,6 +86,8 @@ initSettings();
 // Firebase — يعمل بشكل مستقل في الخلفية
 initAudio();
 initAuth((user) => {
+  // بعد سحب البيانات من السحابة، تأكد إن lifetime ≥ stock
+  syncLifetimeWithStock();
   renderAuthButton(user);
   if (user) refreshHomeRank();
 });

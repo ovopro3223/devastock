@@ -48,3 +48,39 @@ export function giftStarterLetters() {
 export function clearStock() {
   removeState('stock');
 }
+
+// ===== استخدام الحروف للنصوص =====
+const ARABIC_LETTERS_SET = new Set('ابتثجحخدذرزسشصضطظعغفقكلمنهوي');
+
+// عَدّ الأحرف العربية المطلوبة في نص ما (يتجاهل المسافات والأرقام والرموز)
+export function getRequiredLettersForText(text) {
+  const required = {};
+  for (const char of text) {
+    if (ARABIC_LETTERS_SET.has(char)) {
+      required[char] = (required[char] || 0) + 1;
+    }
+  }
+  return required;
+}
+
+// تحقق من توفر الحروف في المخزن. يرجع { ok, missing?, have?, need? }
+export function canAffordText(text) {
+  const required = getRequiredLettersForText(text);
+  const stock = load();
+  for (const [char, n] of Object.entries(required)) {
+    const have = stock[char] || 0;
+    if (have < n) {
+      return { ok: false, missing: char, have, need: n };
+    }
+  }
+  return { ok: true };
+}
+
+// خصم الحروف من المخزن لنص ما
+export function spendForText(text) {
+  const required = getRequiredLettersForText(text);
+  if (Object.keys(required).length > 0) {
+    spendLetters(required);
+  }
+  return required;
+}

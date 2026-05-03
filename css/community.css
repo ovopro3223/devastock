@@ -476,6 +476,10 @@
   gap: 1rem;
 }
 
+.forum-create-panel[hidden] {
+  display: none;
+}
+
 .forum-create-panel h3 {
   margin: 0;
   font-size: 1.1rem;
@@ -627,6 +631,10 @@
   gap: 1rem;
   padding: 1.5rem;
   text-align: center;
+}
+
+.forum-login-prompt[hidden] {
+  display: none;
 }
 
 .forum-login-prompt button {
@@ -782,6 +790,10 @@
   gap: 1rem;
   padding: 1.5rem;
   text-align: center;
+}
+
+.forum-login-prompt[hidden] {
+  display: none;
 }
 
 .forum-sidebar-card {

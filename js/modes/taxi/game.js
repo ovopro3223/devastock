@@ -5,8 +5,11 @@ import { playCollectSound, playLoseLifeSound, startEngine, stopEngine } from '..
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
 const LETTER_SPACING = 220;   // مسافة عمودية بين الأحرف
-const TREE_SPAWN_RATE = 0.020;
+const TREE_SPAWN_RATE = 0.008;
 const ITEM_SPAWN_RATE = 0.010;
+const FIXED_LETTER_SIZE = 34;     // حجم ثابت للحرف على الطريق
+const FIXED_TREE_SIZE   = 64;     // حجم ثابت للشجرة (جانبية أو على الطريق)
+const FIXED_ITEM_SIZE   = 26;     // حجم ثابت للعناصر الخاصة
 const OPPOSING_CAR_SPAWN_RATE = 0.008; // احتمال ظهور سيارة معاكسة
 const CAR_MAX_SPEED = 5;      // السرعة الأفقية القصوى للسيارة
 const CAR_ACCEL = 0.18;       // تسارع الانتقال
@@ -550,27 +553,27 @@ export class TaxiGame {
       ctx.stroke();
     }
 
-    // رسم الأشجار
+    // رسم الأشجار - حجم ثابت لكل الأشجار
     for (const t of this.trees) {
       if (t.onRoad) {
         const roadWidthAtY = this._roadWidthAt(t.y);
         const centerAtY = this._roadCenterAt(t.y);
         const tx = centerAtY + t.x * roadWidthAtY * 0.45;
-        this._drawTree(tx, t.y, 28, 0.8);
+        this._drawTree(tx, t.y, FIXED_TREE_SIZE, 1.0);
       } else {
         const tx = W / 2 + t.side * t.offset * W;
-        this._drawTree(tx, t.y, 50, 1.0);
+        this._drawTree(tx, t.y, FIXED_TREE_SIZE, 1.0);
       }
     }
 
-    // رسم الأحرف على الطريق
+    // رسم الأحرف على الطريق - حجم ثابت
     for (const l of this.letters) {
       if (l.collected) continue;
       const roadWidthAtY = this._roadWidthAt(l.y);
       const centerAtY = this._roadCenterAt(l.y);
       const lx = centerAtY + l.x * roadWidthAtY * 0.46;
       const ly = l.y;
-      const size = Math.round(Math.min(40, Math.max(26, 28 + (ly / H) * 12)));
+      const size = FIXED_LETTER_SIZE;
       const gradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, size);
       gradient.addColorStop(0, '#FFF1B5');
       gradient.addColorStop(0.4, '#FFD700');
@@ -589,24 +592,22 @@ export class TaxiGame {
       ctx.fillText(l.char, lx, ly + 1);
     }
 
-    // رسم العناصر الخاصة
+    // رسم العناصر الخاصة - حجم ثابت
     for (const item of this.items) {
       if (item.collected) continue;
       const roadWidthAtY = this._roadWidthAt(item.y);
       const centerAtY = this._roadCenterAt(item.y);
       const ix = centerAtY + item.x * roadWidthAtY * 0.46;
-      this._drawItem(ix, item.y, item.type, roadWidthAtY * 0.08);
+      this._drawItem(ix, item.y, item.type, FIXED_ITEM_SIZE);
     }
 
-    // رسم السيارات المعاكسة (مع تكبير حسب البعد لإيهام perspective)
+    // رسم السيارات المعاكسة - حجم ثابت
     for (const oc of this.opposingCars) {
       if (oc.hit) continue;
       const roadWidthAtY = this._roadWidthAt(oc.y);
       const centerAtY = this._roadCenterAt(oc.y);
       const ocx = centerAtY + oc.x * roadWidthAtY * 0.45;
-      // حجم نسبي مع البعد
-      const scale = Math.max(0.35, oc.y / H);
-      this._drawOpposingCar(ocx, oc.y, oc.color, scale);
+      this._drawOpposingCar(ocx, oc.y, oc.color, 1.0);
     }
 
     // رسم السيارة
@@ -889,7 +890,7 @@ export class TaxiGame {
 
   _drawItem(x, y, type, baseSize = 20) {
     const ctx = this.ctx;
-    const size = baseSize * (0.65 + 0.35 * (1 - y / this.H));
+    const size = baseSize;
     if (type === 'post') {
       ctx.fillStyle = '#2f2f2f';
       ctx.beginPath();
