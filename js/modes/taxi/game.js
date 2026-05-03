@@ -86,10 +86,19 @@ export class TaxiGame {
 
   _resize() {
     const rect = this.canvas.getBoundingClientRect();
+    const oldW = this.W;
     this.canvas.width = rect.width;
     this.canvas.height = rect.height;
     this.W = rect.width;
     this.H = rect.height;
+    // إذا تغير العرض أثناء اللعب، حافظ على موقع نسبي للسيارة
+    if (oldW > 0 && this.W > 0 && oldW !== this.W && this.car && typeof this.car.x === 'number') {
+      const ratio = this.car.x / oldW;
+      this.car.x = ratio * this.W;
+    } else if (this.W > 0 && this.car && (this.car.x === 0 || this.car.x === undefined)) {
+      // أول مرة — ضع السيارة بالمنتصف
+      this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
+    }
   }
 
   // عرض الشارع الواحد
@@ -110,16 +119,18 @@ export class TaxiGame {
   }
 
   start() {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        this._resize();
-        if (this.W === 0 || this.H === 0) {
-          requestAnimationFrame(() => this._actuallyStart());
-        } else {
-          this._actuallyStart();
-        }
-      }, 100);
-    });
+    // انتظر حتى يأخذ الكانفاس أبعاده الفعلية (مهم على الموبايل)
+    let attempts = 0;
+    const tryStart = () => {
+      this._resize();
+      if ((this.W === 0 || this.H === 0) && attempts < 20) {
+        attempts++;
+        requestAnimationFrame(tryStart);
+        return;
+      }
+      this._actuallyStart();
+    };
+    requestAnimationFrame(tryStart);
   }
 
   _actuallyStart() {

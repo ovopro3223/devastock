@@ -40,16 +40,26 @@ export class CasinoGame {
     const spinBtn = document.getElementById('casino-spin-btn');
     if (spinBtn) spinBtn.addEventListener('click', () => this.spin());
 
-    // أزرار الرهان
-    document.querySelectorAll('.casino-bet-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const bet = parseInt(btn.dataset.bet, 10);
+    // شريط الرهان
+    const slider = document.getElementById('casino-bet-slider');
+    if (slider) {
+      slider.addEventListener('input', () => {
         if (this.spinning) return;
-        if (getTotalLetters() < bet) return;
-        this.currentBet = bet;
+        const idx = parseInt(slider.value, 10);
+        const bet = BET_OPTIONS[Math.max(0, Math.min(BET_OPTIONS.length - 1, idx))];
+        // إذا الرصيد ما يكفي، خفض للأعلى متاح
+        const total = getTotalLetters();
+        if (total < bet) {
+          const maxIdx = BET_OPTIONS.findIndex(b => b > total);
+          const safeIdx = maxIdx === -1 ? BET_OPTIONS.length - 1 : Math.max(0, maxIdx - 1);
+          slider.value = String(safeIdx);
+          this.currentBet = BET_OPTIONS[safeIdx];
+        } else {
+          this.currentBet = bet;
+        }
         this._refreshUI();
       });
-    });
+    }
   }
 
   open() {
@@ -60,29 +70,27 @@ export class CasinoGame {
   _refreshUI() {
     const total = getTotalLetters();
 
+    // إذا الرهان الحالي أعلى من الرصيد، خفّض للأعلى متاح
+    if (total < this.currentBet) {
+      const affordable = BET_OPTIONS.filter(b => b <= total);
+      this.currentBet = affordable.length > 0 ? affordable[affordable.length - 1] : BET_OPTIONS[0];
+    }
+
     // إجمالي الرصيد
     const totalEl = document.getElementById('casino-total');
     if (totalEl) totalEl.textContent = total;
 
-    // الرهان الحالي
+    // الرهان الحالي + الشريط
     const betEl = document.getElementById('casino-bet-amount');
     if (betEl) betEl.textContent = this.currentBet;
 
-    // أزرار الرهان: تفعيل/تعطيل بناءً على الرصيد
-    document.querySelectorAll('.casino-bet-btn').forEach(btn => {
-      const bet = parseInt(btn.dataset.bet, 10);
-      btn.disabled = total < bet;
-      btn.classList.toggle('active', bet === this.currentBet);
-    });
-
-    // أعلى رهان متاح صار الـ default إذا الحالي مش ممكن
-    if (total < this.currentBet) {
-      const affordable = BET_OPTIONS.filter(b => b <= total);
-      this.currentBet = affordable.length > 0 ? affordable[affordable.length - 1] : BET_OPTIONS[0];
-      if (betEl) betEl.textContent = this.currentBet;
-      document.querySelectorAll('.casino-bet-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.bet, 10) === this.currentBet);
-      });
+    const slider = document.getElementById('casino-bet-slider');
+    if (slider) {
+      const idx = BET_OPTIONS.indexOf(this.currentBet);
+      slider.value = String(idx >= 0 ? idx : 0);
+      // اطبع نسبة التعبئة (للون الشريط)
+      const fillPct = (idx / (BET_OPTIONS.length - 1)) * 100;
+      slider.style.setProperty('--fill', `${fillPct}%`);
     }
 
     // الجوائز المحتملة (تتحدث مع الرهان)
@@ -94,7 +102,7 @@ export class CasinoGame {
     // زر الدوران
     const spinBtn = document.getElementById('casino-spin-btn');
     if (spinBtn) {
-      if (total < this.currentBet) {
+      if (total < this.currentBet || total < BET_OPTIONS[0]) {
         spinBtn.disabled = true;
         spinBtn.textContent = 'رصيدك غير كافي';
       } else {
@@ -134,10 +142,13 @@ export class CasinoGame {
   }
 
   _awardLetters(letter, count) {
+    // الحرف يُضاف للمخزن كاملاً (يقدر يستخدمه)
     for (let i = 0; i < count; i++) {
       saveLetterToStock(letter);
-      recordLetter(letter, 1);
     }
+    // الخبرة (lifetime) من الكازينو 10% فقط — ما يقدر يفرّخ levels من الكازينو
+    const xpCount = Math.floor(count * 0.1);
+    if (xpCount > 0) recordLetter(letter, xpCount);
   }
 
   async spin() {

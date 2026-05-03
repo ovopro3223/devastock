@@ -453,17 +453,23 @@
         <div class="casino-result" id="casino-result"></div>
       </div>
 
-      <!-- اختيار الرهان -->
+      <!-- اختيار الرهان (شريط) -->
       <div class="casino-bet-section">
-        <div class="casino-bet-label">رهانك الحالي:</div>
-        <div class="casino-bet-amount" id="casino-bet-amount">20</div>
-        <div class="casino-bet-options">
-          <button class="casino-bet-btn" data-bet="20">20</button>
-          <button class="casino-bet-btn" data-bet="50">50</button>
-          <button class="casino-bet-btn" data-bet="100">100</button>
-          <button class="casino-bet-btn" data-bet="250">250</button>
-          <button class="casino-bet-btn" data-bet="500">500</button>
-          <button class="casino-bet-btn" data-bet="1000">1000</button>
+        <div class="casino-bet-header">
+          <span class="casino-bet-label">الرهان</span>
+          <span class="casino-bet-amount" id="casino-bet-amount">20</span>
+        </div>
+        <div class="casino-bet-slider-wrap">
+          <input type="range" id="casino-bet-slider" class="casino-bet-slider"
+                 min="0" max="5" step="1" value="0">
+          <div class="casino-bet-ticks" aria-hidden="true">
+            <span>20</span>
+            <span>50</span>
+            <span>100</span>
+            <span>250</span>
+            <span>500</span>
+            <span>1000</span>
+          </div>
         </div>
       </div>
 
