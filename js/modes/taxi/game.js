@@ -7,9 +7,10 @@ const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي
 
 const NUM_LANES = 9;
 const ROAD_WIDTH_RATIO = 0.86;   // نسبة عرض الطريق من الشاشة
-const LETTER_SPACING = 200;       // مسافة عمودية بين الأحرف
+const LETTER_SPACING = 110;       // مسافة عمودية بين الأحرف (أصغر = أحرف أكثر)
+const SIDE_LETTER_RATE = 0.025;   // احتمال ظهور حرف إضافي في كل إطار
 
-const TREE_SPAWN_RATE = 0.012;
+const TREE_SPAWN_RATE = 0.010;
 const ITEM_SPAWN_RATE = 0.010;
 
 const CAR_MAX_SPEED = 6;
@@ -302,11 +303,14 @@ export class TaxiGame {
     if (this.car.x < roadLeft + half) { this.car.x = roadLeft + half; this.car.vx = 0; }
     if (this.car.x > roadLeft + roadW - half) { this.car.x = roadLeft + roadW - half; this.car.vx = 0; }
 
-    // ظهور حرف
+    // ظهور حرف بناء على المسافة (مضمون)
     if (this.distSinceLastLetter >= LETTER_SPACING) {
       this._spawnLetter();
       this.distSinceLastLetter = 0;
     }
+    // ظهور حرف إضافي عشوائي (يضاعف الكثافة)
+    if (Math.random() < SIDE_LETTER_RATE) this._spawnLetter();
+
     if (Math.random() < TREE_SPAWN_RATE) this._spawnTree();
     if (Math.random() < ITEM_SPAWN_RATE) this._spawnItem();
 
@@ -315,11 +319,14 @@ export class TaxiGame {
     for (const t of this.trees)   t.y += this.speed;
     for (const item of this.items) item.y += this.speed;
 
-    // الاصطدام — استخدم bounding box كامل للسيارة
+    // الاصطدام — bounding box مطابق لرسم السيارة
     const size = this._objectSize();
-    const carHalfW = size * 0.5;
-    const carTop = this.H - size * 1.6 - 16;
-    const carBottom = this.H - 16;
+    const carSize = Math.max(38, size * 1.25);
+    const carHeight = carSize * 1.5;
+    const carBottomOffset = Math.max(80, this.H * 0.18);
+    const carHalfW = carSize * 0.5;
+    const carBottom = this.H - carBottomOffset;
+    const carTop = carBottom - carHeight;
     const objR = size * 0.5; // نصف قطر الحرف/الشجرة/العنصر
 
     for (const l of this.letters) {
@@ -464,10 +471,11 @@ export class TaxiGame {
     if (!this.car.x || this.car.x <= 0 || isNaN(this.car.x) || this.car.x > W) {
       this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
     }
-    // حجم السيارة أكبر شوي من الشارع للوضوح + موقع أعلى من أسفل الشاشة
+    // حجم السيارة أكبر شوي من الشارع للوضوح + موقع مرفوع كثيراً عن أسفل الشاشة
     const carSize = Math.max(38, size * 1.25);
     const carHeight = carSize * 1.5;
-    const carY = H - carHeight - Math.max(20, H * 0.06);
+    // ارفعها لفوق ~18% من الشاشة عن الأسفل (أو 80px على الأقل) لتجنّب safe-area + URL bar
+    const carY = H - carHeight - Math.max(80, H * 0.18);
     this._drawCar(this.car.x, carY, carSize);
   }
 
