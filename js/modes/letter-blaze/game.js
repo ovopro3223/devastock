@@ -1,7 +1,9 @@
 // ===== حريق الحروف — نمط اللعب الثاني =====
 // اضغط الحروف قبل أن تنفجر! كل حرف له عداد ينتهي باشتعاله
 import { saveLetterToStock }          from '../../core/storage.js';
+import { awardLetter }                 from '../../core/rare-letters.js';
 import { getCollectedMuseumLetterSet } from '../../core/museum-storage.js';
+import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const COLS = 3;
 const ROWS = 3;
@@ -277,6 +279,8 @@ export class LetterBlazeGame {
     this._resizeHandler = () => this._resizeCanvas();
     window.addEventListener('resize', this._resizeHandler);
     this._lastTs = performance.now();
+    this._lettersCollectedThisRun = 0;
+    recordPlayStart('letter-blaze');
     this._loop();
   }
 
@@ -376,11 +380,15 @@ export class LetterBlazeGame {
       if (tile.containsPoint(cx, cy)) {
         if (tile.collect()) {
           const mult = tile.isDouble ? 2 : 1;
-          const gained = tile.weight * mult;
-          this._score += gained;
+          const totalCalls = tile.weight * mult;
+          let totalAwarded = 0;
+          for (let i = 0; i < totalCalls; i++) {
+            const r = awardLetter('letter-blaze', tile.char);
+            totalAwarded += r.count;
+          }
+          this._score += totalAwarded;
           this._updateHudScore();
-          saveLetterToStock(tile.char);
-          recordLetter(tile.char, tile.weight * mult);
+          this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + totalAwarded;
         }
         break;
       }
@@ -397,6 +405,11 @@ export class LetterBlazeGame {
   _gameOver() {
     this._running = false;
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+    recordPlayEnd('letter-blaze', {
+      score: this._score,
+      lettersCollected: this._lettersCollectedThisRun || 0,
+      won: false,
+    });
     document.getElementById('blaze-final-score').textContent = this._score;
     this._showOverlay('blaze-overlay-gameover');
   }

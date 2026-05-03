@@ -2,6 +2,9 @@
 import { getStock, saveLetterToStock, spendLetters, getTotalLetters } from '../../core/storage.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
 import { playWinSound, playLoseLifeSound } from '../../core/audio.js';
+import { recordPlayStart } from '../../core/game-stats.js';
+import { incrementCounter } from '../../core/achievements.js';
+import { addSeasonPoints } from '../../core/seasons.js';
 
 // الأحرف المتاحة في الـ slot machine
 const SLOT_LETTERS = ['ا', 'ب', 'ت', 'ج', 'ح', 'د', 'ر', 'س', 'ل', 'م', 'ن', 'ه'];
@@ -99,6 +102,7 @@ export class CasinoGame {
 
     this.spinning = true;
     this._setResult('', '');
+    recordPlayStart('casino');
 
     // خصم التكلفة
     if (!this._deductBet()) {
@@ -162,12 +166,15 @@ export class CasinoGame {
 
     if (a === b && b === c) {
       this._awardLetters(a, THREE_MATCH_REWARD);
+      incrementCounter('casino_triples');
+      addSeasonPoints(150);
       this._setResult(`🎰 جاكبوت! اكسب ${THREE_MATCH_REWARD} حرف "${a}"`, 'jackpot');
       playWinSound();
       this._celebrate();
     } else if (a === b || b === c || a === c) {
       const winner = a === b ? a : (b === c ? b : a);
       this._awardLetters(winner, TWO_MATCH_REWARD);
+      addSeasonPoints(30);
       this._setResult(`🎁 رائع! اكسب ${TWO_MATCH_REWARD} حرف "${winner}"`, 'win');
       playWinSound();
     } else {

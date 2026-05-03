@@ -2,6 +2,7 @@
 import { saveLetterToStock }            from '../../core/storage.js';
 import { recordLetter }                 from '../../core/lifetime-storage.js';
 import { getCollectedMuseumLetterSet }  from '../../core/museum-storage.js';
+import { awardLetter }                  from '../../core/rare-letters.js';
 
 export class Score {
   constructor() {
@@ -10,28 +11,29 @@ export class Score {
     this._museumLetters = new Set();
   }
 
-  // يُستدعى عند بدء جولة جديدة — يحدّث مجموعة الحروف المضاعفة
   reset() {
     this._score        = 0;
     this._letters      = 0;
     this._museumLetters = getCollectedMuseumLetterSet();
   }
 
-  // يُستدعى عند التقاط حرف — يُرجع 1 أو 2 (المضاعف)
-  addLetter(char) {
-    const mult = this._museumLetters.has(char) ? 2 : 1;
+  // returns { count, special, rarity }
+  addLetter(char, spawnTag = null) {
+    const result = awardLetter('letter-rain', char, spawnTag);
 
-    this._score   += mult;
-    this._letters += mult;
+    // حروف المتحف ×2 إضافي
+    if (this._museumLetters.has(char)) {
+      const extra = result.count;
+      for (let i = 0; i < extra; i++) {
+        saveLetterToStock(char);
+        recordLetter(char, 1);
+      }
+      result.count *= 2;
+    }
 
-    // أضف للمخزن الحالي
-    saveLetterToStock(char);
-    if (mult === 2) saveLetterToStock(char); // مرة ثانية إذا مضاعف
-
-    // سجّل في التاريخ التراكمي
-    recordLetter(char, mult);
-
-    return mult;
+    this._score   += result.count;
+    this._letters += result.count;
+    return result;
   }
 
   // مكافأة إضافية عند اقتناء كلمة تلقائياً (تضاعف حروفها)

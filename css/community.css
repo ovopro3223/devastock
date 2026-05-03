@@ -1106,3 +1106,61 @@
 .community-login-prompt .btn {
   margin: 0 auto;
 }
+
+/* ===== موسم Ranked ===== */
+.season-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.season-label { font-size: 16px; font-weight: bold; color: #FFD700; }
+.season-timer { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.season-tier-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.3);
+  padding: 8px 12px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,215,0,0.3);
+}
+.season-tier-emoji { font-size: 24px; }
+.season-tier-label { font-weight: bold; color: #fff; }
+.season-tier-score { font-size: 12px; color: rgba(255,255,255,0.6); margin-inline-start: 6px; }
+
+.season-tier-progress { margin-bottom: 16px; }
+.season-tier-progress-bar {
+  background: rgba(0,0,0,0.4);
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.season-tier-progress-fill {
+  background: linear-gradient(90deg, #FFD700 0%, #FF6B9D 100%);
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+.season-tier-next { font-size: 12px; color: rgba(255,255,255,0.55); text-align: end; }
+
+.leaderboard-rank-num {
+  width: 32px;
+  text-align: center;
+  font-weight: bold;
+  color: #FFD700;
+  font-size: 16px;
+}
+.leaderboard-tier {
+  font-size: 18px;
+  margin-inline-end: 4px;
+}
+.leaderboard-season-score {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+}

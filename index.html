@@ -37,6 +37,8 @@
   <link rel="stylesheet" href="css/fishing.css">
   <link rel="stylesheet" href="css/sniper.css">
   <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/achievements.css">
+  <link rel="stylesheet" href="css/challenges.css">
 </head>
 <body>
 
@@ -94,12 +96,57 @@
       </div>
 
       <nav class="menu-nav">
-        <button id="btn-museum-menu"  class="btn btn-menu btn-menu-museum">🏛 المتحف</button>
-        <button id="btn-stock-menu"   class="btn btn-menu btn-menu-stock">📦 المخزن</button>
-        <button id="btn-profile-menu" class="btn btn-menu btn-menu-profile">👤 ملفي</button>
-        <button id="btn-settings"     class="btn btn-menu">⚙️ الإعدادات</button>
-        <button id="btn-menu-auth"    class="btn btn-menu btn-menu-auth">🔑 تسجيل الدخول</button>
-        <button id="btn-exit"        class="btn btn-menu btn-exit-style">خروج</button>
+        <!-- قسم: التقدم -->
+        <div class="menu-section">
+          <h3 class="menu-section-title">📈 التقدم</h3>
+          <div class="menu-grid">
+            <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
+              <span class="menu-card-icon">🏆</span>
+              <span class="menu-card-label">الإنجازات</span>
+              <span id="achievements-badge" class="notification-badge" hidden>0</span>
+            </button>
+            <button id="btn-challenges-menu" class="menu-card menu-card-challenges">
+              <span class="menu-card-icon">⚔️</span>
+              <span class="menu-card-label">التحديات</span>
+              <span id="challenges-badge" class="notification-badge" hidden>0</span>
+            </button>
+            <button id="btn-museum-menu" class="menu-card menu-card-museum">
+              <span class="menu-card-icon">🏛</span>
+              <span class="menu-card-label">المتحف</span>
+            </button>
+            <button id="btn-stock-menu" class="menu-card menu-card-stock">
+              <span class="menu-card-icon">📦</span>
+              <span class="menu-card-label">المخزن</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- قسم: اجتماعي -->
+        <div class="menu-section">
+          <h3 class="menu-section-title">👥 اجتماعي</h3>
+          <div class="menu-grid menu-grid-3">
+            <button id="btn-profile-menu" class="menu-card menu-card-profile">
+              <span class="menu-card-icon">👤</span>
+              <span class="menu-card-label">ملفي</span>
+            </button>
+            <button id="btn-community-menu" class="menu-card menu-card-community">
+              <span class="menu-card-icon">👥</span>
+              <span class="menu-card-label">المجتمع</span>
+              <span id="community-badge" class="notification-badge" hidden>0</span>
+            </button>
+            <button id="btn-forum-menu" class="menu-card menu-card-forum">
+              <span class="menu-card-icon">📝</span>
+              <span class="menu-card-label">المنتدى</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- شريط أسفل -->
+        <div class="menu-footer">
+          <button id="btn-menu-auth" class="btn-menu-mini btn-menu-auth">🔑 تسجيل</button>
+          <button id="btn-settings" class="btn-menu-mini">⚙️ إعدادات</button>
+          <button id="btn-exit" class="btn-menu-mini btn-exit-style">🚪 خروج</button>
+        </div>
       </nav>
     </div>
   </section>
@@ -531,6 +578,7 @@
           <!-- التبويبات -->
           <div class="community-tabs">
             <button class="community-tab active" data-tab="all">الكل</button>
+            <button class="community-tab" data-tab="leaderboard">🏆 الموسم</button>
             <button class="community-tab" data-tab="friends">أصدقائي</button>
             <button class="community-tab" data-tab="requests">طلبات واردة</button>
           </div>
@@ -543,6 +591,26 @@
           <!-- قائمة اللاعبين (الكل) -->
           <div class="community-tab-content" data-content="all" style="display: block;">
             <div id="community-all-list" class="community-list"></div>
+          </div>
+
+          <!-- لوحة المتصدرين الموسمية -->
+          <div class="community-tab-content" data-content="leaderboard" style="display: none;">
+            <div class="season-header">
+              <div class="season-header-info">
+                <div class="season-label" id="season-current-label">—</div>
+                <div class="season-timer" id="season-current-timer">—</div>
+              </div>
+              <div class="season-tier-badge" id="season-current-tier">
+                <span class="season-tier-emoji" id="season-tier-emoji">🥉</span>
+                <span class="season-tier-label" id="season-tier-label">برونزي</span>
+                <span class="season-tier-score" id="season-tier-score">0 نقطة</span>
+              </div>
+            </div>
+            <div class="season-tier-progress">
+              <div class="season-tier-progress-bar"><div class="season-tier-progress-fill" id="season-tier-progress-fill" style="width:0%"></div></div>
+              <div class="season-tier-next" id="season-tier-next"></div>
+            </div>
+            <div id="community-leaderboard-list" class="community-list"></div>
           </div>
 
           <!-- قائمة الأصدقاء -->
@@ -686,6 +754,70 @@
       <div id="profile-root"></div>
     </div>
   </section>
+
+  <!-- ===== صفحة الإنجازات 🏆 ===== -->
+  <section id="page-achievements" class="page">
+    <div class="achievements-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">🏆 الإنجازات</h2>
+
+      <div class="achievements-summary">
+        <div class="achievements-summary-card">
+          <span class="achievements-summary-label">مفتوحة</span>
+          <span class="achievements-summary-value" id="achievements-unlocked-count">0</span>
+        </div>
+        <div class="achievements-summary-card">
+          <span class="achievements-summary-label">المجموع</span>
+          <span class="achievements-summary-value" id="achievements-total-count">0</span>
+        </div>
+        <div class="achievements-summary-card">
+          <span class="achievements-summary-label">النسبة</span>
+          <span class="achievements-summary-value" id="achievements-percent">0%</span>
+        </div>
+      </div>
+
+      <div class="achievements-tabs" id="achievements-tabs">
+        <button class="achievements-tab active" data-tab="all">الكل</button>
+        <button class="achievements-tab" data-tab="unlocked">مفتوحة</button>
+        <button class="achievements-tab" data-tab="locked">مقفلة</button>
+      </div>
+
+      <div class="achievements-grid" id="achievements-grid"></div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة التحديات ===== -->
+  <section id="page-challenges" class="page">
+    <div class="challenges-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">⚔️ التحديات</h2>
+
+      <div class="challenges-section">
+        <div class="challenges-section-header">
+          <h3 class="challenges-section-title">التحديات اليومية</h3>
+          <span class="challenges-section-timer" id="challenges-daily-timer">—</span>
+        </div>
+        <div class="challenges-list" id="challenges-daily-list"></div>
+      </div>
+
+      <div class="challenges-section">
+        <div class="challenges-section-header">
+          <h3 class="challenges-section-title">التحديات الأسبوعية</h3>
+          <span class="challenges-section-timer" id="challenges-weekly-timer">—</span>
+        </div>
+        <div class="challenges-list" id="challenges-weekly-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Toast إشعار إنجاز ===== -->
+  <div id="achievement-toast" class="achievement-toast" hidden>
+    <div class="achievement-toast-icon" id="achievement-toast-icon">🏆</div>
+    <div class="achievement-toast-body">
+      <div class="achievement-toast-label">إنجاز جديد!</div>
+      <div class="achievement-toast-title" id="achievement-toast-title"></div>
+    </div>
+  </div>
 
   <!-- ===== صفحة المتحف — كلمات الفئة ===== -->
   <section id="page-museum-cat" class="page">

@@ -11,6 +11,7 @@ const KEYS = [
   'devastock_profile',
   'devastock_profile_unlocked',
   'devastock_settings',
+  'devastock_season_v1',
 ];
 
 let _db         = null;
@@ -78,6 +79,7 @@ function _gatherLocalData() {
     profile:         _parseLS('devastock_profile',  {}),
     settings:        _parseLS('devastock_settings', { muted: false, musicEnabled: true, volume: 0.8 }),
     profileUnlocked: getState('profile_unlocked', false) === true,
+    season:          _parseLS('devastock_season_v1', { seasonId: '', score: 0 }),
   };
 }
 
@@ -98,6 +100,8 @@ async function _updateLeaderboard() {
     const emoji = _levelEmoji(level);
 
     const profile = _parseLS('devastock_profile', {});
+    const season  = _parseLS('devastock_season_v1', { seasonId: '', score: 0 });
+    const tier    = _tierFor(season.score || 0);
 
     await setDoc(doc(_db, 'leaderboard', _uid), {
       displayName:  profile.name || 'لاعب مجهول',
@@ -107,11 +111,26 @@ async function _updateLeaderboard() {
       totalLetters: total,
       rankLabel:    `لفل ${level}`,
       rankEmoji:    emoji,
+      seasonId:     season.seasonId || '',
+      seasonScore:  season.score || 0,
+      tierId:       tier.id,
+      tierLabel:    tier.label,
+      tierEmoji:    tier.emoji,
       updatedAt:    serverTimestamp(),
     }, { merge: true });
   } catch (e) {
     // صامت
   }
+}
+
+// تكرار محلي للمستويات (تجنباً لـ circular import مع seasons.js)
+function _tierFor(score) {
+  if (score >= 20000) return { id: 'master',   label: 'أسطوري',  emoji: '👑' };
+  if (score >= 10000) return { id: 'diamond',  label: 'ماسي',    emoji: '💎' };
+  if (score >= 5000)  return { id: 'platinum', label: 'بلاتيني', emoji: '💠' };
+  if (score >= 2000)  return { id: 'gold',     label: 'ذهبي',    emoji: '🥇' };
+  if (score >= 500)   return { id: 'silver',   label: 'فضي',     emoji: '🥈' };
+  return { id: 'bronze', label: 'برونزي', emoji: '🥉' };
 }
 
 // ===== حساب اللفل (مكرر هنا تجنباً لـ circular import) =====
@@ -165,6 +184,7 @@ export async function pullFromCloud(db, uid) {
       if (data.lifetime) setState('lifetime', data.lifetime);
       if (data.profile)  setState('profile', data.profile);
       if (data.settings) setState('settings', data.settings);
+      if (data.season)   setState('season_v1', data.season);
 
       if (data.profileUnlocked === true) {
         setState('profile_unlocked', true);

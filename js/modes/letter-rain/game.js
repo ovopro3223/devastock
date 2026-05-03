@@ -4,6 +4,7 @@ import { Score }        from './score.js';
 import { InputHandler } from './input.js';
 import { hitTest }      from '../../utils/helpers.js';
 import { LETTER_RAIN_CONFIG as CFG } from '../../core/config.js';
+import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 export class LetterRainGame {
   // onQuit: دالة callback تُستدعى عند الخروج للقائمة
@@ -73,6 +74,7 @@ export class LetterRainGame {
     this._resizeHandler = () => this._resizeCanvas();
     window.addEventListener('resize', this._resizeHandler);
 
+    recordPlayStart('letter-rain');
     this._loop();
   }
 
@@ -153,8 +155,8 @@ export class LetterRainGame {
 
       if (e.type === 'letter') {
         e.collected = true;
-        const mult = this._score.addLetter(e.char);
-        e._double = (mult === 2);
+        const result = this._score.addLetter(e.char, e.spawnTag);
+        e._double = (result.count >= 2);
         this._updateHudScore();
         this._addToStrip(e.char);
 
@@ -194,6 +196,11 @@ export class LetterRainGame {
   _gameOver() {
     this._running = false;
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+    recordPlayEnd('letter-rain', {
+      score: this._score.getScore(),
+      lettersCollected: this._score.getLettersCount(),
+      won: false,
+    });
     document.getElementById('final-score-value').textContent   = this._score.getScore();
     document.getElementById('final-letters-value').textContent = this._score.getLettersCount();
     this._showOverlay('overlay-gameover');

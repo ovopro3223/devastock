@@ -31,28 +31,39 @@ export function initMenu(navigate) {
       navigate('profile');
     });
 
-  // زر المجتمع (جديد)
-  const communityBtn = document.createElement('button');
-  communityBtn.id = 'btn-community-menu';
-  communityBtn.className = 'btn btn-menu';
-  communityBtn.innerHTML = '👥 المجتمع <span id="community-badge" class="notification-badge" hidden>0</span>';
-  communityBtn.addEventListener('click', () => {
-    initCommunity(navigate);
-    navigate('community');
-  });
+  // زر المجتمع
+  const communityBtn = document.getElementById('btn-community-menu');
+  if (communityBtn) {
+    communityBtn.addEventListener('click', () => {
+      initCommunity(navigate);
+      navigate('community');
+    });
+  }
 
-  const forumBtn = document.createElement('button');
-  forumBtn.id = 'btn-forum-menu';
-  forumBtn.className = 'btn btn-menu';
-  forumBtn.textContent = '📝 المنتدى';
-  forumBtn.addEventListener('click', () => {
-    initForum(navigate);
-    navigate('forum');
-  });
+  // زر المنتدى
+  const forumBtn = document.getElementById('btn-forum-menu');
+  if (forumBtn) {
+    forumBtn.addEventListener('click', () => {
+      initForum(navigate);
+      navigate('forum');
+    });
+  }
 
-  const menuNav = document.querySelector('.menu-nav');
-  menuNav.insertBefore(communityBtn, document.getElementById('btn-settings'));
-  menuNav.insertBefore(forumBtn, document.getElementById('btn-settings'));
+  // زر الإنجازات
+  const achievementsBtn = document.getElementById('btn-achievements-menu');
+  if (achievementsBtn) {
+    achievementsBtn.addEventListener('click', () => {
+      navigate('achievements');
+    });
+  }
+
+  // زر التحديات
+  const challengesBtn = document.getElementById('btn-challenges-menu');
+  if (challengesBtn) {
+    challengesBtn.addEventListener('click', () => {
+      navigate('challenges');
+    });
+  }
 
   // ===== زر تسجيل الدخول / الخروج في القائمة =====
   const menuAuthBtn = document.getElementById('btn-menu-auth');

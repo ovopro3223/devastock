@@ -2,6 +2,7 @@
 import { MUSEUM_CATEGORIES, getLetterCost, canAfford } from '../core/museum-data.js';
 import { isCollected, collectWord, getCategoryProgress } from '../core/museum-storage.js';
 import { getStock, spendLetters } from '../core/storage.js';
+import { incrementCounter } from '../core/achievements.js';
 
 let _navigate   = null;
 let _currentCat = null;
@@ -130,6 +131,7 @@ function _renderCategory(cat) {
         card.querySelector('.word-collect-btn').addEventListener('click', () => {
           spendLetters(cost);
           collectWord(cat.id, word);
+          incrementCounter('museum_words');
           _renderCategory(cat);
         });
       }

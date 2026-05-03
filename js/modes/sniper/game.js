@@ -1,7 +1,10 @@
 // ===== قناصة الأحرف 🎯 =====
 import { saveLetterToStock } from '../../core/storage.js';
+import { awardLetter } from '../../core/rare-letters.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
 import { playShotSound, playCollectSound, playLoseLifeSound } from '../../core/audio.js';
+import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
+import { incrementCounter } from '../../core/achievements.js';
 
 // كلمات للقنص (مكونة من 5-7 أحرف)
 const SNIPER_WORDS = [
@@ -135,8 +138,8 @@ export class SniperGame {
     if (hit) {
       hit.shot = true;
       this.revealed[hit.index] = hit.char;
-      saveLetterToStock(hit.char);
-      recordLetter(hit.char, 1);
+      const r = awardLetter('sniper', hit.char);
+      this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
       playCollectSound();
       this._updateWordDisplay();
 
@@ -212,6 +215,8 @@ export class SniperGame {
     this.running = true;
     this.paused = false;
     this._lastTime = performance.now();
+    this._lettersCollectedThisRun = 0;
+    recordPlayStart('sniper');
     this._loop();
   }
 
@@ -242,6 +247,11 @@ export class SniperGame {
 
   _gameOver() {
     this.running = false;
+    recordPlayEnd('sniper', {
+      score: 0,
+      lettersCollected: this._lettersCollectedThisRun || 0,
+      won: false,
+    });
     document.getElementById('sniper-end-title').textContent = 'خسرت 💔';
     document.getElementById('sniper-final-word').textContent = this.word;
     document.getElementById('sniper-overlay-gameover').hidden = false;
@@ -249,6 +259,12 @@ export class SniperGame {
 
   _win() {
     this.running = false;
+    incrementCounter('sniper_words_completed');
+    recordPlayEnd('sniper', {
+      score: this.word.length * 10,
+      lettersCollected: this._lettersCollectedThisRun || 0,
+      won: true,
+    });
     document.getElementById('sniper-end-title').textContent = 'فزت! 🎯';
     document.getElementById('sniper-final-word').textContent = this.word;
     document.getElementById('sniper-overlay-gameover').hidden = false;

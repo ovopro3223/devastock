@@ -90,6 +90,11 @@ export async function getPlayers() {
         score: data.score || 0,
         rankEmoji: data.rankEmoji || '🌱',
         rankLabel: data.rankLabel || 'مبتدئ',
+        seasonScore: data.seasonScore || 0,
+        seasonId:    data.seasonId || '',
+        tierId:      data.tierId || 'bronze',
+        tierLabel:   data.tierLabel || 'برونزي',
+        tierEmoji:   data.tierEmoji || '🥉',
       });
     });
     return players.sort((a, b) => b.score - a.score); // مرتب حسب الدرجة

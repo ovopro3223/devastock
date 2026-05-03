@@ -7,6 +7,7 @@ import { initMuseum }  from './pages/museum.js';
 import { initProfile } from './pages/profile.js';
 import { initForum }   from './pages/forum.js';
 import { initSettings } from './pages/settings.js';
+import { initChallenges, updateChallengesBadge, renderChallenges } from './pages/challenges.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -16,7 +17,7 @@ import { syncLifetimeWithStock } from './core/lifetime-storage.js';
 const PAGE_IDS = [
   'home', 'menu', 'modes', 'letter-rain', 'letter-blaze',
   'stock', 'museum', 'museum-cat', 'profile', 'community', 'forum', 'casino',
-  'taxi', 'fishing', 'sniper', 'settings',
+  'taxi', 'fishing', 'sniper', 'settings', 'achievements', 'challenges',
 ];
 
 const GAME_PAGES = ['letter-rain', 'letter-blaze', 'taxi', 'fishing', 'sniper', 'casino'];
@@ -32,6 +33,8 @@ const BACK_TARGETS = {
   community: 'menu',
   forum: 'menu',
   settings: 'menu',
+  achievements: 'menu',
+  challenges: 'menu',
   casino: 'modes',
   taxi: 'modes',
   fishing: 'modes',
@@ -50,6 +53,9 @@ export function showPage(pageId) {
   });
   document.body.classList.toggle('in-game', GAME_PAGES.includes(pageId));
   if (pageId === 'home') refreshHomeRank();
+  if (pageId === 'menu') updateChallengesBadge();
+  if (pageId === 'challenges') renderChallenges();
+  document.dispatchEvent(new CustomEvent('page-show', { detail: pageId }));
 
   // تحديث زر التنقل العلوي
   const topnavBtn = document.getElementById('topnav-btn');
@@ -82,6 +88,7 @@ initStock();
 initMuseum(showPage);
 initProfile(showPage);
 initSettings();
+initChallenges();
 
 // Firebase — يعمل بشكل مستقل في الخلفية
 initAudio();

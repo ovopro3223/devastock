@@ -1,6 +1,7 @@
 // ===== توليد الكيانات — نظام الحزمة الدوارة + تجنب التصادم =====
 import { Letter, Bomb, Snowflake } from './entities.js';
 import { LETTER_RAIN_CONFIG as CFG } from '../../core/config.js';
+import { tagSpawn } from '../../core/rare-letters.js';
 
 const ARABIC_LETTERS = [
   'ا','ب','ت','ث','ج','ح','خ',
@@ -77,6 +78,10 @@ export class Spawner {
     const letter  = new Letter(canvasWidth);
     letter.x      = x;
     letter.char   = this._nextChar();
+    const tag = tagSpawn(letter.char);
+    letter.rarity = tag.rarity;
+    letter.special = tag.special;
+    letter.spawnTag = tag;
     return letter;
   }
 }

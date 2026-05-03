@@ -7,6 +7,8 @@ import { signInWithGoogle, getPlayers, getFriends, getIncomingRequests,
          listenForOutgoingRequests, getPlayerProfile,
          sendChatMessage, listenForMessages } from '../core/firebase.js';
 import { canAffordText, spendForText } from '../core/storage.js';
+import { incrementCounter } from '../core/achievements.js';
+import { getSeasonState, getSeasonLabel } from '../core/seasons.js';
 
 let _chatListenerUnsub = null;
 let _chatPartnerUid = null;
@@ -228,7 +230,74 @@ function renderTab(tabName) {
     renderFriends();
   } else if (tabName === 'requests') {
     renderRequests();
+  } else if (tabName === 'leaderboard') {
+    renderSeasonLeaderboard();
   }
+}
+
+function _formatSeasonTimeLeft(ms) {
+  if (ms <= 0) return '0';
+  const totalMin = Math.floor(ms / 60000);
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  if (days > 0) return `${days} يوم`;
+  return `${hours} ساعة`;
+}
+
+function renderSeasonLeaderboard() {
+  const list = document.getElementById('community-leaderboard-list');
+  if (!list) return;
+
+  // البطاقة العلوية (الموسم الحالي + tier المستخدم)
+  const state = getSeasonState();
+  const labelEl  = document.getElementById('season-current-label');
+  const timerEl  = document.getElementById('season-current-timer');
+  const emojiEl  = document.getElementById('season-tier-emoji');
+  const tierLbl  = document.getElementById('season-tier-label');
+  const scoreEl  = document.getElementById('season-tier-score');
+  const fillEl   = document.getElementById('season-tier-progress-fill');
+  const nextEl   = document.getElementById('season-tier-next');
+
+  if (labelEl) labelEl.textContent = `موسم ${state.seasonLabel}`;
+  if (timerEl) timerEl.textContent = `ينتهي بعد ${_formatSeasonTimeLeft(state.msUntilEnd)}`;
+  if (emojiEl) emojiEl.textContent = state.tier.emoji;
+  if (tierLbl) tierLbl.textContent = state.tier.label;
+  if (scoreEl) scoreEl.textContent = `${state.score} نقطة`;
+  if (fillEl)  fillEl.style.width = `${state.percent}%`;
+  if (nextEl)  nextEl.textContent = state.nextTier
+    ? `${state.target - state.current} نقطة لـ ${state.nextTier.label}`
+    : 'وصلت أعلى رتبة!';
+
+  // ترتيب اللاعبين حسب seasonScore تنازلياً (الموسم الحالي فقط)
+  const currentSeasonId = state.seasonId;
+  const seasonPlayers = _allPlayers
+    .filter(p => p.seasonId === currentSeasonId)
+    .sort((a, b) => (b.seasonScore || 0) - (a.seasonScore || 0));
+
+  if (seasonPlayers.length === 0) {
+    list.innerHTML = `<div class="community-empty"><span class="community-empty-emoji">🏆</span><div>لا متنافسون في هذا الموسم بعد</div></div>`;
+    return;
+  }
+
+  list.innerHTML = seasonPlayers.slice(0, 50).map((p, i) => {
+    const isSelf = _currentUser && p.uid === _currentUser.uid;
+    const avatarHtml = p.avatarImage
+      ? `<img class="community-player-avatar" src="${p.avatarImage}" alt="Avatar">`
+      : `<div class="community-player-avatar">${p.avatar || p.rankEmoji}</div>`;
+    return `
+      <div class="community-player-card${isSelf ? ' is-self' : ''}" onclick="window._viewProfile('${p.uid}')">
+        <div class="leaderboard-rank-num">${i + 1}</div>
+        ${avatarHtml}
+        <div class="community-player-info">
+          <div class="community-player-name"><span class="leaderboard-tier">${p.tierEmoji}</span>${p.displayName}</div>
+          <div class="community-player-stats">
+            <span>${p.tierLabel}</span>
+            <span class="leaderboard-season-score">• ${p.seasonScore} نقطة</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderAllPlayers() {
@@ -362,6 +431,7 @@ window._acceptRequest = async function(reqId, fromUid, index) {
   if (!_currentUser) return;
 
   await acceptFriendRequest(reqId, fromUid, _currentUser.uid);
+  incrementCounter('friends_added');
   _clearFriendRequest(fromUid, _currentUser.uid);
   _incomingRequests.splice(index, 1);
   await loadCommunityData();
@@ -554,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const fromName = _currentUser.displayName || 'لاعب';
       await sendChatMessage(_currentUser.uid, _chatPartnerUid, fromName, text);
       spendForText(text);
+      incrementCounter('chat_messages_sent');
     };
   }
 
@@ -585,6 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const fromName = _currentUser.displayName || 'لاعب';
       await sendChatMessage(_currentUser.uid, _chatPartnerUid, fromName, text);
       spendForText(text);
+      incrementCounter('chat_messages_sent');
     };
   }
 });

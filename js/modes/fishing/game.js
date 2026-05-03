@@ -1,7 +1,9 @@
 // ===== صيد الأحرف 🎣 (نسخة الشبكة) =====
 import { saveLetterToStock, spendLetters, getStock } from '../../core/storage.js';
+import { awardLetter } from '../../core/rare-letters.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
 import { playSplashSound, playCollectSound, playLoseLifeSound, playWinSound } from '../../core/audio.js';
+import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
 
@@ -282,8 +284,8 @@ export class FishingGame {
   _awardLetters(letters) {
     for (const [char, count] of Object.entries(letters)) {
       for (let i = 0; i < count; i++) {
-        saveLetterToStock(char);
-        recordLetter(char, 1);
+        const r = awardLetter('fishing', char);
+        this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
       }
     }
   }
@@ -337,6 +339,8 @@ export class FishingGame {
 
     this.running = true;
     this.paused = false;
+    this._lettersCollectedThisRun = 0;
+    recordPlayStart('fishing');
     this._startTimer();
     this._loop();
   }
@@ -380,6 +384,11 @@ export class FishingGame {
   _gameOver() {
     this.running = false;
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    recordPlayEnd('fishing', {
+      score: this.score,
+      lettersCollected: this._lettersCollectedThisRun || 0,
+      won: false,
+    });
     document.getElementById('fishing-final-score').textContent = this.score;
     document.getElementById('fishing-overlay-gameover').hidden = false;
   }

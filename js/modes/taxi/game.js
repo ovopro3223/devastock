@@ -1,35 +1,21 @@
 // ===== تاكسي الأحرف 🚕 =====
-import { saveLetterToStock } from '../../core/storage.js';
-import { recordLetter } from '../../core/lifetime-storage.js';
+import { awardLetter } from '../../core/rare-letters.js';
 import { playCollectSound, playLoseLifeSound, startEngine, stopEngine } from '../../core/audio.js';
+import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
 const LETTER_SPACING = 220;   // مسافة عمودية بين الأحرف
 const TREE_SPAWN_RATE = 0.008;
 const ITEM_SPAWN_RATE = 0.010;
 const FIXED_LETTER_SIZE = 34;     // حجم ثابت للحرف على الطريق
-const FIXED_TREE_SIZE   = 64;     // حجم ثابت للشجرة (جانبية أو على الطريق)
-const FIXED_ITEM_SIZE   = 26;     // حجم ثابت للعناصر الخاصة
-const OPPOSING_CAR_SPAWN_RATE = 0.008; // احتمال ظهور سيارة معاكسة
+const FIXED_TREE_SIZE   = 34;     // نفس حجم الحرف
+const FIXED_ITEM_SIZE   = 34;     // نفس حجم الحرف
 const CAR_MAX_SPEED = 5;      // السرعة الأفقية القصوى للسيارة
 const CAR_ACCEL = 0.18;       // تسارع الانتقال
 const CAR_FRICTION = 0.92;    // احتكاك (لتقليل السرعة عند ترك المفتاح)
 const ROAD_WIDTH_RATIO = 0.78;  // نسبة عرض الطريق من عرض الشاشة (أعرض طريق)
 const CAR_WIDTH_RATIO = 0.34;  // نسبة عرض السيارة = شارع واحد من الثلاث (~1/3)
 const ROAD_TOP_WIDTH_RATIO = 0.24; // طول الطريق عند الأفق
-const ROAD_SCROLL_HORIZON = 0.18; // موقع الأفق بالنسبة للارتفاع
-const ROAD_OFFSET_MAX = 0.3;      // انحراف الطريق الأقصى
-const ROAD_CURVE_SPEED = 0.018;   // سرعة تغيير المنحنى
-
-// ألوان السيارات المعاكسة
-const OPPOSING_CAR_COLORS = [
-  { body: '#E74C3C', dark: '#A93226' },  // أحمر
-  { body: '#3498DB', dark: '#21618C' },  // أزرق
-  { body: '#2ECC71', dark: '#1E8449' },  // أخضر
-  { body: '#9B59B6', dark: '#6C3483' },  // بنفسجي
-  { body: '#F39C12', dark: '#B9770E' },  // برتقالي
-  { body: '#FFFFFF', dark: '#BDC3C7' },  // أبيض
-];
 
 export class TaxiGame {
   constructor(onExit) {
@@ -40,8 +26,6 @@ export class TaxiGame {
     this.W = 0;
     this.H = 0;
     this.roadX = 0;
-    this.roadOffset = 0;
-    this.roadTargetOffset = 0;
     this.scrollY = 0;
     this.speed = 1.3;        // سرعة بداية أبطأ
     this.lives = 3;
@@ -67,10 +51,8 @@ export class TaxiGame {
     this.letters = [];
     this.trees = [];
     this.items = [];
-    this.opposingCars = [];
 
     this.distSinceLastLetter = 0;
-    this.distSinceLastOpposing = 0;
     this.running = false;
     this.paused = false;
 
@@ -144,12 +126,9 @@ export class TaxiGame {
     return this.W * ROAD_WIDTH_RATIO * (ROAD_TOP_WIDTH_RATIO + (1 - ROAD_TOP_WIDTH_RATIO) * t);
   }
 
-  _roadCenterAt(y) {
-    // مركز الطريق مع انحناء بيرسبكتيف
-    const t = Math.min(Math.max(y / this.H, 0), 1);
-    // الانحراف يبدو أكبر عند الأفق (top) ويختفي قرب اللاعب (bottom)
-    const curveStrength = (1 - t) * this.roadOffset * this.W * 0.4;
-    return this.W / 2 + curveStrength;
+  _roadCenterAt(_y) {
+    // طريق مستقيم — لا انحناء
+    return this.W / 2;
   }
 
   _roadXAt(width) {
@@ -181,23 +160,21 @@ export class TaxiGame {
     this.letters = [];
     this.trees = [];
     this.items = [];
-    this.opposingCars = [];
     this.scrollY = 0;
-    this.roadOffset = 0;
-    this.roadTargetOffset = 0;
     this.car.x = 0;
     this.car.vx = 0;
     this.keys.left = false;
     this.keys.right = false;
     this.distSinceLastLetter = LETTER_SPACING;
-    this.distSinceLastOpposing = 400;
     this.multiplier = 1;
     this.multiplierUses = 0;
     this._updateHUD();
     this.running = true;
     this.paused = false;
+    this._lettersCollectedThisRun = 0;
     document.getElementById('taxi-overlay-pause').hidden = true;
     document.getElementById('taxi-overlay-gameover').hidden = true;
+    recordPlayStart('taxi');
     startEngine();
     this._loop();
   }
@@ -233,6 +210,11 @@ export class TaxiGame {
   _gameOver() {
     this.running = false;
     stopEngine();
+    recordPlayEnd('taxi', {
+      score: this.score,
+      lettersCollected: this._lettersCollectedThisRun || 0,
+      won: false,
+    });
     document.getElementById('taxi-final-score').textContent = this.score;
     document.getElementById('taxi-overlay-gameover').hidden = false;
   }
@@ -294,20 +276,6 @@ export class TaxiGame {
     });
   }
 
-  _spawnOpposingCar() {
-    // اختر شارعاً (مسار) — على الجانب الآخر من السيارة عادةً
-    // Lanes: -0.34 (يسار), 0, 0.34 (يمين). السيارات المعاكسة تأتي عشوائياً
-    const lanes = [-0.32, 0, 0.32];
-    const lane = lanes[Math.floor(Math.random() * lanes.length)];
-    const color = OPPOSING_CAR_COLORS[Math.floor(Math.random() * OPPOSING_CAR_COLORS.length)];
-    this.opposingCars.push({
-      x: lane,
-      y: -100,
-      color,
-      hit: false,
-    });
-  }
-
   _loop = () => {
     if (!this.running || this.paused) return;
     try {
@@ -324,12 +292,6 @@ export class TaxiGame {
     this.roadX += this.speed;
     this.scrollY += this.speed;
     this.distSinceLastLetter += this.speed;
-
-    // ===== انحناء الطريق المتغير =====
-    if (Math.random() < 0.009) {
-      this.roadTargetOffset = (Math.random() * 2 - 1) * ROAD_OFFSET_MAX;
-    }
-    this.roadOffset += (this.roadTargetOffset - this.roadOffset) * ROAD_CURVE_SPEED;
 
     // ===== حركة السيارة السلسة =====
     // تطبيق التسارع حسب المفاتيح المضغوطة
@@ -362,19 +324,10 @@ export class TaxiGame {
     if (Math.random() < TREE_SPAWN_RATE) this._spawnTree();
     if (Math.random() < ITEM_SPAWN_RATE) this._spawnItem();
 
-    // ظهور سيارات معاكسة بفاصل آمن
-    this.distSinceLastOpposing += this.speed;
-    if (this.distSinceLastOpposing > 350 && Math.random() < OPPOSING_CAR_SPAWN_RATE) {
-      this._spawnOpposingCar();
-      this.distSinceLastOpposing = 0;
-    }
-
     // تحريك الكائنات للأسفل
     for (const l of this.letters) l.y += this.speed;
     for (const t of this.trees)   t.y += this.speed;
     for (const item of this.items) item.y += this.speed;
-    // السيارات المعاكسة تأتي أسرع (سرعة الطريق + سرعتها الذاتية)
-    for (const oc of this.opposingCars) oc.y += this.speed * 1.6;
 
     // تحقق من اصطدام الأحرف
     const carCenterY = this.H - 100;
@@ -393,10 +346,10 @@ export class TaxiGame {
       const dy = l.y - carCenterY;
       if (Math.abs(dx) < carHalfW + 15 && Math.abs(dy) < carHalfH + 5) {
         l.collected = true;
-        this.score += this.multiplier;
         for (let i = 0; i < this.multiplier; i++) {
-          saveLetterToStock(l.char);
-          recordLetter(l.char, 1);
+          const r = awardLetter('taxi', l.char);
+          this.score += r.count;
+          this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
         }
         if (this.multiplier > 1) {
           this.multiplierUses -= 1;
@@ -451,31 +404,10 @@ export class TaxiGame {
       }
     }
 
-    // ===== تحقق من اصطدام بسيارة معاكسة → خسارة فورية =====
-    for (const oc of this.opposingCars) {
-      if (oc.hit) continue;
-      const roadWidthAtY = this._roadWidthAt(oc.y);
-      const centerAtY = this._roadCenterAt(oc.y);
-      const ocx = centerAtY + oc.x * roadWidthAtY * 0.45;
-      const dx = ocx - carScreenX;
-      const dy = oc.y - carCenterY;
-      // hitbox السيارة المعاكسة
-      if (Math.abs(dx) < carHalfW + this.car.width * 0.4 && Math.abs(dy) < carHalfH + this.car.height * 0.45) {
-        oc.hit = true;
-        playLoseLifeSound();
-        // خسارة فورية!
-        this.lives = 0;
-        this._updateHUD();
-        this._gameOver();
-        return;
-      }
-    }
-
     // إزالة الكائنات خارج الشاشة
-    this.letters       = this.letters.filter(l => l.y < this.H + 50 && !l.collected);
-    this.trees         = this.trees.filter(t => t.y < this.H + 80);
-    this.items         = this.items.filter(i => i.y < this.H + 80 && !i.collected);
-    this.opposingCars  = this.opposingCars.filter(oc => oc.y < this.H + 100 && !oc.hit);
+    this.letters = this.letters.filter(l => l.y < this.H + 50 && !l.collected);
+    this.trees   = this.trees.filter(t => t.y < this.H + 80);
+    this.items   = this.items.filter(i => i.y < this.H + 80 && !i.collected);
 
     // تسريع تدريجي بطيء (يصل لـ 4.2 كحد أقصى)
     if (this.scrollY % 2500 < this.speed) {
@@ -599,15 +531,6 @@ export class TaxiGame {
       const centerAtY = this._roadCenterAt(item.y);
       const ix = centerAtY + item.x * roadWidthAtY * 0.46;
       this._drawItem(ix, item.y, item.type, FIXED_ITEM_SIZE);
-    }
-
-    // رسم السيارات المعاكسة - حجم ثابت
-    for (const oc of this.opposingCars) {
-      if (oc.hit) continue;
-      const roadWidthAtY = this._roadWidthAt(oc.y);
-      const centerAtY = this._roadCenterAt(oc.y);
-      const ocx = centerAtY + oc.x * roadWidthAtY * 0.45;
-      this._drawOpposingCar(ocx, oc.y, oc.color, 1.0);
     }
 
     // رسم السيارة
@@ -807,85 +730,6 @@ export class TaxiGame {
     ctx.moveTo(x - w / 2 + 4, top + h * 0.5);
     ctx.lineTo(x + w / 2 - 4, top + h * 0.5);
     ctx.stroke();
-  }
-
-  _drawOpposingCar(x, y, color, scale = 1) {
-    const ctx = this.ctx;
-    const w = this.car.width * scale;
-    const h = this.car.height * scale;
-    const baseY = y - h * 0.3;
-
-    // ظل
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(x, baseY + h * 0.95, w * 0.45, 8 * scale, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // جسم السيارة (مقلوب — هذي قادمة باتجاه اللاعب فأسفلها واسع وأعلاها ضيق)
-    const bodyGrad = ctx.createLinearGradient(0, baseY, 0, baseY + h);
-    bodyGrad.addColorStop(0, color.body);
-    bodyGrad.addColorStop(1, color.dark);
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    // شكل مقلوب: السيارة قادمة فالأمام (أسفل) واسع وعريض، الخلف (أعلى) ضيّق
-    ctx.moveTo(x - w / 2 + 6, baseY);
-    ctx.lineTo(x + w / 2 - 6, baseY);
-    ctx.lineTo(x + w / 2, baseY + h);
-    ctx.lineTo(x - w / 2, baseY + h);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#1A1A2E';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // الزجاج الأمامي (في أسفل السيارة لأنها قادمة)
-    const windshieldH = h * 0.3;
-    ctx.fillStyle = 'rgba(40,60,90,0.85)';
-    ctx.beginPath();
-    ctx.moveTo(x - w / 2 + 8, baseY + h * 0.55);
-    ctx.lineTo(x + w / 2 - 8, baseY + h * 0.55);
-    ctx.lineTo(x + w / 2 - 4, baseY + h * 0.55 + windshieldH);
-    ctx.lineTo(x - w / 2 + 4, baseY + h * 0.55 + windshieldH);
-    ctx.closePath();
-    ctx.fill();
-
-    // مصابيح أمامية (أصفر فاقع)
-    const headlightSize = w * 0.13;
-    ctx.fillStyle = '#FFF8DC';
-    ctx.beginPath();
-    ctx.ellipse(x - w * 0.32, baseY + h * 0.92, headlightSize, headlightSize * 0.7, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.32, baseY + h * 0.92, headlightSize, headlightSize * 0.7, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // وهج المصابيح
-    const glow = ctx.createRadialGradient(x - w * 0.32, baseY + h * 0.92, 0, x - w * 0.32, baseY + h * 0.92, headlightSize * 2.5);
-    glow.addColorStop(0, 'rgba(255,255,200,0.5)');
-    glow.addColorStop(1, 'rgba(255,255,200,0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(x - w * 0.32, baseY + h * 0.92, headlightSize * 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + w * 0.32, baseY + h * 0.92, headlightSize * 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // عجلات (تظهر من الأطراف)
-    const wheelW = w * 0.13;
-    const wheelH = wheelW * 0.7;
-    ctx.fillStyle = '#1A1A2E';
-    ctx.beginPath();
-    ctx.ellipse(x - w * 0.42, baseY + h * 0.3, wheelW, wheelH, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.42, baseY + h * 0.3, wheelW, wheelH, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x - w * 0.42, baseY + h * 0.85, wheelW, wheelH, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.42, baseY + h * 0.85, wheelW, wheelH, 0, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   _drawItem(x, y, type, baseSize = 20) {

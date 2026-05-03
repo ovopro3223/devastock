@@ -3,6 +3,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { signInWithGoogle, createForumPost, deleteForumPost, listenForForumPosts, listenForForumComments,
          listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost } from '../core/firebase.js';
 import { canAffordText, spendForText } from '../core/storage.js';
+import { incrementCounter } from '../core/achievements.js';
 
 let _currentUser = null;
 let _posts = [];
@@ -35,6 +36,7 @@ export function initForum(navigate) {
       const result = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
       if (result?.success) {
         spendForText(content);
+        incrementCounter('forum_posts_created');
         textarea.value = '';
         renderForumPosts();
       } else {
@@ -206,6 +208,7 @@ window._submitForumComment = async function(event, postId) {
   }
   await addForumComment(postId, _currentUser.uid, _currentUser.displayName || 'لاعب', content);
   spendForText(content);
+  incrementCounter('forum_comments_created');
   input.value = '';
 };
 
