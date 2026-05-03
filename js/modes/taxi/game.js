@@ -4,18 +4,17 @@ import { playCollectSound, playLoseLifeSound, startEngine, stopEngine } from '..
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
-const LETTER_SPACING = 220;   // مسافة عمودية بين الأحرف
-const TREE_SPAWN_RATE = 0.008;
+
+const NUM_LANES = 9;
+const ROAD_WIDTH_RATIO = 0.86;   // نسبة عرض الطريق من الشاشة
+const LETTER_SPACING = 200;       // مسافة عمودية بين الأحرف
+
+const TREE_SPAWN_RATE = 0.012;
 const ITEM_SPAWN_RATE = 0.010;
-const FIXED_LETTER_SIZE = 34;     // حجم ثابت للحرف على الطريق
-const FIXED_TREE_SIZE   = 34;     // نفس حجم الحرف
-const FIXED_ITEM_SIZE   = 34;     // نفس حجم الحرف
-const CAR_MAX_SPEED = 5;      // السرعة الأفقية القصوى للسيارة
-const CAR_ACCEL = 0.18;       // تسارع الانتقال
-const CAR_FRICTION = 0.92;    // احتكاك (لتقليل السرعة عند ترك المفتاح)
-const ROAD_WIDTH_RATIO = 0.78;  // نسبة عرض الطريق من عرض الشاشة (أعرض طريق)
-const CAR_WIDTH_RATIO = 0.34;  // نسبة عرض السيارة = شارع واحد من الثلاث (~1/3)
-const ROAD_TOP_WIDTH_RATIO = 0.24; // طول الطريق عند الأفق
+
+const CAR_MAX_SPEED = 6;
+const CAR_ACCEL = 0.22;
+const CAR_FRICTION = 0.90;
 
 export class TaxiGame {
   constructor(onExit) {
@@ -25,29 +24,16 @@ export class TaxiGame {
 
     this.W = 0;
     this.H = 0;
-    this.roadX = 0;
     this.scrollY = 0;
-    this.speed = 1.3;        // سرعة بداية أبطأ
+    this.speed = 1.9;
     this.lives = 3;
     this.score = 0;
 
-    // السيارة - حركة سلسة بدون lanes
-    this.car = {
-      x: 0,            // إزاحة نسبية عن مركز الطريق (-1 إلى 1)
-      vx: 0,
-      width: 50,
-      height: 90,
-    };
-
+    this.car = { lane: Math.floor(NUM_LANES / 2), x: 0, vx: 0 };
     this.multiplier = 1;
     this.multiplierUses = 0;
 
-    // مفاتيح التحكم
-    this.keys = {
-      left: false,
-      right: false,
-    };
-
+    this.keys = { left: false, right: false };
     this.letters = [];
     this.trees = [];
     this.items = [];
@@ -66,7 +52,6 @@ export class TaxiGame {
     document.getElementById('taxi-btn-restart').onclick = () => this.restart();
     document.getElementById('taxi-btn-quit-gameover').onclick = () => this.quit();
 
-    // ===== كيبورد: حركة بالأسهم =====
     document.addEventListener('keydown', (e) => {
       if (!this.running || this.paused) return;
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this.keys.left = true;
@@ -77,15 +62,12 @@ export class TaxiGame {
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this.keys.right = false;
     });
 
-    // ===== موبايل: سحب السيارة (drag) أو سحب على الشاشة =====
-    let dragStartX = null;
+    // موبايل: سحب
     let lastTouchX = null;
-
     this.canvas.addEventListener('touchstart', (e) => {
       if (!this.running || this.paused) return;
       e.preventDefault();
-      dragStartX = e.touches[0].clientX;
-      lastTouchX = dragStartX;
+      lastTouchX = e.touches[0].clientX;
     }, { passive: false });
 
     this.canvas.addEventListener('touchmove', (e) => {
@@ -94,18 +76,10 @@ export class TaxiGame {
       const currentX = e.touches[0].clientX;
       const dx = currentX - (lastTouchX ?? currentX);
       lastTouchX = currentX;
-      // سحب مباشر للسيارة - كل بكسل سحب يحرك السيارة
-      const roadWidth = this.W * ROAD_WIDTH_RATIO;
-      this.car.x += dx / roadWidth * 1.5;
-      // حدود
-      if (this.car.x >  0.42) this.car.x =  0.42;
-      if (this.car.x < -0.42) this.car.x = -0.42;
+      this.car.x += dx;
     }, { passive: false });
 
-    this.canvas.addEventListener('touchend', () => {
-      dragStartX = null;
-      lastTouchX = null;
-    });
+    this.canvas.addEventListener('touchend', () => { lastTouchX = null; });
 
     window.addEventListener('resize', () => this._resize());
   }
@@ -116,27 +90,23 @@ export class TaxiGame {
     this.canvas.height = rect.height;
     this.W = rect.width;
     this.H = rect.height;
-    const roadWidth = this.W * ROAD_WIDTH_RATIO;
-    this.car.width = Math.min(roadWidth * CAR_WIDTH_RATIO, 120);
-    this.car.height = this.car.width * 1.9;
   }
 
-  _roadWidthAt(y) {
-    const t = Math.min(Math.max(y / this.H, 0), 1);
-    return this.W * ROAD_WIDTH_RATIO * (ROAD_TOP_WIDTH_RATIO + (1 - ROAD_TOP_WIDTH_RATIO) * t);
+  // عرض الشارع الواحد
+  _laneWidth() {
+    return (this.W * ROAD_WIDTH_RATIO) / NUM_LANES;
   }
 
-  _roadCenterAt(_y) {
-    // طريق مستقيم — لا انحناء
-    return this.W / 2;
+  // إحداثي X لمركز شارع رقم i (0..NUM_LANES-1)
+  _laneCenter(i) {
+    const lw = this._laneWidth();
+    const roadLeft = (this.W - lw * NUM_LANES) / 2;
+    return roadLeft + lw * (i + 0.5);
   }
 
-  _roadXAt(width) {
-    return (this.W - width) / 2;
-  }
-
-  _easeOutQuad(t) {
-    return 1 - (1 - t) * (1 - t);
+  // الحجم الموحد للجميع = عرض الشارع
+  _objectSize() {
+    return this._laneWidth() * 0.85;
   }
 
   start() {
@@ -161,7 +131,8 @@ export class TaxiGame {
     this.trees = [];
     this.items = [];
     this.scrollY = 0;
-    this.car.x = 0;
+    this.car.lane = Math.floor(NUM_LANES / 2);
+    this.car.x = this._laneCenter(this.car.lane);
     this.car.vx = 0;
     this.keys.left = false;
     this.keys.right = false;
@@ -232,48 +203,33 @@ export class TaxiGame {
   }
 
   _spawnLetter() {
-    // x: إزاحة عشوائية ضمن عرض الطريق (-0.4 إلى 0.4)
-    const x = (Math.random() - 0.5) * 0.7;
+    const lane = Math.floor(Math.random() * NUM_LANES);
     const char = ARABIC_LETTERS[Math.floor(Math.random() * ARABIC_LETTERS.length)];
-    this.letters.push({
-      char,
-      x,
-      y: -50,
-      collected: false,
-    });
+    this.letters.push({ char, lane, y: -50, collected: false });
   }
 
   _spawnTree() {
-    // الشجرة على جانب الطريق (يسار أو يمين)
-    const side = Math.random() < 0.5 ? -1 : 1;
-    this.trees.push({
-      side,
-      offset: 0.55 + Math.random() * 0.15,
-      y: -60,
-      onRoad: false,
-    });
-
-    // أو شجرة على الطريق (عقبة)
-    if (Math.random() < 0.4) {
-      const x = (Math.random() - 0.5) * 0.7; // إزاحة عشوائية على الطريق
-      this.trees.push({
-        side: 0,
-        x,
-        y: -60,
-        onRoad: true,
-      });
+    const lw = this._laneWidth();
+    const roadLeft = (this.W - lw * NUM_LANES) / 2;
+    const roadRight = roadLeft + lw * NUM_LANES;
+    if (Math.random() < 0.7) {
+      // أشجار جانبية خارج الطريق — X ثابت عند الـ spawn
+      const side = Math.random() < 0.5 ? 'left' : 'right';
+      const fixedX = side === 'left'
+        ? Math.max(20, roadLeft - 20 - Math.random() * Math.max(40, roadLeft - 40))
+        : Math.min(this.W - 20, roadRight + 20 + Math.random() * Math.max(40, this.W - roadRight - 40));
+      this.trees.push({ fixedX, y: -60, onRoad: false });
+    } else {
+      // عقبة على الطريق
+      const lane = Math.floor(Math.random() * NUM_LANES);
+      this.trees.push({ lane, y: -60, onRoad: true, hit: false });
     }
   }
 
   _spawnItem() {
-    const types = ['post', 'x2'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    this.items.push({
-      type,
-      x: (Math.random() - 0.5) * 0.65,
-      y: -70,
-      collected: false,
-    });
+    const type = Math.random() < 0.5 ? 'post' : 'x2';
+    const lane = Math.floor(Math.random() * NUM_LANES);
+    this.items.push({ type, lane, y: -70, collected: false });
   }
 
   _loop = () => {
@@ -288,63 +244,54 @@ export class TaxiGame {
   };
 
   _update() {
-    // إزاحة الطريق
-    this.roadX += this.speed;
     this.scrollY += this.speed;
     this.distSinceLastLetter += this.speed;
 
-    // ===== حركة السيارة السلسة =====
-    // تطبيق التسارع حسب المفاتيح المضغوطة
-    if (this.keys.left)  this.car.vx -= CAR_ACCEL;
-    if (this.keys.right) this.car.vx += CAR_ACCEL;
-    // إذا لا مفتاح ضغوط، تطبيق احتكاك
+    // ===== حركة السيارة =====
+    if (this.keys.left)  this.car.vx -= CAR_ACCEL * 6;
+    if (this.keys.right) this.car.vx += CAR_ACCEL * 6;
     if (!this.keys.left && !this.keys.right) {
       this.car.vx *= CAR_FRICTION;
       if (Math.abs(this.car.vx) < 0.05) this.car.vx = 0;
     }
-    // تحديد السرعة القصوى
     if (this.car.vx >  CAR_MAX_SPEED) this.car.vx =  CAR_MAX_SPEED;
     if (this.car.vx < -CAR_MAX_SPEED) this.car.vx = -CAR_MAX_SPEED;
 
-    // تطبيق السرعة على الموقع (نسبي بعرض الطريق)
-    const roadWidth = this.W * ROAD_WIDTH_RATIO;
-    this.car.x += this.car.vx / roadWidth;
+    this.car.x += this.car.vx;
 
     // حدود الطريق
-    if (this.car.x >  0.42) { this.car.x =  0.42; this.car.vx = 0; }
-    if (this.car.x < -0.42) { this.car.x = -0.42; this.car.vx = 0; }
+    const roadW = this._laneWidth() * NUM_LANES;
+    const roadLeft = (this.W - roadW) / 2;
+    const half = this._objectSize() / 2;
+    if (this.car.x < roadLeft + half) { this.car.x = roadLeft + half; this.car.vx = 0; }
+    if (this.car.x > roadLeft + roadW - half) { this.car.x = roadLeft + roadW - half; this.car.vx = 0; }
 
-    // ظهور حرف بناء على المسافة
+    // ظهور حرف
     if (this.distSinceLastLetter >= LETTER_SPACING) {
       this._spawnLetter();
       this.distSinceLastLetter = 0;
     }
-
-    // ظهور أشجار عشوائي
     if (Math.random() < TREE_SPAWN_RATE) this._spawnTree();
     if (Math.random() < ITEM_SPAWN_RATE) this._spawnItem();
 
-    // تحريك الكائنات للأسفل
+    // تحريك للأسفل
     for (const l of this.letters) l.y += this.speed;
     for (const t of this.trees)   t.y += this.speed;
     for (const item of this.items) item.y += this.speed;
 
-    // تحقق من اصطدام الأحرف
-    const carCenterY = this.H - 100;
-    const roadCenterX = this._roadCenterAt(carCenterY);
-    const carScreenX = roadCenterX + this.car.x * roadWidth;
-
-    const carHalfW = this.car.width / 2;
-    const carHalfH = this.car.height / 2;
+    // الاصطدام — استخدم bounding box كامل للسيارة
+    const size = this._objectSize();
+    const carHalfW = size * 0.5;
+    const carTop = this.H - size * 1.6 - 16;
+    const carBottom = this.H - 16;
+    const objR = size * 0.5; // نصف قطر الحرف/الشجرة/العنصر
 
     for (const l of this.letters) {
       if (l.collected) continue;
-      const roadWidthAtY = this._roadWidthAt(l.y);
-      const centerAtY = this._roadCenterAt(l.y);
-      const lx = centerAtY + l.x * roadWidthAtY * 0.46;
-      const dx = lx - carScreenX;
-      const dy = l.y - carCenterY;
-      if (Math.abs(dx) < carHalfW + 15 && Math.abs(dy) < carHalfH + 5) {
+      const lx = this._laneCenter(l.lane);
+      // التقاط فور أول لمسة (بداية تداخل)
+      if (Math.abs(lx - this.car.x) < carHalfW + objR * 0.6 &&
+          l.y + objR >= carTop && l.y - objR <= carBottom) {
         l.collected = true;
         for (let i = 0; i < this.multiplier; i++) {
           const r = awardLetter('taxi', l.char);
@@ -353,45 +300,32 @@ export class TaxiGame {
         }
         if (this.multiplier > 1) {
           this.multiplierUses -= 1;
-          if (this.multiplierUses <= 0) {
-            this.multiplier = 1;
-            this.multiplierUses = 0;
-          }
+          if (this.multiplierUses <= 0) { this.multiplier = 1; this.multiplierUses = 0; }
         }
         playCollectSound();
         this._updateHUD();
       }
     }
 
-    // تحقق من اصطدام الأشجار
     for (const t of this.trees) {
       if (!t.onRoad || t.hit) continue;
-      const roadWidthAtY = this._roadWidthAt(t.y);
-      const centerAtY = this._roadCenterAt(t.y);
-      const tx = centerAtY + t.x * roadWidthAtY * 0.45;
-      const dx = tx - carScreenX;
-      const dy = t.y - carCenterY;
-      if (Math.abs(dx) < carHalfW + 5 && Math.abs(dy) < carHalfH + 10) {
+      const tx = this._laneCenter(t.lane);
+      if (Math.abs(tx - this.car.x) < carHalfW + objR * 0.6 &&
+          t.y + objR >= carTop && t.y - objR <= carBottom) {
         t.hit = true;
         this.lives--;
         playLoseLifeSound();
         this._updateHUD();
         this.car.vx *= -0.5;
-        if (this.lives <= 0) {
-          this._gameOver();
-          return;
-        }
+        if (this.lives <= 0) { this._gameOver(); return; }
       }
     }
 
-    // تحقق من اصطدام العناصر الخاصة
     for (const item of this.items) {
       if (item.collected) continue;
-      const roadWidthAtY = this._roadWidthAt(item.y);
-      const ix = roadCenterX + item.x * roadWidthAtY * 0.46;
-      const dx = ix - carScreenX;
-      const dy = item.y - carCenterY;
-      if (Math.abs(dx) < carHalfW + 20 && Math.abs(dy) < carHalfH + 10) {
+      const ix = this._laneCenter(item.lane);
+      if (Math.abs(ix - this.car.x) < carHalfW + objR * 0.6 &&
+          item.y + objR >= carTop && item.y - objR <= carBottom) {
         item.collected = true;
         if (item.type === 'post') {
           this.score += 2;
@@ -404,363 +338,314 @@ export class TaxiGame {
       }
     }
 
-    // إزالة الكائنات خارج الشاشة
-    this.letters = this.letters.filter(l => l.y < this.H + 50 && !l.collected);
+    this.letters = this.letters.filter(l => l.y < this.H + 60 && !l.collected);
     this.trees   = this.trees.filter(t => t.y < this.H + 80);
     this.items   = this.items.filter(i => i.y < this.H + 80 && !i.collected);
 
-    // تسريع تدريجي بطيء (يصل لـ 4.2 كحد أقصى)
     if (this.scrollY % 2500 < this.speed) {
-      this.speed = Math.min(4.2, this.speed + 0.08);
+      this.speed = Math.min(4.5, this.speed + 0.08);
     }
   }
 
   _draw() {
     const ctx = this.ctx;
     const W = this.W, H = this.H;
+    const lw = this._laneWidth();
+    const roadW = lw * NUM_LANES;
+    const roadLeft = (W - roadW) / 2;
+    const roadRight = roadLeft + roadW;
+    const size = this._objectSize();
 
-    // مسح الشاشة
     ctx.clearRect(0, 0, W, H);
 
-    // السماء
-    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.5);
-    sky.addColorStop(0, '#87CEEB');
-    sky.addColorStop(1, '#B7E2F0');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H * 0.5);
-
-    // الأرض الجانبية (أخضر)
+    // الأرض الخضراء (الجانبية)
     ctx.fillStyle = '#4A8B3F';
-    ctx.fillRect(0, H * 0.5, W, H * 0.5);
+    ctx.fillRect(0, 0, W, H);
 
-    // الطريق
-    const roadW = W * ROAD_WIDTH_RATIO;
-    const roadTopW = roadW * ROAD_TOP_WIDTH_RATIO;
-    const leftTop = W / 2 - roadTopW / 2;
-    const rightTop = W / 2 + roadTopW / 2;
-    const leftBottom = W / 2 - roadW / 2;
-    const rightBottom = W / 2 + roadW / 2;
+    // الطريق المستقيم (لا منظور للكائنات)
+    const roadGrad = ctx.createLinearGradient(0, 0, 0, H);
+    roadGrad.addColorStop(0, '#3a3a3a');
+    roadGrad.addColorStop(0.5, '#2e2e2e');
+    roadGrad.addColorStop(1, '#252525');
+    ctx.fillStyle = roadGrad;
+    ctx.fillRect(roadLeft, 0, roadW, H);
 
-    const roadGradient = ctx.createLinearGradient(0, 0, 0, H);
-    roadGradient.addColorStop(0, '#4b4b4b');
-    roadGradient.addColorStop(0.5, '#2e2e2e');
-    roadGradient.addColorStop(1, '#1b1b1b');
-    ctx.fillStyle = roadGradient;
-    ctx.beginPath();
-    ctx.moveTo(leftTop, 0);
-    ctx.lineTo(rightTop, 0);
-    ctx.lineTo(rightBottom, H);
-    ctx.lineTo(leftBottom, H);
-    ctx.closePath();
-    ctx.fill();
+    // حواف الطريق (أبيض)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(roadLeft - 4, 0, 4, H);
+    ctx.fillRect(roadRight,    0, 4, H);
 
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-    ctx.beginPath();
-    ctx.moveTo(leftTop, 0);
-    ctx.lineTo(leftBottom, H);
-    ctx.moveTo(rightTop, 0);
-    ctx.lineTo(rightBottom, H);
-    ctx.stroke();
-
-    ctx.fillStyle = '#FFD700';
-    const stripeH = 30, stripeGap = 60;
-    const stripeOffset = this.roadX % (stripeH + stripeGap);
-    for (let y = -stripeOffset; y < H; y += stripeH + stripeGap) {
-      const widthAtY = this._roadWidthAt(y) * 0.02;
-      const alpha = 0.4 + 0.4 * (1 - y / H);
-      ctx.fillStyle = `rgba(255,215,0,${alpha})`;
-      ctx.fillRect(W / 2 - widthAtY / 2, y, widthAtY, stripeH);
-    }
-
+    // خطوط فاصلة بين الشوارع (متقطعة)
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    for (const offset of [0.3, 0.7]) {
+    ctx.setLineDash([22, 18]);
+    const dashOffset = -(this.scrollY % 40);
+    ctx.lineDashOffset = dashOffset;
+    for (let i = 1; i < NUM_LANES; i++) {
+      const x = roadLeft + i * lw;
       ctx.beginPath();
-      for (let y = 0; y <= H; y += 16) {
-        const x = W / 2 + (offset - 0.5) * this._roadWidthAt(y);
-        if (y === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
       ctx.stroke();
     }
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
 
-    // رسم الأشجار - حجم ثابت لكل الأشجار
+    // الأشجار
     for (const t of this.trees) {
-      if (t.onRoad) {
-        const roadWidthAtY = this._roadWidthAt(t.y);
-        const centerAtY = this._roadCenterAt(t.y);
-        const tx = centerAtY + t.x * roadWidthAtY * 0.45;
-        this._drawTree(tx, t.y, FIXED_TREE_SIZE, 1.0);
-      } else {
-        const tx = W / 2 + t.side * t.offset * W;
-        this._drawTree(tx, t.y, FIXED_TREE_SIZE, 1.0);
-      }
+      const tx = t.onRoad ? this._laneCenter(t.lane) : t.fixedX;
+      this._drawTree(tx, t.y, size);
     }
 
-    // رسم الأحرف على الطريق - حجم ثابت
+    // الأحرف على الطريق
     for (const l of this.letters) {
       if (l.collected) continue;
-      const roadWidthAtY = this._roadWidthAt(l.y);
-      const centerAtY = this._roadCenterAt(l.y);
-      const lx = centerAtY + l.x * roadWidthAtY * 0.46;
-      const ly = l.y;
-      const size = FIXED_LETTER_SIZE;
-      const gradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, size);
-      gradient.addColorStop(0, '#FFF1B5');
-      gradient.addColorStop(0.4, '#FFD700');
-      gradient.addColorStop(1, '#DAA520');
-      ctx.beginPath();
-      ctx.fillStyle = gradient;
-      ctx.arc(lx, ly, size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.stroke();
-      ctx.fillStyle = '#1A1A2E';
-      ctx.font = `bold ${Math.round(size * 0.9)}px Cairo, Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(l.char, lx, ly + 1);
+      const lx = this._laneCenter(l.lane);
+      this._drawLetter(lx, l.y, l.char, size);
     }
 
-    // رسم العناصر الخاصة - حجم ثابت
+    // العناصر الخاصة
     for (const item of this.items) {
       if (item.collected) continue;
-      const roadWidthAtY = this._roadWidthAt(item.y);
-      const centerAtY = this._roadCenterAt(item.y);
-      const ix = centerAtY + item.x * roadWidthAtY * 0.46;
-      this._drawItem(ix, item.y, item.type, FIXED_ITEM_SIZE);
+      const ix = this._laneCenter(item.lane);
+      this._drawItem(ix, item.y, item.type, size);
     }
 
-    // رسم السيارة
-    const carX = W / 2 + this.car.x * roadW;
-    const carY = H - this.car.height - 20;
-    this._drawCar(carX, carY);
+    // السيارة
+    const carY = H - size * 1.6 - 16;
+    this._drawCar(this.car.x, carY, size);
   }
 
-  _drawTree(x, y, size, scale = 1) {
+  _drawLetter(x, y, char, size) {
     const ctx = this.ctx;
-    const treeWidth = size * scale;
-    const trunkHeight = 18 * scale;
+    const r = size * 0.5;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, '#FFF1B5');
+    grad.addColorStop(0.6, '#FFD700');
+    grad.addColorStop(1, '#DAA520');
+    ctx.beginPath();
+    ctx.fillStyle = grad;
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.stroke();
+    ctx.fillStyle = '#1A1A2E';
+    ctx.font = `bold ${Math.round(size * 0.55)}px Cairo, Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(char, x, y + 1);
+  }
+
+  _drawTree(x, y, size) {
+    const ctx = this.ctx;
+    // جذع
     ctx.fillStyle = '#6B4423';
-    ctx.fillRect(x - treeWidth * 0.08, y - trunkHeight, treeWidth * 0.16, trunkHeight);
+    ctx.fillRect(x - size * 0.07, y, size * 0.14, size * 0.3);
+    // أوراق
     ctx.fillStyle = '#2D6B2A';
     ctx.beginPath();
-    ctx.ellipse(x, y - trunkHeight - treeWidth * 0.3, treeWidth * 0.45, treeWidth * 0.35, 0, 0, Math.PI * 2);
+    ctx.arc(x, y - size * 0.05, size * 0.42, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#3F8B3D';
     ctx.beginPath();
-    ctx.ellipse(x - treeWidth * 0.18, y - trunkHeight - treeWidth * 0.4, treeWidth * 0.28, treeWidth * 0.22, 0, 0, Math.PI * 2);
+    ctx.arc(x - size * 0.18, y - size * 0.18, size * 0.28, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(x + treeWidth * 0.18, y - trunkHeight - treeWidth * 0.4, treeWidth * 0.28, treeWidth * 0.22, 0, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.18, y - size * 0.18, size * 0.28, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  _drawCar(x, y) {
+  _drawCar(x, y, size) {
     const ctx = this.ctx;
-    const w = this.car.width;
-    const h = this.car.height;
+    const w = size * 1.05;
+    const h = size * 1.7;
     const top = y;
     const bottom = y + h;
 
-    // ===== ظل السيارة (تحت) =====
-    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    // ===== ظل =====
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
-    ctx.ellipse(x, bottom + 8, w * 0.5, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 3, bottom + 4, w * 0.48, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ===== العجلات الخلفية (تظهر من الأطراف) =====
-    const wheelR = w * 0.13;
+    // ===== العجلات (واضحة من الجانب) =====
+    const wheelW = w * 0.10;
+    const wheelH = h * 0.18;
     ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(x - w * 0.45, bottom - h * 0.18, wheelR, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.45, bottom - h * 0.18, wheelR, 0, Math.PI * 2);
+    // أمامية
+    this._roundRect(x - w * 0.52, top + h * 0.14, wheelW, wheelH, 3);
     ctx.fill();
-    // الجنط (rim)
-    ctx.fillStyle = '#888';
-    ctx.beginPath();
-    ctx.arc(x - w * 0.45, bottom - h * 0.18, wheelR * 0.55, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.45, bottom - h * 0.18, wheelR * 0.55, 0, Math.PI * 2);
+    this._roundRect(x + w * 0.42, top + h * 0.14, wheelW, wheelH, 3);
     ctx.fill();
-    ctx.fillStyle = '#444';
-    ctx.beginPath();
-    ctx.arc(x - w * 0.45, bottom - h * 0.18, wheelR * 0.25, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.45, bottom - h * 0.18, wheelR * 0.25, 0, Math.PI * 2);
+    // خلفية
+    this._roundRect(x - w * 0.52, top + h * 0.68, wheelW, wheelH, 3);
+    ctx.fill();
+    this._roundRect(x + w * 0.42, top + h * 0.68, wheelW, wheelH, 3);
     ctx.fill();
 
-    // ===== العجلات الأمامية =====
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(x - w * 0.45, top + h * 0.22, wheelR, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.45, top + h * 0.22, wheelR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#888';
-    ctx.beginPath();
-    ctx.arc(x - w * 0.45, top + h * 0.22, wheelR * 0.55, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.45, top + h * 0.22, wheelR * 0.55, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#444';
-    ctx.beginPath();
-    ctx.arc(x - w * 0.45, top + h * 0.22, wheelR * 0.25, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.45, top + h * 0.22, wheelR * 0.25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // ===== جسم السيارة الأصفر =====
+    // ===== جسم السيارة (شكل سيدان منظور علوي) =====
     const bodyGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-    bodyGrad.addColorStop(0,    '#D4A410');
-    bodyGrad.addColorStop(0.15, '#FFE066');
+    bodyGrad.addColorStop(0,    '#C09000');
+    bodyGrad.addColorStop(0.18, '#FFE066');
     bodyGrad.addColorStop(0.5,  '#FFD700');
-    bodyGrad.addColorStop(0.85, '#FFE066');
-    bodyGrad.addColorStop(1,    '#D4A410');
+    bodyGrad.addColorStop(0.82, '#FFE066');
+    bodyGrad.addColorStop(1,    '#C09000');
     ctx.fillStyle = bodyGrad;
-    // شكل السيارة بانحناءات (مقدمة + خلفية مدورة)
-    const bodyMargin = w * 0.06;
+
+    // شكل السيدان: ضيّق من الأمام والخلف، أعرض في الوسط
     ctx.beginPath();
-    ctx.moveTo(x - w / 2 + bodyMargin, top + h * 0.15);
-    // الكابوت الأمامي (منحني)
-    ctx.quadraticCurveTo(x - w / 2, top + h * 0.05, x - w / 2 + 4, top + h * 0.30);
-    ctx.lineTo(x - w / 2 + 4, bottom - h * 0.30);
-    // الصندوق الخلفي
-    ctx.quadraticCurveTo(x - w / 2, bottom - h * 0.05, x - w / 2 + bodyMargin, bottom - h * 0.15);
-    ctx.lineTo(x + w / 2 - bodyMargin, bottom - h * 0.15);
-    ctx.quadraticCurveTo(x + w / 2, bottom - h * 0.05, x + w / 2 - 4, bottom - h * 0.30);
-    ctx.lineTo(x + w / 2 - 4, top + h * 0.30);
-    ctx.quadraticCurveTo(x + w / 2, top + h * 0.05, x + w / 2 - bodyMargin, top + h * 0.15);
+    ctx.moveTo(x - w * 0.36, top + h * 0.04);          // أمام يسار
+    ctx.quadraticCurveTo(x, top - h * 0.02, x + w * 0.36, top + h * 0.04); // كابوت أمامي
+    ctx.lineTo(x + w * 0.44, top + h * 0.18);
+    ctx.quadraticCurveTo(x + w * 0.46, top + h * 0.5, x + w * 0.44, bottom - h * 0.18); // جانب أيمن
+    ctx.lineTo(x + w * 0.36, bottom - h * 0.04);
+    ctx.quadraticCurveTo(x, bottom + h * 0.02, x - w * 0.36, bottom - h * 0.04); // صندوق خلفي
+    ctx.lineTo(x - w * 0.44, bottom - h * 0.18);
+    ctx.quadraticCurveTo(x - w * 0.46, top + h * 0.5, x - w * 0.44, top + h * 0.18); // جانب أيسر
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.strokeStyle = '#7A5500';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // ===== الزجاج الأمامي (windshield) =====
-    const winY1 = top + h * 0.32;
-    const winY2 = top + h * 0.48;
-    const winInset = w * 0.13;
-    const wsGrad = ctx.createLinearGradient(0, winY1, 0, winY2);
-    wsGrad.addColorStop(0, 'rgba(40, 60, 100, 0.95)');
-    wsGrad.addColorStop(1, 'rgba(120, 150, 200, 0.85)');
-    ctx.fillStyle = wsGrad;
-    ctx.beginPath();
-    ctx.moveTo(x - w / 2 + winInset + 4, winY1);
-    ctx.lineTo(x + w / 2 - winInset - 4, winY1);
-    ctx.lineTo(x + w / 2 - winInset - 8, winY2);
-    ctx.lineTo(x - w / 2 + winInset + 8, winY2);
-    ctx.closePath();
-    ctx.fill();
-    // لمعة الزجاج
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.beginPath();
-    ctx.moveTo(x - w / 2 + winInset + 8, winY1 + 2);
-    ctx.lineTo(x - w * 0.05, winY1 + 2);
-    ctx.lineTo(x - w * 0.15, winY2 - 2);
-    ctx.lineTo(x - w / 2 + winInset + 12, winY2 - 2);
-    ctx.closePath();
-    ctx.fill();
-
-    // ===== سقف السيارة (المنطقة بين الزجاج الأمامي والخلفي) =====
-    const roofGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-    roofGrad.addColorStop(0, '#B8860B');
-    roofGrad.addColorStop(0.5, '#FFD700');
-    roofGrad.addColorStop(1, '#B8860B');
-    ctx.fillStyle = roofGrad;
-    ctx.fillRect(x - w / 2 + winInset + 8, winY2, w - 2 * (winInset + 8), h * 0.10);
-
-    // علامة TAXI على السقف
-    ctx.fillStyle = '#1A1A2E';
-    ctx.fillRect(x - w * 0.18, winY2 + 2, w * 0.36, h * 0.06);
-    ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${Math.round(h * 0.045)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('TAXI', x, winY2 + h * 0.05);
-
-    // ===== الزجاج الخلفي =====
-    const rwY1 = top + h * 0.58;
-    const rwY2 = top + h * 0.72;
-    ctx.fillStyle = wsGrad;
-    ctx.beginPath();
-    ctx.moveTo(x - w / 2 + winInset + 8, rwY1);
-    ctx.lineTo(x + w / 2 - winInset - 8, rwY1);
-    ctx.lineTo(x + w / 2 - winInset - 4, rwY2);
-    ctx.lineTo(x - w / 2 + winInset + 4, rwY2);
-    ctx.closePath();
-    ctx.fill();
-
-    // ===== المصابيح الأمامية =====
-    const hlSize = w * 0.10;
-    const hlGrad = ctx.createRadialGradient(x - w * 0.30, top + h * 0.10, 0, x - w * 0.30, top + h * 0.10, hlSize * 1.5);
-    hlGrad.addColorStop(0, '#FFFFFF');
-    hlGrad.addColorStop(0.5, '#FFF8DC');
-    hlGrad.addColorStop(1, 'rgba(255,248,220,0.4)');
-    ctx.fillStyle = hlGrad;
-    ctx.beginPath();
-    ctx.ellipse(x - w * 0.30, top + h * 0.10, hlSize, hlSize * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.30, top + h * 0.10, hlSize, hlSize * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // ===== المصابيح الخلفية (حمراء) =====
-    ctx.fillStyle = '#E74C3C';
-    ctx.beginPath();
-    ctx.ellipse(x - w * 0.30, bottom - h * 0.08, hlSize * 0.8, hlSize * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.30, bottom - h * 0.08, hlSize * 0.8, hlSize * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // ===== المرايا الجانبية =====
-    ctx.fillStyle = '#1A1A2E';
-    ctx.fillRect(x - w / 2 - 4, top + h * 0.32, 6, h * 0.05);
-    ctx.fillRect(x + w / 2 - 2, top + h * 0.32, 6, h * 0.05);
-
-    // ===== لوحة الترخيص =====
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(x - w * 0.13, bottom - h * 0.04, w * 0.26, h * 0.04);
-    ctx.fillStyle = '#1A1A2E';
-    ctx.font = `bold ${Math.round(h * 0.025)}px Arial`;
-    ctx.fillText('TX-007', x, bottom - h * 0.022);
-
-    // ===== خط الباب الأوسط =====
+    // ===== خط فاصل بين الكابوت/الكابينة =====
     ctx.strokeStyle = 'rgba(0,0,0,0.25)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x - w / 2 + 4, top + h * 0.5);
-    ctx.lineTo(x + w / 2 - 4, top + h * 0.5);
+    ctx.moveTo(x - w * 0.42, top + h * 0.22);
+    ctx.lineTo(x + w * 0.42, top + h * 0.22);
     ctx.stroke();
+
+    // ===== الزجاج الأمامي (شبه منحرف ضيّق من الأمام) =====
+    const wsGrad = ctx.createLinearGradient(0, top + h * 0.22, 0, top + h * 0.42);
+    wsGrad.addColorStop(0, 'rgba(80, 130, 180, 0.95)');
+    wsGrad.addColorStop(1, 'rgba(160, 200, 230, 0.85)');
+    ctx.fillStyle = wsGrad;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.30, top + h * 0.22);
+    ctx.lineTo(x + w * 0.30, top + h * 0.22);
+    ctx.lineTo(x + w * 0.36, top + h * 0.40);
+    ctx.lineTo(x - w * 0.36, top + h * 0.40);
+    ctx.closePath();
+    ctx.fill();
+
+    // لمعة الزجاج
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.27, top + h * 0.23);
+    ctx.lineTo(x - w * 0.10, top + h * 0.23);
+    ctx.lineTo(x - w * 0.20, top + h * 0.38);
+    ctx.lineTo(x - w * 0.32, top + h * 0.38);
+    ctx.closePath();
+    ctx.fill();
+
+    // ===== سقف السيارة (الكابينة الوسطى) =====
+    const roofGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+    roofGrad.addColorStop(0, '#9B7300');
+    roofGrad.addColorStop(0.5, '#FFD700');
+    roofGrad.addColorStop(1, '#9B7300');
+    ctx.fillStyle = roofGrad;
+    ctx.fillRect(x - w * 0.36, top + h * 0.40, w * 0.72, h * 0.20);
+
+    // علامة TAXI على السقف
+    ctx.fillStyle = '#1A1A2E';
+    this._roundRect(x - w * 0.20, top + h * 0.44, w * 0.40, h * 0.12, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${Math.round(h * 0.085)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TAXI', x, top + h * 0.50);
+
+    // ===== الزجاج الخلفي =====
+    ctx.fillStyle = wsGrad;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.36, bottom - h * 0.40);
+    ctx.lineTo(x + w * 0.36, bottom - h * 0.40);
+    ctx.lineTo(x + w * 0.30, bottom - h * 0.22);
+    ctx.lineTo(x - w * 0.30, bottom - h * 0.22);
+    ctx.closePath();
+    ctx.fill();
+
+    // ===== المرايا الجانبية =====
+    ctx.fillStyle = '#1A1A1A';
+    this._roundRect(x - w * 0.48, top + h * 0.30, w * 0.06, h * 0.04, 2);
+    ctx.fill();
+    this._roundRect(x + w * 0.42, top + h * 0.30, w * 0.06, h * 0.04, 2);
+    ctx.fill();
+
+    // ===== المصابيح الأمامية =====
+    const hlGrad = ctx.createRadialGradient(x - w * 0.22, top + h * 0.04, 0, x - w * 0.22, top + h * 0.04, w * 0.18);
+    hlGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+    hlGrad.addColorStop(0.5, 'rgba(255,248,180,0.7)');
+    hlGrad.addColorStop(1, 'rgba(255,248,180,0)');
+    ctx.fillStyle = hlGrad;
+    ctx.fillRect(x - w * 0.40, top - h * 0.05, w * 0.18, h * 0.10);
+    ctx.fillRect(x + w * 0.22, top - h * 0.05, w * 0.18, h * 0.10);
+
+    ctx.fillStyle = '#FFF8DC';
+    this._roundRect(x - w * 0.36, top + h * 0.04, w * 0.14, h * 0.04, 2);
+    ctx.fill();
+    this._roundRect(x + w * 0.22, top + h * 0.04, w * 0.14, h * 0.04, 2);
+    ctx.fill();
+
+    // ===== المصابيح الخلفية =====
+    ctx.fillStyle = '#E74C3C';
+    this._roundRect(x - w * 0.36, bottom - h * 0.08, w * 0.14, h * 0.04, 2);
+    ctx.fill();
+    this._roundRect(x + w * 0.22, bottom - h * 0.08, w * 0.14, h * 0.04, 2);
+    ctx.fill();
+
+    // ===== لوحة الترخيص =====
+    ctx.fillStyle = '#FFFFFF';
+    this._roundRect(x - w * 0.14, bottom - h * 0.03, w * 0.28, h * 0.025, 1);
+    ctx.fill();
+    ctx.fillStyle = '#1A1A2E';
+    ctx.font = `bold ${Math.round(h * 0.025)}px Arial`;
+    ctx.fillText('TX-007', x, bottom - h * 0.018);
   }
 
-  _drawItem(x, y, type, baseSize = 20) {
+  _roundRect(x, y, w, h, r) {
     const ctx = this.ctx;
-    const size = baseSize;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  _drawItem(x, y, type, size) {
+    const ctx = this.ctx;
     if (type === 'post') {
       ctx.fillStyle = '#2f2f2f';
-      ctx.beginPath();
-      ctx.moveTo(x - size * 0.5, y - size * 0.6);
-      ctx.lineTo(x + size * 0.5, y - size * 0.6);
-      ctx.lineTo(x + size * 0.4, y + size * 0.2);
-      ctx.lineTo(x - size * 0.4, y + size * 0.2);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillRect(x - size * 0.4, y - size * 0.3, size * 0.8, size * 0.6);
       ctx.fillStyle = '#ffd523';
-      ctx.fillRect(x - size * 0.5, y - size * 0.55, size, size * 0.35);
+      ctx.fillRect(x - size * 0.4, y - size * 0.3, size * 0.8, size * 0.25);
       ctx.fillStyle = '#1A1A2E';
-      ctx.font = `bold ${Math.round(size * 0.4)}px Cairo, Arial`;
+      ctx.font = `bold ${Math.round(size * 0.32)}px Cairo, Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('بوست', x, y - size * 0.25);
+      ctx.fillText('بوست', x, y - size * 0.18);
     } else if (type === 'x2') {
       ctx.fillStyle = 'rgba(255,215,0,0.95)';
       ctx.beginPath();
-      ctx.ellipse(x, y, size, size * 0.9, 0, 0, Math.PI * 2);
+      ctx.arc(x, y, size * 0.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#e08d00';
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.fillStyle = '#1A1A2E';
-      ctx.font = `bold ${Math.round(size * 0.6)}px Cairo, Arial`;
+      ctx.font = `bold ${Math.round(size * 0.5)}px Cairo, Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('x2', x, y + 1);

@@ -8,6 +8,7 @@ import { initProfile } from './pages/profile.js';
 import { initForum }   from './pages/forum.js';
 import { initSettings } from './pages/settings.js';
 import { initChallenges, updateChallengesBadge, renderChallenges } from './pages/challenges.js';
+import { initAchievements, renderAchievements } from './pages/achievements.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -55,6 +56,7 @@ export function showPage(pageId) {
   if (pageId === 'home') refreshHomeRank();
   if (pageId === 'menu') updateChallengesBadge();
   if (pageId === 'challenges') renderChallenges();
+  if (pageId === 'achievements') renderAchievements();
   document.dispatchEvent(new CustomEvent('page-show', { detail: pageId }));
 
   // تحديث زر التنقل العلوي
@@ -89,6 +91,7 @@ initMuseum(showPage);
 initProfile(showPage);
 initSettings();
 initChallenges();
+initAchievements();
 
 // Firebase — يعمل بشكل مستقل في الخلفية
 initAudio();

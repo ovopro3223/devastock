@@ -6,44 +6,100 @@ import { recordPlayStart } from '../../core/game-stats.js';
 import { incrementCounter } from '../../core/achievements.js';
 import { addSeasonPoints } from '../../core/seasons.js';
 
-// الأحرف المتاحة في الـ slot machine
-const SLOT_LETTERS = ['ا', 'ب', 'ت', 'ج', 'ح', 'د', 'ر', 'س', 'ل', 'م', 'ن', 'ه'];
+// أحرف الـ slot machine — مزيج عادي + نادر للجاكبوت الميجا
+const COMMON_LETTERS = ['ا', 'ب', 'ت', 'ج', 'ح', 'د', 'ر', 'س', 'ل', 'م', 'ن', 'ه'];
+const RARE_LETTERS   = ['ذ', 'ض', 'ظ', 'غ'];          // 3 منهم = ميجا جاكبوت
 
-const SPIN_COST = 5;
-const TWO_MATCH_REWARD = 25;
-const THREE_MATCH_REWARD = 100;
+// كل العجلة تشتمل على عادي ونادر، لكن النادر بفرصة أقل
+const REEL_POOL = [
+  ...COMMON_LETTERS, ...COMMON_LETTERS, ...COMMON_LETTERS,
+  ...RARE_LETTERS,                                           // ندرة ~10%
+];
+
+const BET_OPTIONS = [20, 50, 100, 250, 500, 1000];
+const NUM_REELS = 6;
+
+// مضاعفات الجوائز (تُضرب بالرهان) — حسب عدد التكرارات لأكثر حرف
+// الاحتمالات ~ 6:0.0001%، 5:0.01%، 4:1.7%، 3:13%، 2:52%، 0:34%
+const PRIZE_MULT = {
+  6: 500,   // كوزمي — جدّاً نادر
+  5: 100,   // سوبر جاكبوت
+  4: 20,    // جاكبوت كبير
+  3: 4,     // جاكبوت — يحدث ~13%
+  2: 1,     // استرداد الرهان فقط (شائع 52%)
+};
 
 export class CasinoGame {
   constructor() {
     this.spinning = false;
+    this.currentBet = 20;
     this._setupListeners();
   }
 
   _setupListeners() {
-    const btn = document.getElementById('casino-spin-btn');
-    if (btn) {
-      btn.addEventListener('click', () => this.spin());
-    }
+    const spinBtn = document.getElementById('casino-spin-btn');
+    if (spinBtn) spinBtn.addEventListener('click', () => this.spin());
+
+    // أزرار الرهان
+    document.querySelectorAll('.casino-bet-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const bet = parseInt(btn.dataset.bet, 10);
+        if (this.spinning) return;
+        if (getTotalLetters() < bet) return;
+        this.currentBet = bet;
+        this._refreshUI();
+      });
+    });
   }
 
   open() {
-    this._refreshStock();
+    this._refreshUI();
     this._setResult('', '');
   }
 
-  _refreshStock() {
+  _refreshUI() {
     const total = getTotalLetters();
+
+    // إجمالي الرصيد
     const totalEl = document.getElementById('casino-total');
     if (totalEl) totalEl.textContent = total;
 
-    const btn = document.getElementById('casino-spin-btn');
-    if (btn) {
-      if (total < SPIN_COST) {
-        btn.disabled = true;
-        btn.textContent = 'رصيدك غير كافي';
+    // الرهان الحالي
+    const betEl = document.getElementById('casino-bet-amount');
+    if (betEl) betEl.textContent = this.currentBet;
+
+    // أزرار الرهان: تفعيل/تعطيل بناءً على الرصيد
+    document.querySelectorAll('.casino-bet-btn').forEach(btn => {
+      const bet = parseInt(btn.dataset.bet, 10);
+      btn.disabled = total < bet;
+      btn.classList.toggle('active', bet === this.currentBet);
+    });
+
+    // أعلى رهان متاح صار الـ default إذا الحالي مش ممكن
+    if (total < this.currentBet) {
+      const affordable = BET_OPTIONS.filter(b => b <= total);
+      this.currentBet = affordable.length > 0 ? affordable[affordable.length - 1] : BET_OPTIONS[0];
+      if (betEl) betEl.textContent = this.currentBet;
+      document.querySelectorAll('.casino-bet-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.bet, 10) === this.currentBet);
+      });
+    }
+
+    // الجوائز المحتملة (تتحدث مع الرهان)
+    for (const k of [6, 5, 4, 3, 2]) {
+      const el = document.getElementById(`casino-prize-${k}`);
+      if (el) el.textContent = `+${this.currentBet * PRIZE_MULT[k]} حرف`;
+    }
+
+    // زر الدوران
+    const spinBtn = document.getElementById('casino-spin-btn');
+    if (spinBtn) {
+      if (total < this.currentBet) {
+        spinBtn.disabled = true;
+        spinBtn.textContent = 'رصيدك غير كافي';
       } else {
-        btn.disabled = false;
-        btn.textContent = `🎲 دوّر — تكلفة ${SPIN_COST} أحرف`;
+        spinBtn.disabled = false;
+        spinBtn.textContent = `🎲 دوّر — راهن ${this.currentBet} حرف`;
       }
     }
   }
@@ -56,25 +112,19 @@ export class CasinoGame {
     if (type) el.classList.add(`result-${type}`);
   }
 
-  // خصم 5 أحرف عشوائية من المخزن
-  _deductBet() {
+  // خصم رهان عشوائي من المخزن
+  _deductBet(amount) {
     const stock = getStock();
     const available = Object.entries(stock).filter(([, n]) => n > 0);
-    if (available.length === 0) return false;
+    const totalAvailable = available.reduce((s, [, n]) => s + n, 0);
+    if (totalAvailable < amount) return false;
 
-    let totalAvailable = available.reduce((s, [, n]) => s + n, 0);
-    if (totalAvailable < SPIN_COST) return false;
-
-    // خصم عشوائي
-    let toDeduct = SPIN_COST;
+    let toDeduct = amount;
     const cost = {};
-    while (toDeduct > 0) {
+    while (toDeduct > 0 && available.length > 0) {
       const idx = Math.floor(Math.random() * available.length);
       const [char, count] = available[idx];
-      if (count <= 0) {
-        available.splice(idx, 1);
-        continue;
-      }
+      if (count <= 0) { available.splice(idx, 1); continue; }
       cost[char] = (cost[char] || 0) + 1;
       available[idx][1]--;
       toDeduct--;
@@ -83,7 +133,6 @@ export class CasinoGame {
     return true;
   }
 
-  // مكافأة: إضافة أحرف للمخزن
   _awardLetters(letter, count) {
     for (let i = 0; i < count; i++) {
       saveLetterToStock(letter);
@@ -93,9 +142,7 @@ export class CasinoGame {
 
   async spin() {
     if (this.spinning) return;
-
-    // تحقق من الرصيد
-    if (getTotalLetters() < SPIN_COST) {
+    if (getTotalLetters() < this.currentBet) {
       this._setResult('رصيدك غير كافي', 'lose');
       return;
     }
@@ -104,49 +151,43 @@ export class CasinoGame {
     this._setResult('', '');
     recordPlayStart('casino');
 
-    // خصم التكلفة
-    if (!this._deductBet()) {
+    if (!this._deductBet(this.currentBet)) {
       this.spinning = false;
-      this._setResult('فشل خصم التكلفة', 'lose');
+      this._setResult('فشل خصم الرهان', 'lose');
       return;
     }
-    this._refreshStock();
+    this._refreshUI();
 
     // عطّل الزر
     const btn = document.getElementById('casino-spin-btn');
     if (btn) btn.disabled = true;
 
-    // اختر النتيجة النهائية
-    const finalReels = [
-      SLOT_LETTERS[Math.floor(Math.random() * SLOT_LETTERS.length)],
-      SLOT_LETTERS[Math.floor(Math.random() * SLOT_LETTERS.length)],
-      SLOT_LETTERS[Math.floor(Math.random() * SLOT_LETTERS.length)],
-    ];
+    // اختر النتيجة النهائية من الـ pool لكل خانة
+    const finalReels = [];
+    for (let i = 0; i < NUM_REELS; i++) {
+      finalReels.push(REEL_POOL[Math.floor(Math.random() * REEL_POOL.length)]);
+    }
 
-    // ابدأ الدوران
     await this._animateReels(finalReels);
-
-    // احسب النتيجة
     this._evaluate(finalReels);
 
     this.spinning = false;
-    this._refreshStock();
+    this._refreshUI();
   }
 
   async _animateReels(finalReels) {
-    const reels = [
-      document.getElementById('casino-reel-1'),
-      document.getElementById('casino-reel-2'),
-      document.getElementById('casino-reel-3'),
-    ];
+    const reels = [];
+    for (let i = 1; i <= NUM_REELS; i++) {
+      reels.push(document.getElementById(`casino-reel-${i}`));
+    }
 
-    // فعّل أنميشن الدوران
     reels.forEach(r => r?.classList.add('spinning'));
+    // كل خانة توقف بعد 300ms من اللي قبلها
+    const baseDelay = 700;
+    const step = 250;
+    const stopDelays = reels.map((_, i) => baseDelay + i * step);
 
-    // أوقف الـ reels واحد واحد
-    const stopDelays = [800, 1300, 1800]; // ms
-
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < NUM_REELS; i++) {
       await this._sleep(stopDelays[i] - (i > 0 ? stopDelays[i - 1] : 0));
       const reel = reels[i];
       if (reel) {
@@ -154,42 +195,70 @@ export class CasinoGame {
         reel.classList.add('stopped');
         const letterEl = reel.querySelector('.casino-reel-letter');
         if (letterEl) letterEl.textContent = finalReels[i];
-
-        // أنميشن الإيقاف
         setTimeout(() => reel.classList.remove('stopped'), 400);
       }
     }
   }
 
   _evaluate(reels) {
-    const [a, b, c] = reels;
+    // عدّ تكرار كل حرف، اختر الأعلى
+    const counts = {};
+    for (const c of reels) counts[c] = (counts[c] || 0) + 1;
+    let topChar = reels[0];
+    let topCount = 0;
+    for (const [char, n] of Object.entries(counts)) {
+      if (n > topCount) { topCount = n; topChar = char; }
+    }
 
-    if (a === b && b === c) {
-      this._awardLetters(a, THREE_MATCH_REWARD);
-      incrementCounter('casino_triples');
-      addSeasonPoints(150);
-      this._setResult(`🎰 جاكبوت! اكسب ${THREE_MATCH_REWARD} حرف "${a}"`, 'jackpot');
+    if (topCount >= 2) {
+      const mult = PRIZE_MULT[topCount];
+      const reward = this.currentBet * mult;
+      this._awardLetters(topChar, reward);
+
+      // إنجازات + season
+      if (topCount >= 3) {
+        incrementCounter('casino_triples');
+        addSeasonPoints(50 * topCount);
+      } else {
+        addSeasonPoints(Math.round(this.currentBet / 4));
+      }
+
+      const labels = {
+        6: '🌌 كوزمي!',
+        5: '💎 سوبر جاكبوت!',
+        4: '🎰 جاكبوت كبير!',
+        3: '🎯 جاكبوت!',
+        2: '🎁 رائع!',
+      };
+      this._setResult(`${labels[topCount]} اكسب ${reward} حرف "${topChar}"`, topCount >= 3 ? 'jackpot' : 'win');
       playWinSound();
-      this._celebrate();
-    } else if (a === b || b === c || a === c) {
-      const winner = a === b ? a : (b === c ? b : a);
-      this._awardLetters(winner, TWO_MATCH_REWARD);
-      addSeasonPoints(30);
-      this._setResult(`🎁 رائع! اكسب ${TWO_MATCH_REWARD} حرف "${winner}"`, 'win');
-      playWinSound();
+      this._celebrate(topCount);
     } else {
-      this._setResult(`💸 لم يحالفك الحظ — خسرت ${SPIN_COST} أحرف`, 'lose');
+      this._setResult(`💸 لم يحالفك الحظ — خسرت ${this.currentBet} حرف`, 'lose');
       playLoseLifeSound();
     }
   }
 
-  _celebrate() {
-    // أنميشن احتفال
+  _celebrate(matchCount) {
     const machine = document.querySelector('.casino-machine');
-    if (machine) {
-      machine.classList.add('jackpot-flash');
-      setTimeout(() => machine.classList.remove('jackpot-flash'), 1500);
+    if (!machine) return;
+    machine.classList.add('jackpot-flash');
+    let duration = 1500;
+    if (matchCount >= 6) {
+      machine.classList.add('cosmic-flash');
+      duration = 3500;
+    } else if (matchCount >= 5) {
+      machine.classList.add('mega-flash');
+      duration = 2500;
+    } else if (matchCount >= 4) {
+      machine.classList.add('mega-flash');
+      duration = 2000;
     }
+    setTimeout(() => {
+      machine.classList.remove('jackpot-flash');
+      machine.classList.remove('mega-flash');
+      machine.classList.remove('cosmic-flash');
+    }, duration);
   }
 
   _sleep(ms) {

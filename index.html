@@ -440,41 +440,64 @@
         <span class="casino-stats-label">حرف</span>
       </div>
 
-      <!-- آلة الحظ -->
+      <!-- آلة الحظ — 6 خانات -->
       <div class="casino-machine">
-        <div class="casino-reels">
-          <div class="casino-reel" id="casino-reel-1">
-            <div class="casino-reel-letter">؟</div>
-          </div>
-          <div class="casino-reel" id="casino-reel-2">
-            <div class="casino-reel-letter">؟</div>
-          </div>
-          <div class="casino-reel" id="casino-reel-3">
-            <div class="casino-reel-letter">؟</div>
-          </div>
+        <div class="casino-reels casino-reels-6">
+          <div class="casino-reel" id="casino-reel-1"><div class="casino-reel-letter">؟</div></div>
+          <div class="casino-reel" id="casino-reel-2"><div class="casino-reel-letter">؟</div></div>
+          <div class="casino-reel" id="casino-reel-3"><div class="casino-reel-letter">؟</div></div>
+          <div class="casino-reel" id="casino-reel-4"><div class="casino-reel-letter">؟</div></div>
+          <div class="casino-reel" id="casino-reel-5"><div class="casino-reel-letter">؟</div></div>
+          <div class="casino-reel" id="casino-reel-6"><div class="casino-reel-letter">؟</div></div>
         </div>
         <div class="casino-result" id="casino-result"></div>
       </div>
 
+      <!-- اختيار الرهان -->
+      <div class="casino-bet-section">
+        <div class="casino-bet-label">رهانك الحالي:</div>
+        <div class="casino-bet-amount" id="casino-bet-amount">20</div>
+        <div class="casino-bet-options">
+          <button class="casino-bet-btn" data-bet="20">20</button>
+          <button class="casino-bet-btn" data-bet="50">50</button>
+          <button class="casino-bet-btn" data-bet="100">100</button>
+          <button class="casino-bet-btn" data-bet="250">250</button>
+          <button class="casino-bet-btn" data-bet="500">500</button>
+          <button class="casino-bet-btn" data-bet="1000">1000</button>
+        </div>
+      </div>
+
       <!-- زر الدوران -->
       <button class="casino-spin-btn" id="casino-spin-btn">
-        🎲 دوّر — تكلفة 5 أحرف
+        🎲 دوّر
       </button>
 
-      <!-- قواعد اللعبة -->
+      <!-- جدول الجوائز (يتحدث ديناميكياً مع الرهان) -->
       <div class="casino-rules">
-        <h3>قواعد اللعبة</h3>
-        <div class="casino-rule">
+        <h3>الجوائز (حسب الرهان)</h3>
+        <div class="casino-rule rule-cosmic">
+          <span class="casino-rule-icon">🌌</span>
+          <span>كوزمي (6 متطابقة) → <b id="casino-prize-6">×500</b></span>
+        </div>
+        <div class="casino-rule rule-mega">
+          <span class="casino-rule-icon">💎</span>
+          <span>سوبر جاكبوت (5 متطابقة) → <b id="casino-prize-5">×150</b></span>
+        </div>
+        <div class="casino-rule rule-jackpot">
           <span class="casino-rule-icon">🎰</span>
-          <span>3 أحرف متطابقة → اكسب <b>100</b> حرف من نوعها</span>
+          <span>جاكبوت كبير (4 متطابقة) → <b id="casino-prize-4">×40</b></span>
         </div>
-        <div class="casino-rule">
+        <div class="casino-rule rule-jackpot">
+          <span class="casino-rule-icon">🎯</span>
+          <span>جاكبوت (3 متطابقة) → <b id="casino-prize-3">×10</b></span>
+        </div>
+        <div class="casino-rule rule-double">
           <span class="casino-rule-icon">🎁</span>
-          <span>2 أحرف متطابقة → اكسب <b>25</b> حرف من نوعها</span>
+          <span>2 متطابقة → <b id="casino-prize-2">×2</b></span>
         </div>
-        <div class="casino-rule">
+        <div class="casino-rule rule-loss">
           <span class="casino-rule-icon">💸</span>
-          <span>بدون تطابق → تخسر 5 أحرف</span>
+          <span>أقل من ذلك → خسارة الرهان</span>
         </div>
       </div>
     </div>
