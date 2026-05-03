@@ -383,6 +383,21 @@ export class TaxiGame {
 
   _draw() {
     const ctx = this.ctx;
+    // إذا الكانفاس فاضي، أعد القياس قبل الرسم
+    if (!this.W || !this.H || this.W < 50 || this.H < 50) {
+      this._resize();
+      // fallback نهائي
+      if (!this.W || this.W < 50) {
+        this.W = window.innerWidth || 360;
+        this.canvas.width = this.W;
+      }
+      if (!this.H || this.H < 50) {
+        this.H = (window.innerHeight - 80) || 500;
+        this.canvas.height = this.H;
+      }
+      // أعد ضبط موقع السيارة
+      if (this.car) this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
+    }
     const W = this.W, H = this.H;
     const lw = this._laneWidth();
     const roadW = lw * NUM_LANES;
@@ -449,9 +464,11 @@ export class TaxiGame {
     if (!this.car.x || this.car.x <= 0 || isNaN(this.car.x) || this.car.x > W) {
       this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
     }
-    const carHeight = size * 1.7;
-    const carY = H - carHeight - 12;
-    this._drawCar(this.car.x, carY, size);
+    // حجم السيارة أكبر شوي من الشارع للوضوح + موقع أعلى من أسفل الشاشة
+    const carSize = Math.max(38, size * 1.25);
+    const carHeight = carSize * 1.5;
+    const carY = H - carHeight - Math.max(20, H * 0.06);
+    this._drawCar(this.car.x, carY, carSize);
   }
 
   _drawLetter(x, y, char, size) {
@@ -496,155 +513,80 @@ export class TaxiGame {
 
   _drawCar(x, y, size) {
     const ctx = this.ctx;
-    const w = size * 1.05;
-    const h = size * 1.7;
+    const w = size;
+    const h = size * 1.5;
     const top = y;
     const bottom = y + h;
+    const left = x - w / 2;
+    const right = x + w / 2;
 
     // ===== ظل =====
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.beginPath();
-    ctx.ellipse(x + 3, bottom + 4, w * 0.48, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 2, bottom + 3, w * 0.5, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ===== العجلات (واضحة من الجانب) =====
-    const wheelW = w * 0.10;
-    const wheelH = h * 0.18;
-    ctx.fillStyle = '#0a0a0a';
-    // أمامية
-    this._roundRect(x - w * 0.52, top + h * 0.14, wheelW, wheelH, 3);
-    ctx.fill();
-    this._roundRect(x + w * 0.42, top + h * 0.14, wheelW, wheelH, 3);
-    ctx.fill();
-    // خلفية
-    this._roundRect(x - w * 0.52, top + h * 0.68, wheelW, wheelH, 3);
-    ctx.fill();
-    this._roundRect(x + w * 0.42, top + h * 0.68, wheelW, wheelH, 3);
-    ctx.fill();
+    // ===== توهج خارجي (يظهر السيارة بوضوح) =====
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+    ctx.shadowBlur = 14;
 
-    // ===== جسم السيارة (شكل سيدان منظور علوي) =====
-    const bodyGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-    bodyGrad.addColorStop(0,    '#C09000');
-    bodyGrad.addColorStop(0.18, '#FFE066');
-    bodyGrad.addColorStop(0.5,  '#FFD700');
-    bodyGrad.addColorStop(0.82, '#FFE066');
-    bodyGrad.addColorStop(1,    '#C09000');
-    ctx.fillStyle = bodyGrad;
-
-    // شكل السيدان: ضيّق من الأمام والخلف، أعرض في الوسط
-    ctx.beginPath();
-    ctx.moveTo(x - w * 0.36, top + h * 0.04);          // أمام يسار
-    ctx.quadraticCurveTo(x, top - h * 0.02, x + w * 0.36, top + h * 0.04); // كابوت أمامي
-    ctx.lineTo(x + w * 0.44, top + h * 0.18);
-    ctx.quadraticCurveTo(x + w * 0.46, top + h * 0.5, x + w * 0.44, bottom - h * 0.18); // جانب أيمن
-    ctx.lineTo(x + w * 0.36, bottom - h * 0.04);
-    ctx.quadraticCurveTo(x, bottom + h * 0.02, x - w * 0.36, bottom - h * 0.04); // صندوق خلفي
-    ctx.lineTo(x - w * 0.44, bottom - h * 0.18);
-    ctx.quadraticCurveTo(x - w * 0.46, top + h * 0.5, x - w * 0.44, top + h * 0.18); // جانب أيسر
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#7A5500';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // ===== خط فاصل بين الكابوت/الكابينة =====
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x - w * 0.42, top + h * 0.22);
-    ctx.lineTo(x + w * 0.42, top + h * 0.22);
-    ctx.stroke();
-
-    // ===== الزجاج الأمامي (شبه منحرف ضيّق من الأمام) =====
-    const wsGrad = ctx.createLinearGradient(0, top + h * 0.22, 0, top + h * 0.42);
-    wsGrad.addColorStop(0, 'rgba(80, 130, 180, 0.95)');
-    wsGrad.addColorStop(1, 'rgba(160, 200, 230, 0.85)');
-    ctx.fillStyle = wsGrad;
-    ctx.beginPath();
-    ctx.moveTo(x - w * 0.30, top + h * 0.22);
-    ctx.lineTo(x + w * 0.30, top + h * 0.22);
-    ctx.lineTo(x + w * 0.36, top + h * 0.40);
-    ctx.lineTo(x - w * 0.36, top + h * 0.40);
-    ctx.closePath();
-    ctx.fill();
-
-    // لمعة الزجاج
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.moveTo(x - w * 0.27, top + h * 0.23);
-    ctx.lineTo(x - w * 0.10, top + h * 0.23);
-    ctx.lineTo(x - w * 0.20, top + h * 0.38);
-    ctx.lineTo(x - w * 0.32, top + h * 0.38);
-    ctx.closePath();
-    ctx.fill();
-
-    // ===== سقف السيارة (الكابينة الوسطى) =====
-    const roofGrad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-    roofGrad.addColorStop(0, '#9B7300');
-    roofGrad.addColorStop(0.5, '#FFD700');
-    roofGrad.addColorStop(1, '#9B7300');
-    ctx.fillStyle = roofGrad;
-    ctx.fillRect(x - w * 0.36, top + h * 0.40, w * 0.72, h * 0.20);
-
-    // علامة TAXI على السقف
-    ctx.fillStyle = '#1A1A2E';
-    this._roundRect(x - w * 0.20, top + h * 0.44, w * 0.40, h * 0.12, 4);
-    ctx.fill();
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    // ===== جسم السيارة (مستطيل بزوايا مدورة — أبسط وأوضح) =====
+    const r = w * 0.18;
     ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${Math.round(h * 0.085)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('TAXI', x, top + h * 0.50);
+    this._roundRect(left, top, w, h, r);
+    ctx.fill();
+
+    // إعادة ضبط الظل بعد رسم الجسم
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+
+    // حدّ خارجي أسود واضح
+    ctx.strokeStyle = '#1A1A1A';
+    ctx.lineWidth = 2.5;
+    this._roundRect(left, top, w, h, r);
+    ctx.stroke();
+
+    // ===== الزجاج الأمامي (مستطيل بسيط في الأعلى) =====
+    ctx.fillStyle = '#2C3E50';
+    ctx.fillRect(left + w * 0.14, top + h * 0.10, w * 0.72, h * 0.20);
+    // لمعة
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(left + w * 0.16, top + h * 0.11, w * 0.30, h * 0.06);
 
     // ===== الزجاج الخلفي =====
-    ctx.fillStyle = wsGrad;
-    ctx.beginPath();
-    ctx.moveTo(x - w * 0.36, bottom - h * 0.40);
-    ctx.lineTo(x + w * 0.36, bottom - h * 0.40);
-    ctx.lineTo(x + w * 0.30, bottom - h * 0.22);
-    ctx.lineTo(x - w * 0.30, bottom - h * 0.22);
-    ctx.closePath();
-    ctx.fill();
+    ctx.fillStyle = '#2C3E50';
+    ctx.fillRect(left + w * 0.14, top + h * 0.65, w * 0.72, h * 0.18);
 
-    // ===== المرايا الجانبية =====
+    // ===== شريط TAXI الوسطى =====
     ctx.fillStyle = '#1A1A1A';
-    this._roundRect(x - w * 0.48, top + h * 0.30, w * 0.06, h * 0.04, 2);
-    ctx.fill();
-    this._roundRect(x + w * 0.42, top + h * 0.30, w * 0.06, h * 0.04, 2);
-    ctx.fill();
+    ctx.fillRect(left + w * 0.05, top + h * 0.36, w * 0.90, h * 0.24);
 
-    // ===== المصابيح الأمامية =====
-    const hlGrad = ctx.createRadialGradient(x - w * 0.22, top + h * 0.04, 0, x - w * 0.22, top + h * 0.04, w * 0.18);
-    hlGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
-    hlGrad.addColorStop(0.5, 'rgba(255,248,180,0.7)');
-    hlGrad.addColorStop(1, 'rgba(255,248,180,0)');
-    ctx.fillStyle = hlGrad;
-    ctx.fillRect(x - w * 0.40, top - h * 0.05, w * 0.18, h * 0.10);
-    ctx.fillRect(x + w * 0.22, top - h * 0.05, w * 0.18, h * 0.10);
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${Math.round(h * 0.13)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TAXI', x, top + h * 0.48);
 
-    ctx.fillStyle = '#FFF8DC';
-    this._roundRect(x - w * 0.36, top + h * 0.04, w * 0.14, h * 0.04, 2);
-    ctx.fill();
-    this._roundRect(x + w * 0.22, top + h * 0.04, w * 0.14, h * 0.04, 2);
-    ctx.fill();
+    // ===== المصابيح الأمامية (أبيض) =====
+    ctx.fillStyle = '#FFFAA0';
+    ctx.fillRect(left + 2, top + 2, w * 0.20, h * 0.05);
+    ctx.fillRect(right - w * 0.20 - 2, top + 2, w * 0.20, h * 0.05);
 
-    // ===== المصابيح الخلفية =====
+    // ===== المصابيح الخلفية (أحمر) =====
     ctx.fillStyle = '#E74C3C';
-    this._roundRect(x - w * 0.36, bottom - h * 0.08, w * 0.14, h * 0.04, 2);
-    ctx.fill();
-    this._roundRect(x + w * 0.22, bottom - h * 0.08, w * 0.14, h * 0.04, 2);
-    ctx.fill();
+    ctx.fillRect(left + 2, bottom - h * 0.05 - 2, w * 0.20, h * 0.05);
+    ctx.fillRect(right - w * 0.20 - 2, bottom - h * 0.05 - 2, w * 0.20, h * 0.05);
 
-    // ===== لوحة الترخيص =====
-    ctx.fillStyle = '#FFFFFF';
-    this._roundRect(x - w * 0.14, bottom - h * 0.03, w * 0.28, h * 0.025, 1);
-    ctx.fill();
-    ctx.fillStyle = '#1A1A2E';
-    ctx.font = `bold ${Math.round(h * 0.025)}px Arial`;
-    ctx.fillText('TX-007', x, bottom - h * 0.018);
+    // ===== العجلات (واضحة جداً) =====
+    ctx.fillStyle = '#1A1A1A';
+    const wheelW = 5;
+    const wheelH = h * 0.16;
+    // أمامية
+    ctx.fillRect(left - wheelW + 1, top + h * 0.18, wheelW, wheelH);
+    ctx.fillRect(right - 1, top + h * 0.18, wheelW, wheelH);
+    // خلفية
+    ctx.fillRect(left - wheelW + 1, top + h * 0.66, wheelW, wheelH);
+    ctx.fillRect(right - 1, top + h * 0.66, wheelW, wheelH);
   }
 
   _roundRect(x, y, w, h, r) {
