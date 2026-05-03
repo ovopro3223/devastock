@@ -1,6 +1,6 @@
 // ===== نظام الأحرف النادرة والمضاعفات =====
 import { saveLetterToStock } from './storage.js';
-import { recordLetter } from './lifetime-storage.js';
+import { recordLetter, getAccountLetterMultiplier } from './lifetime-storage.js';
 import { getLetterMultiplier } from './game-progression.js';
 
 // تصنيف الحروف العربية حسب التكرار في الكلمات
@@ -20,9 +20,9 @@ const RARITY = {
 
 export const RARITY_INFO = {
   common:   { label: 'عادي',  color: '#FFFFFF', emoji: '',   weight: 1 },
-  uncommon: { label: 'مميز',  color: '#5DD3D3', emoji: '✦',  weight: 1.2 },
-  rare:     { label: 'نادر',  color: '#9B6BFF', emoji: '◆',  weight: 1.5 },
-  epic:     { label: 'ملحمي', color: '#FF6B9D', emoji: '★',  weight: 2 },
+  uncommon: { label: 'مميز',  color: '#5DD3D3', emoji: '✦',  weight: 1.05 },
+  rare:     { label: 'نادر',  color: '#9B6BFF', emoji: '◆',  weight: 1.15 },
+  epic:     { label: 'ملحمي', color: '#FF6B9D', emoji: '★',  weight: 1.3 },
 };
 
 export function getLetterRarity(letter) {
@@ -33,9 +33,9 @@ export function getRarityInfo(rarity) {
   return RARITY_INFO[rarity] || RARITY_INFO.common;
 }
 
-// تحديد ما إذا كان الحرف "ذهبي" عند الالتقاط (5% فرصة عام، أكثر للأنواع النادرة)
-const GOLDEN_BASE_CHANCE = 0.04;
-const RAINBOW_CHANCE     = 0.005;
+// تحديد ما إذا كان الحرف "ذهبي" عند الالتقاط — احتمالات أقل
+const GOLDEN_BASE_CHANCE = 0.02;
+const RAINBOW_CHANCE     = 0.002;
 
 export function rollSpecial(letter) {
   const r = Math.random();
@@ -56,27 +56,31 @@ export function tagSpawn(letter) {
   };
 }
 
-// ===== مكافأة الالتقاط — يأخذ بعين الاعتبار المضاعف وnoدرة وspecial =====
-// gameId: 'letter-rain' | 'taxi' | ... (لقراءة per-game multiplier)
-// spawnTag: ما يُرجعه tagSpawn — اختياري
+// ===== مكافأة الالتقاط =====
+// gameId: 'letter-rain' | 'taxi' | ...
+// baseCount: العدد الأساسي قبل أي مضاعفات (افتراضي 1)
+// spawnTag: من tagSpawn — اختياري
 // returns { letter, count, special, rarity }
-export function awardLetter(gameId, letter, spawnTag = null) {
+export function awardLetter(gameId, letter, baseCount = 1, spawnTag = null) {
+  // التوافق مع الاستدعاء القديم: awardLetter(gameId, letter, spawnTag)
+  if (typeof baseCount === 'object' && baseCount !== null) {
+    spawnTag = baseCount;
+    baseCount = 1;
+  }
+
   const rarity = spawnTag?.rarity || getLetterRarity(letter);
   const special = spawnTag?.special || null;
 
-  // مضاعف اللعبة (Per-game progression) + مضاعف الندرة + special
   const gameMult = getLetterMultiplier(gameId);
   const rarityMult = RARITY_INFO[rarity].weight;
   const specialMult = special === 'rainbow' ? 5 : special === 'golden' ? 3 : 1;
+  const accountMult = getAccountLetterMultiplier();
 
-  // العدد الأساسي = 1، مع المضاعفات الإجمالية
-  const totalMult = gameMult * rarityMult * specialMult;
-
-  // عدد الأحرف الفعلي = round( totalMult ) مع شيء من العشوائية للقيم الكسرية
-  const baseFloor = Math.floor(totalMult);
-  const fractional = totalMult - baseFloor;
-  const count = baseFloor + (Math.random() < fractional ? 1 : 0);
-  const finalCount = Math.max(1, count);
+  const totalMult = gameMult * rarityMult * specialMult * accountMult;
+  const exact = baseCount * totalMult;
+  const baseFloor = Math.floor(exact);
+  const fractional = exact - baseFloor;
+  const finalCount = Math.max(1, baseFloor + (Math.random() < fractional ? 1 : 0));
 
   for (let i = 0; i < finalCount; i++) {
     saveLetterToStock(letter);

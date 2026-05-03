@@ -85,19 +85,35 @@ export class TaxiGame {
   }
 
   _resize() {
+    // عدة مصادر لقياس الأبعاد — أكثر موثوقية على الموبايل
     const rect = this.canvas.getBoundingClientRect();
+    const w = Math.round(
+      rect.width
+      || this.canvas.clientWidth
+      || this.canvas.parentElement?.clientWidth
+      || window.innerWidth
+    );
+    const h = Math.round(
+      rect.height
+      || this.canvas.clientHeight
+      || this.canvas.parentElement?.clientHeight
+      || (window.innerHeight - 80)  // ارتفاع تقريبي بعد HUD
+    );
     const oldW = this.W;
-    this.canvas.width = rect.width;
-    this.canvas.height = rect.height;
-    this.W = rect.width;
-    this.H = rect.height;
-    // إذا تغير العرض أثناء اللعب، حافظ على موقع نسبي للسيارة
-    if (oldW > 0 && this.W > 0 && oldW !== this.W && this.car && typeof this.car.x === 'number') {
-      const ratio = this.car.x / oldW;
-      this.car.x = ratio * this.W;
-    } else if (this.W > 0 && this.car && (this.car.x === 0 || this.car.x === undefined)) {
-      // أول مرة — ضع السيارة بالمنتصف
-      this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.W = w;
+    this.H = h;
+
+    // حافظ على موقع السيارة منطقياً
+    if (this.W > 0) {
+      if (oldW > 0 && oldW !== this.W && this.car && typeof this.car.x === 'number' && this.car.x > 0) {
+        const ratio = this.car.x / oldW;
+        this.car.x = ratio * this.W;
+      } else if (!this.car || !this.car.x || this.car.x <= 0) {
+        // أول مرة أو إذا كان 0 — وسط الطريق
+        if (this.car) this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
+      }
     }
   }
 
@@ -123,10 +139,19 @@ export class TaxiGame {
     let attempts = 0;
     const tryStart = () => {
       this._resize();
-      if ((this.W === 0 || this.H === 0) && attempts < 20) {
+      if ((this.W === 0 || this.H === 0) && attempts < 60) {
         attempts++;
-        requestAnimationFrame(tryStart);
+        // مزيج: rAF لـ 30 محاولة ثم setTimeout لـ 30 محاولة (في حال rAF متأخر على الـ background)
+        if (attempts < 30) requestAnimationFrame(tryStart);
+        else setTimeout(tryStart, 50);
         return;
+      }
+      // حتى لو فشل القياس، استخدم حجم النافذة كـ fallback
+      if (this.W === 0 || this.H === 0) {
+        this.W = window.innerWidth;
+        this.H = window.innerHeight - 80;
+        this.canvas.width = this.W;
+        this.canvas.height = this.H;
       }
       this._actuallyStart();
     };
@@ -304,11 +329,9 @@ export class TaxiGame {
       if (Math.abs(lx - this.car.x) < carHalfW + objR * 0.6 &&
           l.y + objR >= carTop && l.y - objR <= carBottom) {
         l.collected = true;
-        for (let i = 0; i < this.multiplier; i++) {
-          const r = awardLetter('taxi', l.char);
-          this.score += r.count;
-          this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
-        }
+        const r = awardLetter('taxi', l.char, this.multiplier);
+        this.score += r.count;
+        this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
         if (this.multiplier > 1) {
           this.multiplierUses -= 1;
           if (this.multiplierUses <= 0) { this.multiplier = 1; this.multiplierUses = 0; }
@@ -422,8 +445,12 @@ export class TaxiGame {
       this._drawItem(ix, item.y, item.type, size);
     }
 
-    // السيارة
-    const carY = H - size * 1.6 - 16;
+    // السيارة — حماية من x غير صالح
+    if (!this.car.x || this.car.x <= 0 || isNaN(this.car.x) || this.car.x > W) {
+      this.car.x = this._laneCenter(Math.floor(NUM_LANES / 2));
+    }
+    const carHeight = size * 1.7;
+    const carY = H - carHeight - 12;
     this._drawCar(this.car.x, carY, size);
   }
 

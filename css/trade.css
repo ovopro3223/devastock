@@ -1,0 +1,235 @@
+/* ===== متجر تبديل الأحرف ===== */
+#page-trade {
+  background: linear-gradient(160deg, #2a1a1f 0%, #1f1424 50%, #2a1432 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem 0 2rem;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trade-container {
+  width: min(560px, 94vw);
+  margin: auto;
+  padding: 1.2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trade-header-info {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.trade-header-info b {
+  color: #FFD700;
+}
+
+.trade-section {
+  background: linear-gradient(135deg, rgba(20, 8, 40, 0.5), rgba(40, 20, 60, 0.35));
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+}
+
+.trade-section-title {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 700;
+  margin-bottom: 0.7rem;
+}
+
+.trade-letters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.trade-letter-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.trade-letter-chip:hover {
+  background: rgba(255, 215, 0, 0.10);
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.trade-letter-chip.active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 140, 0, 0.2));
+  border-color: #FFD700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.trade-letter-char {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #FFD700;
+  line-height: 1;
+}
+
+.trade-letter-chip.target .trade-letter-char {
+  color: #5DD3D3;
+}
+
+.trade-letter-chip.active.target {
+  background: linear-gradient(135deg, rgba(93, 211, 211, 0.3), rgba(40, 130, 200, 0.2));
+  border-color: #5DD3D3;
+  box-shadow: 0 0 12px rgba(93, 211, 211, 0.4);
+}
+
+.trade-letter-count {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-empty {
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+/* ===== شريط الكمية ===== */
+.trade-amount-section {
+  text-align: center;
+}
+
+.trade-amount-label {
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFE066, #FFD700, #FF8E3C);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-amount-slider {
+  --fill: 0%;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(
+    to right,
+    #FFD700 0%, #FF8E3C var(--fill),
+    rgba(255, 255, 255, 0.08) var(--fill),
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.trade-amount-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #FFE066 0%, #FFD700 50%, #C09000 100%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.18), 0 0 16px rgba(255, 215, 0, 0.6);
+  cursor: grab;
+}
+
+.trade-amount-slider::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #FFE066 0%, #FFD700 50%, #C09000 100%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  cursor: grab;
+}
+
+/* ===== لوحة المعاينة ===== */
+.trade-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(93, 211, 211, 0.06));
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.trade-preview-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.trade-preview-char {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #FFD700;
+  line-height: 1;
+}
+
+.trade-preview-side.target .trade-preview-char {
+  color: #5DD3D3;
+}
+
+.trade-preview-count {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-preview-arrow {
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== زر التأكيد ===== */
+.trade-confirm-btn {
+  width: 100%;
+  padding: 1rem 1.4rem;
+  background: linear-gradient(135deg, #FFE066 0%, #FFD700 35%, #FF8E3C 75%, #FF6B35 100%);
+  border: none;
+  border-radius: 999px;
+  color: #1A0F2E;
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+}
+
+.trade-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 6px 18px rgba(255, 140, 0, 0.55);
+}
+
+.trade-confirm-btn:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: not-allowed;
+  box-shadow: none;
+}

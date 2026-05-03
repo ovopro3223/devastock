@@ -109,3 +109,10 @@ export function getLevelEmoji(level) {
   if (level <= 110) return '🌟';
   return '🌌';
 }
+
+// مضاعف الحروف حسب لفل الحساب — يكافئ المستويات العالية
+// لفل 1: ×1.0، لفل 50: ×1.6، لفل 100: ×2.2، لفل 120: ×2.5
+export function getAccountLetterMultiplier() {
+  const level = getLevel(getLifetimeTotal());
+  return 1 + (level - 1) / 80;
+}

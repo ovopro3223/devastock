@@ -379,16 +379,12 @@ export class LetterBlazeGame {
       if (!tile || !tile.isAlive) continue;
       if (tile.containsPoint(cx, cy)) {
         if (tile.collect()) {
-          const mult = tile.isDouble ? 2 : 1;
-          const totalCalls = tile.weight * mult;
-          let totalAwarded = 0;
-          for (let i = 0; i < totalCalls; i++) {
-            const r = awardLetter('letter-blaze', tile.char);
-            totalAwarded += r.count;
-          }
-          this._score += totalAwarded;
+          // قاعدة: حرف واحد لكل tile (× 2 إذا كان double من المتحف)
+          const baseCount = tile.isDouble ? 2 : 1;
+          const r = awardLetter('letter-blaze', tile.char, baseCount);
+          this._score += r.count;
           this._updateHudScore();
-          this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + totalAwarded;
+          this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
         }
         break;
       }

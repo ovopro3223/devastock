@@ -65,6 +65,14 @@ export function initMenu(navigate) {
     });
   }
 
+  // زر متجر التبديل
+  const tradeBtn = document.getElementById('btn-trade-menu');
+  if (tradeBtn) {
+    tradeBtn.addEventListener('click', () => {
+      navigate('trade');
+    });
+  }
+
   // ===== زر تسجيل الدخول / الخروج في القائمة =====
   const menuAuthBtn = document.getElementById('btn-menu-auth');
   if (menuAuthBtn) {

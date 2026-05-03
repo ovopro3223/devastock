@@ -39,6 +39,7 @@
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/achievements.css">
   <link rel="stylesheet" href="css/challenges.css">
+  <link rel="stylesheet" href="css/trade.css">
 </head>
 <body>
 
@@ -117,6 +118,10 @@
             <button id="btn-stock-menu" class="menu-card menu-card-stock">
               <span class="menu-card-icon">📦</span>
               <span class="menu-card-label">المخزن</span>
+            </button>
+            <button id="btn-trade-menu" class="menu-card menu-card-trade">
+              <span class="menu-card-icon">🔁</span>
+              <span class="menu-card-label">متجر التبديل</span>
             </button>
           </div>
         </div>
@@ -702,30 +707,6 @@
       </div>
     </div>
 
-    <!-- modal بروفايل اللاعب -->
-    <div id="player-profile-modal" class="auth-modal" hidden>
-      <div class="auth-modal-overlay"></div>
-      <div class="auth-modal-box player-profile-box">
-        <button class="player-profile-close" id="player-profile-close-btn">&times;</button>
-        <div id="player-profile-content"></div>
-      </div>
-    </div>
-
-    <!-- modal الشات -->
-    <div id="chat-modal" class="auth-modal" hidden>
-      <div class="auth-modal-overlay"></div>
-      <div class="auth-modal-box chat-modal-box">
-        <div class="chat-header">
-          <button class="chat-back-btn" id="chat-back-btn">&times;</button>
-          <span id="chat-with-name"></span>
-        </div>
-        <div id="chat-messages" class="chat-messages"></div>
-        <form id="chat-form" class="chat-form">
-          <input type="text" id="chat-input" placeholder="اكتب رسالة..." autocomplete="off">
-          <button type="submit" class="chat-send-btn">إرسال</button>
-        </form>
-      </div>
-    </div>
   </section>
 
   <!-- ===== صفحة المنتدى ===== -->
@@ -815,6 +796,52 @@
     </div>
   </section>
 
+  <!-- ===== متجر تبديل الأحرف ===== -->
+  <section id="page-trade" class="page">
+    <div class="trade-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">🔁 متجر تبديل الأحرف</h2>
+
+      <div class="trade-header-info">
+        نسبة التبديل: <b>5 إلى 1</b> — كل 5 أحرف من نوع تبدّلهم بـ 1 من النوع اللي تبيه
+      </div>
+
+      <!-- معاينة التبديل -->
+      <div class="trade-preview">
+        <div class="trade-preview-side from">
+          <div class="trade-preview-char" id="trade-from-char">—</div>
+          <div class="trade-preview-count" id="trade-from-count">0</div>
+        </div>
+        <div class="trade-preview-arrow">←</div>
+        <div class="trade-preview-side target">
+          <div class="trade-preview-char" id="trade-to-char">—</div>
+          <div class="trade-preview-count" id="trade-to-count">0</div>
+        </div>
+      </div>
+
+      <!-- اختر الحرف المصدر -->
+      <div class="trade-section">
+        <div class="trade-section-title">من (المصدر — يجب 5 على الأقل)</div>
+        <div class="trade-letters-grid" id="trade-from-list"></div>
+      </div>
+
+      <!-- اختر الحرف الهدف -->
+      <div class="trade-section">
+        <div class="trade-section-title">إلى (الهدف)</div>
+        <div class="trade-letters-grid" id="trade-to-list"></div>
+      </div>
+
+      <!-- شريط الكمية -->
+      <div class="trade-section trade-amount-section">
+        <div class="trade-section-title">الكمية</div>
+        <div class="trade-amount-label" id="trade-amount-label">5 حرف</div>
+        <input type="range" id="trade-amount-slider" class="trade-amount-slider" min="5" max="100" step="5" value="5">
+      </div>
+
+      <button class="trade-confirm-btn" id="trade-confirm-btn" disabled>اختر حرفين وكمية</button>
+    </div>
+  </section>
+
   <!-- ===== صفحة التحديات ===== -->
   <section id="page-challenges" class="page">
     <div class="challenges-container">
@@ -856,6 +883,30 @@
       <div class="museum-words-list" id="museum-words-list"></div>
     </div>
   </section>
+
+  <!-- ===== Modals عامة (تظهر فوق أي صفحة) ===== -->
+  <div id="player-profile-modal" class="auth-modal" hidden>
+    <div class="auth-modal-overlay"></div>
+    <div class="auth-modal-box player-profile-box">
+      <button class="player-profile-close" id="player-profile-close-btn">&times;</button>
+      <div id="player-profile-content"></div>
+    </div>
+  </div>
+
+  <div id="chat-modal" class="auth-modal" hidden>
+    <div class="auth-modal-overlay"></div>
+    <div class="auth-modal-box chat-modal-box">
+      <div class="chat-header">
+        <button class="chat-back-btn" id="chat-back-btn">&times;</button>
+        <span id="chat-with-name"></span>
+      </div>
+      <div id="chat-messages" class="chat-messages"></div>
+      <form id="chat-form" class="chat-form">
+        <input type="text" id="chat-input" placeholder="اكتب رسالة..." autocomplete="off">
+        <button type="submit" class="chat-send-btn">إرسال</button>
+      </form>
+    </div>
+  </div>
 
   <!-- نقطة دخول JS -->
   <script type="module" src="js/main.js"></script>

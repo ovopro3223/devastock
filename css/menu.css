@@ -161,6 +161,16 @@
   border-color: rgba(229,57,53,0.7);
   box-shadow: 0 6px 20px rgba(229,57,53,0.25);
 }
+.menu-card-trade {
+  background: linear-gradient(135deg, rgba(155,107,255,0.14), rgba(93,211,211,0.06));
+  border-color: rgba(155,107,255,0.4);
+  color: #C9A0FF;
+}
+.menu-card-trade:hover {
+  background: linear-gradient(135deg, rgba(155,107,255,0.24), rgba(93,211,211,0.12));
+  border-color: rgba(155,107,255,0.7);
+  box-shadow: 0 6px 20px rgba(155,107,255,0.25);
+}
 .menu-card-community {
   background: linear-gradient(135deg, rgba(80,180,150,0.12), rgba(50,130,180,0.06));
   border-color: rgba(80,200,180,0.35);

@@ -1,6 +1,4 @@
 // ===== نظام النقاط — مع الوزنية والسجل التراكمي =====
-import { saveLetterToStock }            from '../../core/storage.js';
-import { recordLetter }                 from '../../core/lifetime-storage.js';
 import { getCollectedMuseumLetterSet }  from '../../core/museum-storage.js';
 import { awardLetter }                  from '../../core/rare-letters.js';
 
@@ -19,17 +17,9 @@ export class Score {
 
   // returns { count, special, rarity }
   addLetter(char, spawnTag = null) {
-    const result = awardLetter('letter-rain', char, spawnTag);
-
-    // حروف المتحف ×2 إضافي
-    if (this._museumLetters.has(char)) {
-      const extra = result.count;
-      for (let i = 0; i < extra; i++) {
-        saveLetterToStock(char);
-        recordLetter(char, 1);
-      }
-      result.count *= 2;
-    }
+    // حرف المتحف يعطي قاعدة 2 (مضاعفة)
+    const baseCount = this._museumLetters.has(char) ? 2 : 1;
+    const result = awardLetter('letter-rain', char, baseCount, spawnTag);
 
     this._score   += result.count;
     this._letters += result.count;

@@ -283,10 +283,8 @@ export class FishingGame {
 
   _awardLetters(letters) {
     for (const [char, count] of Object.entries(letters)) {
-      for (let i = 0; i < count; i++) {
-        const r = awardLetter('fishing', char);
-        this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
-      }
+      const r = awardLetter('fishing', char, count);
+      this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
     }
   }
 

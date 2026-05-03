@@ -1,9 +1,17 @@
 // ===== صفحة المنتدى =====
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { signInWithGoogle, createForumPost, deleteForumPost, listenForForumPosts, listenForForumComments,
-         listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost } from '../core/firebase.js';
+         listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost, getPlayerProfile } from '../core/firebase.js';
 import { canAffordText, spendForText } from '../core/storage.js';
 import { incrementCounter } from '../core/achievements.js';
+import { getProfile } from '../core/profile-storage.js';
+
+function _displayName() {
+  const p = getProfile();
+  if (p && p.name && p.name.trim()) return p.name.trim();
+  const auth = getAuth();
+  return auth.currentUser?.displayName || 'لاعب';
+}
 
 let _currentUser = null;
 let _posts = [];
@@ -33,7 +41,7 @@ export function initForum(navigate) {
         alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
         return;
       }
-      const result = await createForumPost(_currentUser.uid, _currentUser.displayName || 'لاعب', content);
+      const result = await createForumPost(_currentUser.uid, _displayName(), content);
       if (result?.success) {
         spendForText(content);
         incrementCounter('forum_posts_created');
@@ -68,7 +76,7 @@ function updateForumAuthState() {
   const createPanel = document.getElementById('forum-create-panel');
 
   if (_currentUser) {
-    if (userLabel) userLabel.textContent = _currentUser.displayName || 'لاعب';
+    if (userLabel) userLabel.textContent = _displayName();
     if (loginPrompt) loginPrompt.hidden = true;
     if (createPanel) createPanel.hidden = false;
   } else {
@@ -121,7 +129,7 @@ function renderForumPosts() {
 
     const commentHtml = comments.length > 0 ? comments.map(comment => `
       <div class="forum-comment">
-        <div class="forum-comment-author">${escapeHTML(comment.authorName)}</div>
+        <div class="forum-comment-author forum-clickable" onclick="window._viewForumProfile('${comment.authorUid}')">${escapeHTML(comment.authorName)}</div>
         <div class="forum-comment-text">${escapeHTML(comment.content)}</div>
       </div>
     `).join('') : `<div class="forum-comment-empty">لا توجد تعليقات بعد.</div>`;
@@ -142,7 +150,7 @@ function renderForumPosts() {
     return `
       <div class="forum-post-card">
         <div class="forum-post-header">
-          <div class="forum-post-author-block">
+          <div class="forum-post-author-block forum-clickable" onclick="window._viewForumProfile('${post.authorUid}')">
             <div class="forum-post-avatar">${escapeHTML(post.authorName.charAt(0) || '؟')}</div>
             <div>
               <div class="forum-post-author">${escapeHTML(post.authorName)}</div>
@@ -191,6 +199,50 @@ window._deleteForumPost = async function(postId) {
   }
 };
 
+window._viewForumProfile = async function(uid) {
+  if (!uid) return;
+  const modal = document.getElementById('player-profile-modal');
+  const content = document.getElementById('player-profile-content');
+  if (!modal || !content) return;
+
+  content.innerHTML = '<div style="padding:2rem;color:#888;text-align:center">جاري التحميل...</div>';
+  modal.hidden = false;
+
+  const profile = await getPlayerProfile(uid);
+  if (!profile) {
+    content.innerHTML = '<div style="padding:2rem;color:#E74C3C;text-align:center">فشل تحميل البروفايل</div>';
+    return;
+  }
+
+  const userProfile = profile.profile || {};
+  const avatarHtml = profile.avatarImage
+    ? `<div class="player-profile-avatar"><img src="${profile.avatarImage}" alt="Avatar"></div>`
+    : `<div class="player-profile-avatar player-profile-avatar-emoji">${profile.avatar || '👤'}</div>`;
+
+  content.innerHTML = `
+    ${avatarHtml}
+    <div class="player-profile-emoji">${profile.rankEmoji || '🌱'}</div>
+    <div class="player-profile-name">${escapeHTML(profile.displayName || 'لاعب')}</div>
+    <div class="player-profile-rank">${profile.rankEmoji || '🌱'} ${escapeHTML(profile.rankLabel || '')}</div>
+
+    <div class="player-profile-stats">
+      <div class="player-profile-stat">
+        <div class="player-profile-stat-value">${profile.totalLetters || 0}</div>
+        <div class="player-profile-stat-label">حرف مجموع</div>
+      </div>
+      <div class="player-profile-stat">
+        <div class="player-profile-stat-value">${profile.friends?.length || 0}</div>
+        <div class="player-profile-stat-label">أصدقاء</div>
+      </div>
+    </div>
+
+    ${userProfile.bio ? `<div class="player-profile-bio">"${escapeHTML(userProfile.bio)}"</div>` : ''}
+    ${userProfile.city ? `<div style="color:#888;font-size:0.85rem">📍 ${escapeHTML(userProfile.city)}</div>` : ''}
+    ${userProfile.age ? `<div style="color:#888;font-size:0.85rem">🎂 العمر: ${escapeHTML(String(userProfile.age))}</div>` : ''}
+    ${userProfile.hobbies ? `<div style="color:#888;font-size:0.85rem">⭐ الهوايات: ${escapeHTML(userProfile.hobbies)}</div>` : ''}
+  `;
+};
+
 window._submitForumComment = async function(event, postId) {
   event.preventDefault();
   if (!_currentUser) {
@@ -206,11 +258,32 @@ window._submitForumComment = async function(event, postId) {
     alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
     return;
   }
-  await addForumComment(postId, _currentUser.uid, _currentUser.displayName || 'لاعب', content);
+  await addForumComment(postId, _currentUser.uid, _displayName(), content);
   spendForText(content);
   incrementCounter('forum_comments_created');
   input.value = '';
 };
+
+// إعداد إغلاق modal البروفايل (يعمل من أي صفحة)
+function _setupProfileModalClose() {
+  const modal = document.getElementById('player-profile-modal');
+  if (!modal) return;
+  const closeBtn = document.getElementById('player-profile-close-btn');
+  const overlay = modal.querySelector('.auth-modal-overlay');
+  if (closeBtn && !closeBtn._bound) {
+    closeBtn.onclick = () => { modal.hidden = true; };
+    closeBtn._bound = true;
+  }
+  if (overlay && !overlay._bound) {
+    overlay.onclick = () => { modal.hidden = true; };
+    overlay._bound = true;
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _setupProfileModalClose);
+} else {
+  _setupProfileModalClose();
+}
 
 function escapeHTML(value) {
   const div = document.createElement('div');

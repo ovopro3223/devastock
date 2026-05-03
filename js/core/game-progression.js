@@ -39,17 +39,15 @@ function _levelFromXP(xp) {
   return { level: lvl, cumulativeXP: cum };
 }
 
-// مكافآت يفتحها كل لفل (مضاعف، علاوات، فتوحات)
+// مكافآت يفتحها كل لفل (مضاعف، علاوات، فتوحات) — معتدلة
 const LEVEL_PERKS = {
-  2:  { multiplier: 1.1,  description: '+10% أحرف' },
-  3:  { multiplier: 1.15, description: '+15% أحرف' },
-  5:  { multiplier: 1.25, description: '+25% أحرف' },
-  7:  { multiplier: 1.35, description: '+35% أحرف' },
-  10: { multiplier: 1.5,  description: '+50% أحرف' },
-  15: { multiplier: 1.75, description: '+75% أحرف' },
-  20: { multiplier: 2.0,  description: 'مضاعف x2 دائم' },
-  25: { multiplier: 2.5,  description: 'مضاعف x2.5' },
-  30: { multiplier: 3.0,  description: '🌟 ملك اللعبة x3' },
+  3:  { multiplier: 1.05, description: '+5% أحرف' },
+  6:  { multiplier: 1.10, description: '+10% أحرف' },
+  10: { multiplier: 1.15, description: '+15% أحرف' },
+  15: { multiplier: 1.20, description: '+20% أحرف' },
+  20: { multiplier: 1.25, description: '+25% أحرف' },
+  25: { multiplier: 1.30, description: '+30% أحرف' },
+  30: { multiplier: 1.40, description: '🌟 ملك اللعبة +40%' },
 };
 
 function _multiplierFor(level) {
