@@ -1,0 +1,128 @@
+/* ===== صفحة الإعدادات ===== */
+#page-settings {
+  background: linear-gradient(160deg, #1A1A2E 0%, #0F0F1E 50%, #16213E 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.settings-container {
+  width: 100%;
+  max-width: 540px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,215,0,0.12);
+  border-radius: 0.7rem;
+  transition: background 0.2s;
+}
+
+.settings-row:hover {
+  background: rgba(255,215,0,0.05);
+}
+
+.settings-row-info {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex: 1;
+}
+
+.settings-row-icon {
+  font-size: 1.6rem;
+}
+
+.settings-row-title {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  margin-bottom: 0.15rem;
+}
+
+.settings-row-desc {
+  font-size: 0.8rem;
+  color: var(--color-dim);
+}
+
+/* ===== Toggle Switch ===== */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.settings-volume-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 170px;
+}
+
+.settings-volume-control input[type="range"] {
+  width: 120px;
+}
+
+.settings-volume-value {
+  min-width: 40px;
+  text-align: right;
+  color: var(--color-gold);
+  font-size: 0.85rem;
+}
+
+.settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.settings-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: background 0.25s;
+  border-radius: 999px;
+}
+
+.settings-toggle-slider:before {
+  position: absolute;
+  content: "";
+  width: 20px;
+  height: 20px;
+  right: 3px;
+  top: 3px;
+  background: var(--color-dim);
+  border-radius: 50%;
+  transition: 0.25s;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+  background: rgba(255,215,0,0.25);
+  border-color: rgba(255,215,0,0.5);
+}
+
+.settings-toggle input:checked + .settings-toggle-slider:before {
+  background: var(--color-gold);
+  right: calc(100% - 23px);
+  box-shadow: 0 0 8px rgba(255,215,0,0.6);
+}

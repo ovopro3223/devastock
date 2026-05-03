@@ -1,0 +1,265 @@
+/* ===== صفحة الكازينو 🎰 ===== */
+#page-casino {
+  background: linear-gradient(160deg, #1A0F2E 0%, #0F0B1E 50%, #2E1638 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.casino-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  width: 100%;
+  max-width: 500px;
+  padding: 1rem;
+}
+
+.casino-container .btn-back {
+  align-self: flex-start;
+}
+
+.casino-container .page-title {
+  background: linear-gradient(135deg, #FFD700 0%, #FF6B35 50%, #FFD700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(255,215,0,0.3);
+}
+
+/* ===== الإحصائيات ===== */
+.casino-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  background: rgba(255,215,0,0.08);
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 999px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.95rem;
+}
+
+.casino-stats-label {
+  color: var(--color-dim);
+}
+
+.casino-stats-value {
+  color: var(--color-gold);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* ===== آلة الحظ ===== */
+.casino-machine {
+  position: relative;
+  background: linear-gradient(180deg, #2A1838 0%, #1A0F2E 100%);
+  border: 3px solid #FFD700;
+  border-radius: 1.2rem;
+  padding: 1.5rem;
+  box-shadow:
+    0 0 40px rgba(255,215,0,0.25),
+    inset 0 0 20px rgba(0,0,0,0.5);
+  width: 100%;
+  max-width: 400px;
+}
+
+.casino-machine.jackpot-flash {
+  animation: jackpotFlash 0.4s ease 3;
+}
+
+@keyframes jackpotFlash {
+  0%, 100% {
+    box-shadow: 0 0 40px rgba(255,215,0,0.25), inset 0 0 20px rgba(0,0,0,0.5);
+    border-color: #FFD700;
+  }
+  50% {
+    box-shadow: 0 0 80px rgba(255,215,0,1), inset 0 0 40px rgba(255,215,0,0.3);
+    border-color: #FFFFFF;
+    transform: scale(1.02);
+  }
+}
+
+/* ===== الـ Reels ===== */
+.casino-reels {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.casino-reel {
+  position: relative;
+  width: 90px;
+  height: 100px;
+  background: linear-gradient(180deg, #FFD700 0%, #F39C12 100%);
+  border: 2px solid #2A1838;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 20px rgba(0,0,0,0.4),
+    0 4px 12px rgba(0,0,0,0.6);
+}
+
+.casino-reel-letter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #2A1838;
+  font-family: var(--font);
+}
+
+.casino-reel.spinning .casino-reel-letter {
+  animation: reelSpin 0.1s linear infinite;
+}
+
+.casino-reel.spinning .casino-reel-letter::after {
+  content: 'ا ب ت ث ج ح خ د ر س ش ل م ن ه و ي';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #2A1838;
+  letter-spacing: 1.5rem;
+  animation: reelStrip 0.4s linear infinite;
+}
+
+@keyframes reelSpin {
+  0%   { opacity: 0.4; transform: translateY(-30%); }
+  50%  { opacity: 1;   transform: translateY(0); }
+  100% { opacity: 0.4; transform: translateY(30%); }
+}
+
+@keyframes reelStrip {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100%); }
+}
+
+.casino-reel.stopped {
+  animation: reelStop 0.4s ease;
+}
+
+@keyframes reelStop {
+  0%   { transform: translateY(-15%); }
+  60%  { transform: translateY(8%);   }
+  100% { transform: translateY(0);    }
+}
+
+/* ===== نتيجة الدوران ===== */
+.casino-result {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  min-height: 1.5em;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s;
+}
+
+.casino-result.result-jackpot {
+  color: #FFD700;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(255,215,0,0.7);
+  animation: jackpotPulse 0.6s ease infinite alternate;
+}
+
+@keyframes jackpotPulse {
+  from { transform: scale(1);    }
+  to   { transform: scale(1.05); }
+}
+
+.casino-result.result-win {
+  color: #2ECC71;
+  text-shadow: 0 0 8px rgba(46,204,113,0.5);
+}
+
+.casino-result.result-lose {
+  color: #E74C3C;
+  opacity: 0.85;
+}
+
+/* ===== زر الدوران ===== */
+.casino-spin-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #FFD700 0%, #FF6B35 100%);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  color: #1A0F2E;
+  font-family: var(--font);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+  letter-spacing: 0.02em;
+}
+
+.casino-spin-btn:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: 0 8px 28px rgba(255,215,0,0.6);
+}
+
+.casino-spin-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.casino-spin-btn:disabled {
+  background: rgba(255,255,255,0.1);
+  color: var(--color-dim);
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+/* ===== قواعد اللعبة ===== */
+.casino-rules {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,215,0,0.15);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.casino-rules h3 {
+  color: var(--color-gold);
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
+  text-align: center;
+}
+
+.casino-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.casino-rule:not(:last-child) {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.casino-rule-icon {
+  font-size: 1.2rem;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.casino-rule b {
+  color: var(--color-gold);
+  font-weight: 700;
+}

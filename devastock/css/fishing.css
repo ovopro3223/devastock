@@ -1,0 +1,39 @@
+/* ===== نمط صيد الأحرف 🎣 ===== */
+#page-fishing {
+  display: flex;
+  flex-direction: column;
+  background: #87CEEB;
+}
+
+#fishing-canvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.fishing-instructions {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  pointer-events: none;
+  animation: fishingHint 2s ease infinite;
+  z-index: 5;
+}
+
+@keyframes fishingHint {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 0.4;  }
+}
+
+.fishing-instructions.hidden {
+  display: none;
+}

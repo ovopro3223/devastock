@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ديفاستوك</title>
+
+  <!-- Firebase SDK — importmap -->
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app":       "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+      "firebase/auth":      "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+    }
+  }
+  </script>
+
+  <!-- خط عربي من Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- ملفات CSS -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/modes.css">
+  <link rel="stylesheet" href="css/letter-rain.css">
+  <link rel="stylesheet" href="css/stock.css">
+  <link rel="stylesheet" href="css/museum.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <link rel="stylesheet" href="css/letter-blaze.css">
+  <link rel="stylesheet" href="css/community.css">
+  <link rel="stylesheet" href="css/casino.css">
+  <link rel="stylesheet" href="css/taxi.css">
+  <link rel="stylesheet" href="css/fishing.css">
+  <link rel="stylesheet" href="css/sniper.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/achievements.css">
+  <link rel="stylesheet" href="css/challenges.css">
+</head>
+<body>
+
+  <div id="app-loading" class="app-loading">
+    <div class="app-loading-card">
+      <div class="app-loading-spinner"></div>
+      <div class="app-loading-text">جاري التحميل...</div>
+    </div>
+  </div>
+
+  <!-- زر تسجيل الدخول — فوق يسار -->
+  <div class="auth-container">
+    <button id="auth-btn" class="auth-btn"></button>
+    <!-- dropdown خروج -->
+    <div id="auth-dropdown" class="auth-dropdown" hidden>
+      <div class="auth-dropdown-item auth-user-info">
+        <span class="auth-user-name"></span>
+        <span class="auth-user-rank"></span>
+      </div>
+      <button id="auth-logout-btn" class="auth-dropdown-item">🚪 خروج</button>
+    </div>
+  </div>
+
+  <!-- زر الرجوع/الإيقاف — فوق يمين -->
+  <div class="topnav-container">
+    <button id="topnav-btn" class="topnav-btn" hidden>⏸</button>
+  </div>
+
+  <!-- ===== الصفحة الرئيسية ===== -->
+  <section id="page-home" class="page">
+    <!-- كانفاس خلفية الأحرف المتساقطة -->
+    <canvas id="home-canvas"></canvas>
+
+    <div class="home-container">
+      <h1 class="game-title">ديفاستوك</h1>
+      <p class="game-subtitle">العب، التقط، اجمع الحروف</p>
+      <div id="home-rank-badge" class="rank-badge" hidden></div>
+      <button id="btn-start" class="btn btn-primary btn-large">ابدأ</button>
+    </div>
+  </section>
+
+  <!-- ===== صفحة القائمة ===== -->
+  <section id="page-menu" class="page">
+    <!-- كانفاس خلفية الأحرف المتساقطة -->
+    <canvas id="menu-canvas"></canvas>
+    <div class="menu-container">
+      <div class="menu-header">
+        <button class="btn-back" data-target="home">&#8594; رجوع</button>
+        <h2 class="page-title">القائمة الرئيسية</h2>
+      </div>
+
+      <div class="menu-hero">
+        <button id="btn-modes" class="btn btn-primary btn-large btn-start-play">ابدأ اللعب</button>
+        <p class="menu-hero-desc">اختَر نمطك المفضل وابدأ الجولة من هنا.</p>
+      </div>
+
+      <nav class="menu-nav">
+        <div class="menu-grid">
+          <button id="btn-museum-menu" class="menu-card menu-card-museum">
+            <span class="menu-card-icon">🏛</span>
+            <span class="menu-card-label">المتحف</span>
+          </button>
+          <button id="btn-stock-menu" class="menu-card menu-card-stock">
+            <span class="menu-card-icon">📦</span>
+            <span class="menu-card-label">المخزن</span>
+          </button>
+          <button id="btn-profile-menu" class="menu-card menu-card-profile">
+            <span class="menu-card-icon">👤</span>
+            <span class="menu-card-label">ملفي</span>
+          </button>
+          <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
+            <span class="menu-card-icon">🏆</span>
+            <span class="menu-card-label">الإنجازات</span>
+            <span id="achievements-badge" class="notification-badge" hidden>0</span>
+          </button>
+          <button id="btn-challenges-menu" class="menu-card menu-card-challenges">
+            <span class="menu-card-icon">⚔️</span>
+            <span class="menu-card-label">التحديات</span>
+            <span id="challenges-badge" class="notification-badge" hidden>0</span>
+          </button>
+          <button id="btn-community-menu" class="menu-card menu-card-community">
+            <span class="menu-card-icon">👥</span>
+            <span class="menu-card-label">المجتمع</span>
+            <span id="community-badge" class="notification-badge" hidden>0</span>
+          </button>
+          <button id="btn-forum-menu" class="menu-card menu-card-forum">
+            <span class="menu-card-icon">📝</span>
+            <span class="menu-card-label">المنتدى</span>
+          </button>
+        </div>
+
+        <div class="menu-footer">
+          <button id="btn-menu-auth" class="btn-menu-mini btn-menu-auth">🔑 تسجيل</button>
+          <button id="btn-settings" class="btn-menu-mini">⚙️ إعدادات</button>
+          <button id="btn-exit" class="btn-menu-mini btn-exit-style">🚪 خروج</button>
+        </div>
+      </nav>
+    </div>
+  </section>
+
+  <!-- ===== صفحة الأنماط ===== -->
+  <section id="page-modes" class="page">
+    <div class="modes-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">اختر نمط اللعب</h2>
+      <div class="modes-grid">
+
+        <!-- مفعّل -->
+        <div class="mode-card active-mode" id="card-letter-rain">
+          <div class="mode-icon">🌧️</div>
+          <h3 class="mode-name">مطر الأحرف</h3>
+          <p class="mode-desc">التقط الأحرف واجمعها في مخزنك</p>
+        </div>
+
+        <!-- مفعّل -->
+        <div class="mode-card active-mode" id="card-letter-blaze">
+          <div class="mode-icon">🔥</div>
+          <h3 class="mode-name">حريق الحروف</h3>
+          <p class="mode-desc">أطفئ الحروف قبل أن تنفجر!</p>
+        </div>
+
+        <!-- مفعّل -->
+        <div class="mode-card active-mode" id="card-casino">
+          <div class="mode-icon">🎰</div>
+          <h3 class="mode-name">كازينو الأحرف</h3>
+          <p class="mode-desc">جرّب حظّك مع آلة الحظ</p>
+        </div>
+
+        <!-- مفعّل -->
+        <div class="mode-card active-mode" id="card-taxi">
+          <div class="mode-icon">🚕</div>
+          <h3 class="mode-name">تاكسي الأحرف</h3>
+          <p class="mode-desc">قُد سيارتك واجمع الأحرف من الطريق</p>
+        </div>
+
+        <!-- مفعّل -->
+        <div class="mode-card active-mode" id="card-fishing">
+          <div class="mode-icon">🎣</div>
+          <h3 class="mode-name">صيد الأحرف</h3>
+          <p class="mode-desc">ارمِ سنارتك واصطد الحروف</p>
+        </div>
+
+        <!-- مفعّل -->
+        <div class="mode-card active-mode" id="card-sniper">
+          <div class="mode-icon">🎯</div>
+          <h3 class="mode-name">قنص الأحرف</h3>
+          <p class="mode-desc">اقنص الكلمات المختبئة بدقة</p>
+        </div>
+
+        <div class="mode-card disabled-mode">
+          <span class="coming-soon-badge">قريباً</span>
+          <div class="mode-icon">🧩</div>
+          <h3 class="mode-name">تحدي الكلمات</h3>
+          <p class="mode-desc">كوّن كلمات من الأحرف</p>
+        </div>
+
+        <div class="mode-card disabled-mode">
+          <span class="coming-soon-badge">قريباً</span>
+          <div class="mode-icon">⚡</div>
+          <h3 class="mode-name">السرعة الخاطفة</h3>
+          <p class="mode-desc">التقط أكبر عدد في وقت محدود</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== نمط مطر الأحرف ===== -->
+  <section id="page-letter-rain" class="page">
+
+    <!-- HUD العلوي -->
+    <div class="game-hud" id="game-hud">
+      <div class="hud-lives" id="hud-lives">
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+      </div>
+      <div class="hud-score">
+        <span class="score-label">النقاط</span>
+        <span class="score-value" id="hud-score-value">0</span>
+      </div>
+      <button class="btn-pause" id="btn-pause">⏸</button>
+    </div>
+
+    <!-- الكانفاس -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- شريط آخر الأحرف الملتقطة -->
+    <div class="caught-strip" id="caught-strip"></div>
+
+    <!-- شاشة الإيقاف المؤقت -->
+    <div class="overlay" id="overlay-pause" hidden>
+      <div class="overlay-box">
+        <h2>متوقف مؤقتاً ⏸</h2>
+        <button class="btn btn-primary"   id="btn-resume">استمر</button>
+        <button class="btn btn-exit-style" id="btn-quit-pause">العودة للقائمة</button>
+      </div>
+    </div>
+
+    <!-- شاشة Game Over -->
+    <div class="overlay" id="overlay-gameover" hidden>
+      <div class="overlay-box">
+        <h2>انتهت الجولة! 🎉</h2>
+        <p class="final-score-label">نقاطك</p>
+        <p class="final-score" id="final-score-value">0</p>
+        <p class="final-letters">أحرف ملتقطة: <span id="final-letters-value">0</span></p>
+        <button class="btn btn-primary"   id="btn-restart">إعادة</button>
+        <button class="btn btn-exit-style" id="btn-quit-gameover">العودة للقائمة</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== نمط حريق الحروف ===== -->
+  <section id="page-letter-blaze" class="page">
+
+    <div class="game-hud">
+      <div class="hud-lives" id="blaze-hud-lives">
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+      </div>
+      <div class="hud-score">
+        <span class="score-label">🔥 الحريق</span>
+        <span class="score-value" id="blaze-score-value">0</span>
+      </div>
+      <div class="blaze-difficulty" id="blaze-difficulty-controls">
+        <button class="btn-diff active" id="blaze-difficulty-easy">سهل</button>
+        <button class="btn-diff" id="blaze-difficulty-hard">صعب</button>
+      </div>
+      <button class="btn-pause" id="blaze-btn-pause">⏸</button>
+    </div>
+
+    <canvas id="blaze-canvas"></canvas>
+
+    <div class="overlay" id="blaze-overlay-pause" hidden>
+      <div class="overlay-box">
+        <h2>متوقف ⏸</h2>
+        <button class="btn btn-primary"    id="blaze-btn-resume">استمر</button>
+        <button class="btn btn-exit-style" id="blaze-btn-quit-pause">العودة للقائمة</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="blaze-overlay-gameover" hidden>
+      <div class="overlay-box">
+        <h2>انتهى الحريق 🔥</h2>
+        <p class="final-score-label">حروف أطفأتها</p>
+        <p class="final-score" id="blaze-final-score">0</p>
+        <button class="btn btn-primary"    id="blaze-btn-restart">إعادة الإشعال</button>
+        <button class="btn btn-exit-style" id="blaze-btn-quit-gameover">العودة للقائمة</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== نمط تاكسي الأحرف 🚕 ===== -->
+  <section id="page-taxi" class="page">
+    <div class="game-hud">
+      <div class="hud-lives" id="taxi-hud-lives">
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+      </div>
+      <div class="hud-score">
+        <span class="score-label">النقاط</span>
+        <span class="score-value" id="taxi-score-value">0</span>
+        <span class="hud-bonus" id="taxi-bonus-status"></span>
+      </div>
+      <button class="btn-pause" id="taxi-btn-pause">⏸</button>
+    </div>
+
+    <canvas id="taxi-canvas"></canvas>
+
+
+    <div class="overlay" id="taxi-overlay-pause" hidden>
+      <div class="overlay-box">
+        <h2>متوقف ⏸</h2>
+        <button class="btn btn-primary"    id="taxi-btn-resume">استمر</button>
+        <button class="btn btn-exit-style" id="taxi-btn-quit-pause">العودة للقائمة</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="taxi-overlay-gameover" hidden>
+      <div class="overlay-box">
+        <h2>انتهت الرحلة! 🏁</h2>
+        <p class="final-score-label">حروف مجموعة</p>
+        <p class="final-score" id="taxi-final-score">0</p>
+        <button class="btn btn-primary"    id="taxi-btn-restart">إعادة</button>
+        <button class="btn btn-exit-style" id="taxi-btn-quit-gameover">العودة للقائمة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== نمط صيد الأحرف 🎣 ===== -->
+  <section id="page-fishing" class="page">
+    <div class="game-hud">
+      <div class="hud-score">
+        <span class="score-label">⏱ الوقت</span>
+        <span class="score-value" id="fishing-time">60</span>
+      </div>
+      <div class="hud-score">
+        <span class="score-label">🐟 صيد</span>
+        <span class="score-value" id="fishing-score-value">0</span>
+      </div>
+      <button class="btn-pause" id="fishing-btn-pause">⏸</button>
+    </div>
+
+    <canvas id="fishing-canvas"></canvas>
+
+    <div class="fishing-instructions" id="fishing-instructions">
+      اضغط على الشاشة لرمي السنارة
+    </div>
+
+    <div class="overlay" id="fishing-overlay-pause" hidden>
+      <div class="overlay-box">
+        <h2>متوقف ⏸</h2>
+        <button class="btn btn-primary"    id="fishing-btn-resume">استمر</button>
+        <button class="btn btn-exit-style" id="fishing-btn-quit-pause">العودة للقائمة</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="fishing-overlay-gameover" hidden>
+      <div class="overlay-box">
+        <h2>انتهى الوقت! 🎣</h2>
+        <p class="final-score-label">عدد الأسماك</p>
+        <p class="final-score" id="fishing-final-score">0</p>
+        <button class="btn btn-primary"    id="fishing-btn-restart">إعادة</button>
+        <button class="btn btn-exit-style" id="fishing-btn-quit-gameover">العودة للقائمة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== نمط قنص الأحرف 🎯 ===== -->
+  <section id="page-sniper" class="page">
+    <div class="game-hud">
+      <div class="hud-lives" id="sniper-hud-lives">
+        <span class="heart">🎯</span>
+        <span class="heart">🎯</span>
+        <span class="heart">🎯</span>
+      </div>
+      <div class="hud-score">
+        <span class="score-label">كلمة</span>
+        <span class="score-value" id="sniper-word-progress">0/0</span>
+      </div>
+      <button class="btn-pause" id="sniper-btn-pause">⏸</button>
+    </div>
+
+    <canvas id="sniper-canvas"></canvas>
+
+    <!-- شريط الكلمة المخفية -->
+    <div class="sniper-word-display" id="sniper-word-display"></div>
+
+    <!-- زر الزووم -->
+    <button class="sniper-zoom-btn" id="sniper-zoom-btn">🔭 زووم 8x</button>
+    <div class="sniper-touch-guide" id="sniper-touch-guide">لمس اليمين لإطلاق | اليسار لتحريك القناصة</div>
+
+    <div class="overlay" id="sniper-overlay-pause" hidden>
+      <div class="overlay-box">
+        <h2>متوقف ⏸</h2>
+        <button class="btn btn-primary"    id="sniper-btn-resume">استمر</button>
+        <button class="btn btn-exit-style" id="sniper-btn-quit-pause">العودة للقائمة</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="sniper-overlay-gameover" hidden>
+      <div class="overlay-box">
+        <h2 id="sniper-end-title">انتهت الجولة 🎯</h2>
+        <p class="final-score-label">الكلمة كانت</p>
+        <p class="final-score" id="sniper-final-word">-</p>
+        <button class="btn btn-primary"    id="sniper-btn-restart">كلمة جديدة</button>
+        <button class="btn btn-exit-style" id="sniper-btn-quit-gameover">العودة للقائمة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== نمط الكازينو 🎰 ===== -->
+  <section id="page-casino" class="page">
+    <div class="casino-container">
+      <button class="btn-back" data-target="modes">&#8594; رجوع</button>
+
+      <h2 class="page-title">🎰 كازينو الأحرف</h2>
+
+      <!-- إجمالي الأحرف -->
+      <div class="casino-stats">
+        <span class="casino-stats-label">رصيدك:</span>
+        <span class="casino-stats-value" id="casino-total">0</span>
+        <span class="casino-stats-label">حرف</span>
+      </div>
+
+      <!-- آلة الحظ -->
+      <div class="casino-machine">
+        <div class="casino-reels">
+          <div class="casino-reel" id="casino-reel-1">
+            <div class="casino-reel-letter">؟</div>
+          </div>
+          <div class="casino-reel" id="casino-reel-2">
+            <div class="casino-reel-letter">؟</div>
+          </div>
+          <div class="casino-reel" id="casino-reel-3">
+            <div class="casino-reel-letter">؟</div>
+          </div>
+        </div>
+        <div class="casino-result" id="casino-result"></div>
+      </div>
+
+      <!-- زر الدوران -->
+      <button class="casino-spin-btn" id="casino-spin-btn">
+        🎲 دوّر — تكلفة 5 أحرف
+      </button>
+
+      <!-- قواعد اللعبة -->
+      <div class="casino-rules">
+        <h3>قواعد اللعبة</h3>
+        <div class="casino-rule">
+          <span class="casino-rule-icon">🎰</span>
+          <span>3 أحرف متطابقة → اكسب <b>100</b> حرف من نوعها</span>
+        </div>
+        <div class="casino-rule">
+          <span class="casino-rule-icon">🎁</span>
+          <span>2 أحرف متطابقة → اكسب <b>25</b> حرف من نوعها</span>
+        </div>
+        <div class="casino-rule">
+          <span class="casino-rule-icon">💸</span>
+          <span>بدون تطابق → تخسر 5 أحرف</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة المخزن ===== -->
+  <section id="page-stock" class="page">
+    <div class="stock-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">📦 مخزن الأحرف</h2>
+
+      <!-- إجمالي الأحرف -->
+      <div class="stock-header">
+        <span class="stock-total-label">إجمالي الأحرف المجموعة</span>
+        <span class="stock-total-value" id="stock-total">0</span>
+      </div>
+
+      <!-- شبكة الـ28 حرف -->
+      <p class="stock-grid-label">الأحرف العربية</p>
+      <div class="stock-grid" id="stock-grid"></div>
+
+      <!-- زر المسح -->
+      <button class="stock-clear-btn" id="btn-clear-stock">🗑 مسح المخزن</button>
+    </div>
+  </section>
+
+  <!-- ===== صفحة الإعدادات ⚙️ ===== -->
+  <section id="page-settings" class="page">
+    <div class="settings-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">⚙️ الإعدادات</h2>
+
+      <div class="settings-list">
+        <!-- كتم الصوت -->
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <span class="settings-row-icon">🔊</span>
+            <div>
+              <div class="settings-row-title">الصوت</div>
+              <div class="settings-row-desc">تشغيل أو كتم أصوات اللعبة</div>
+            </div>
+          </div>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-sound-toggle" checked>
+            <span class="settings-toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- موسيقى خلفية -->
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <span class="settings-row-icon">🎵</span>
+            <div>
+              <div class="settings-row-title">موسيقى خلفية</div>
+              <div class="settings-row-desc">ابدأ موسيقى هادئة عند اللعب</div>
+            </div>
+          </div>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-music-toggle">
+            <span class="settings-toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- مستوى الصوت -->
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <span class="settings-row-icon">🎚️</span>
+            <div>
+              <div class="settings-row-title">مستوى الصوت</div>
+              <div class="settings-row-desc">تحكم بحجم الأصوات والموسيقى في اللعبة</div>
+            </div>
+          </div>
+          <div class="settings-volume-control">
+            <input type="range" id="settings-volume-range" min="0" max="100" step="1">
+            <span id="settings-volume-value">80%</span>
+          </div>
+        </div>
+
+        <!-- معلومات اللعبة -->
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <span class="settings-row-icon">ℹ️</span>
+            <div>
+              <div class="settings-row-title">عن ديفاستوك</div>
+              <div class="settings-row-desc">لعبة جمع وتوظيف الأحرف العربية</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة المجتمع ===== -->
+  <section id="page-community" class="page">
+    <div class="community-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">👥 المجتمع</h2>
+
+      <div class="community-grid">
+        <div class="community-main">
+          <!-- التبويبات -->
+          <div class="community-tabs">
+            <button class="community-tab active" data-tab="all">الكل</button>
+            <button class="community-tab" data-tab="leaderboard">🏆 الموسم</button>
+            <button class="community-tab" data-tab="friends">أصدقائي</button>
+            <button class="community-tab" data-tab="requests">طلبات واردة</button>
+          </div>
+
+          <!-- البحث -->
+          <div class="community-search">
+            <input type="text" id="community-search-input" placeholder="ابحث عن لاعب...">
+          </div>
+
+          <!-- قائمة اللاعبين (الكل) -->
+          <div class="community-tab-content" data-content="all" style="display: block;">
+            <div id="community-all-list" class="community-list"></div>
+          </div>
+
+          <!-- لوحة المتصدرين الموسمية -->
+          <div class="community-tab-content" data-content="leaderboard" style="display: none;">
+            <div class="season-header">
+              <div class="season-header-info">
+                <div class="season-label" id="season-current-label">—</div>
+                <div class="season-timer" id="season-current-timer">—</div>
+              </div>
+              <div class="season-tier-badge" id="season-current-tier">
+                <span class="season-tier-emoji" id="season-tier-emoji">🥉</span>
+                <span class="season-tier-label" id="season-tier-label">برونزي</span>
+                <span class="season-tier-score" id="season-tier-score">0 نقطة</span>
+              </div>
+            </div>
+            <div class="season-tier-progress">
+              <div class="season-tier-progress-bar"><div class="season-tier-progress-fill" id="season-tier-progress-fill" style="width:0%"></div></div>
+              <div class="season-tier-next" id="season-tier-next"></div>
+            </div>
+            <div id="community-leaderboard-list" class="community-list"></div>
+          </div>
+
+          <!-- قائمة الأصدقاء -->
+          <div class="community-tab-content" data-content="friends">
+            <div id="community-friends-list" class="community-list"></div>
+          </div>
+
+          <!-- طلبات واردة -->
+          <div class="community-tab-content" data-content="requests">
+            <div id="community-requests-list" class="community-list"></div>
+          </div>
+        </div>
+
+        <aside class="community-sidebar">
+          <div class="community-sidebar-card">
+            <div class="community-sidebar-header">
+              <div>
+                <h3>قناة الدردشة الخاصة</h3>
+                <p>تواصل مع أصدقائك من دون مغادرة الصفحة.</p>
+              </div>
+            </div>
+
+            <div id="community-chat-panel" class="community-chat-panel hidden">
+              <div class="community-chat-panel-top">
+                <div class="chat-contact-avatar" id="sidebar-chat-avatar">💬</div>
+                <div>
+                  <div id="sidebar-chat-name" class="chat-contact-name"></div>
+                  <div id="sidebar-chat-status" class="chat-contact-status">اختر صديقاً لبدء المحادثة</div>
+                </div>
+                <button id="sidebar-chat-close" class="community-chat-close" title="إغلاق">✕</button>
+              </div>
+
+              <div id="sidebar-chat-messages" class="community-chat-messages"></div>
+
+              <form id="sidebar-chat-form" class="community-chat-form">
+                <input type="text" id="sidebar-chat-input" placeholder="اكتب رسالة..." autocomplete="off">
+                <button type="submit" class="chat-send-btn">إرسال</button>
+              </form>
+            </div>
+
+            <div id="community-chat-empty" class="community-chat-empty">
+              <div class="community-empty-hero">💬</div>
+              <h4>ابدأ دردشة خاصة الآن</h4>
+              <p>اضغط زر الشات بجانب صديقك أو افتح بروفايله لبدء تواصل أكثر احترافية.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- modal تسجيل الدخول — في المجتمع فقط -->
+    <div id="community-auth-modal" class="auth-modal" hidden>
+      <div class="auth-modal-overlay"></div>
+      <div class="auth-modal-box">
+        <h2>تسجيل الدخول</h2>
+        <p>اضغط زر Google للمتابعة</p>
+        <button id="community-auth-modal-google-btn" class="btn btn-primary">
+          <span>🔐 Sign in with Google</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- modal بروفايل اللاعب -->
+    <div id="player-profile-modal" class="auth-modal" hidden>
+      <div class="auth-modal-overlay"></div>
+      <div class="auth-modal-box player-profile-box">
+        <button class="player-profile-close" id="player-profile-close-btn">&times;</button>
+        <div id="player-profile-content"></div>
+      </div>
+    </div>
+
+    <!-- modal الشات -->
+    <div id="chat-modal" class="auth-modal" hidden>
+      <div class="auth-modal-overlay"></div>
+      <div class="auth-modal-box chat-modal-box">
+        <div class="chat-header">
+          <button class="chat-back-btn" id="chat-back-btn">&times;</button>
+          <span id="chat-with-name"></span>
+        </div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-form">
+          <input type="text" id="chat-input" placeholder="اكتب رسالة..." autocomplete="off">
+          <button type="submit" class="chat-send-btn">إرسال</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة المنتدى ===== -->
+  <section id="page-forum" class="page">
+    <div class="forum-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">📝 المنتدى</h2>
+
+      <div class="forum-grid">
+        <main class="forum-main">
+          <div id="forum-create-panel" class="forum-create-panel">
+            <h3>انشر موضوعاً جديداً</h3>
+            <form id="forum-post-form" class="forum-post-form">
+              <textarea id="forum-post-input" rows="4" placeholder="ما الجديد؟"></textarea>
+              <button type="submit" class="btn btn-primary">نشر</button>
+            </form>
+          </div>
+
+          <div id="forum-login-prompt" class="forum-login-prompt" hidden>
+            <div class="forum-empty-emoji">🔐</div>
+            <div>سجّل دخول لتتمكن من المشاركة في المنتدى.</div>
+            <button class="btn btn-primary" id="forum-login-btn">تسجيل الدخول</button>
+          </div>
+
+          <div id="forum-posts-list" class="forum-posts-list"></div>
+        </main>
+
+        <aside class="forum-sidebar">
+          <div class="forum-sidebar-card">
+            <h3>مرحبا بك في المنتدى</h3>
+            <p>ناقش استراتيجيات اللعب، شارك إنجازاتك، أو اطلب نصائح من المجتمع.</p>
+            <div class="forum-profile-summary">
+              <div>الحالة: <span id="forum-user-label">ضيف</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة المتحف — الفئات ===== -->
+  <section id="page-museum" class="page">
+    <div class="museum-main-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">🏛 متحفي</h2>
+      <div class="museum-cats-grid" id="museum-cats-grid"></div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة الملف الشخصي ===== -->
+  <section id="page-profile" class="page">
+    <div class="profile-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">👤 ملفي الشخصي</h2>
+      <div id="profile-root"></div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة الإنجازات 🏆 ===== -->
+  <section id="page-achievements" class="page">
+    <div class="achievements-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">🏆 الإنجازات</h2>
+
+      <div class="achievements-summary">
+        <div class="achievements-summary-card">
+          <span class="achievements-summary-label">مفتوحة</span>
+          <span class="achievements-summary-value" id="achievements-unlocked-count">0</span>
+        </div>
+        <div class="achievements-summary-card">
+          <span class="achievements-summary-label">المجموع</span>
+          <span class="achievements-summary-value" id="achievements-total-count">0</span>
+        </div>
+        <div class="achievements-summary-card">
+          <span class="achievements-summary-label">النسبة</span>
+          <span class="achievements-summary-value" id="achievements-percent">0%</span>
+        </div>
+      </div>
+
+      <div class="achievements-tabs" id="achievements-tabs">
+        <button class="achievements-tab active" data-tab="all">الكل</button>
+        <button class="achievements-tab" data-tab="unlocked">مفتوحة</button>
+        <button class="achievements-tab" data-tab="locked">مقفلة</button>
+      </div>
+
+      <div class="achievements-grid" id="achievements-grid"></div>
+    </div>
+  </section>
+
+  <!-- ===== صفحة التحديات ===== -->
+  <section id="page-challenges" class="page">
+    <div class="challenges-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">⚔️ التحديات</h2>
+
+      <div class="challenges-section">
+        <div class="challenges-section-header">
+          <h3 class="challenges-section-title">التحديات اليومية</h3>
+          <span class="challenges-section-timer" id="challenges-daily-timer">—</span>
+        </div>
+        <div class="challenges-list" id="challenges-daily-list"></div>
+      </div>
+
+      <div class="challenges-section">
+        <div class="challenges-section-header">
+          <h3 class="challenges-section-title">التحديات الأسبوعية</h3>
+          <span class="challenges-section-timer" id="challenges-weekly-timer">—</span>
+        </div>
+        <div class="challenges-list" id="challenges-weekly-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Toast إشعار إنجاز ===== -->
+  <div id="achievement-toast" class="achievement-toast" hidden>
+    <div class="achievement-toast-icon" id="achievement-toast-icon">🏆</div>
+    <div class="achievement-toast-body">
+      <div class="achievement-toast-label">إنجاز جديد!</div>
+      <div class="achievement-toast-title" id="achievement-toast-title"></div>
+    </div>
+  </div>
+
+  <!-- ===== صفحة المتحف — كلمات الفئة ===== -->
+  <section id="page-museum-cat" class="page">
+    <div class="museum-cat-container">
+      <button id="btn-back-museum-cat" class="btn-back-cat">&#8594; رجوع</button>
+      <h2 class="museum-cat-title-el" id="museum-cat-title"></h2>
+      <div class="museum-words-list" id="museum-words-list"></div>
+    </div>
+  </section>
+
+  <!-- نقطة دخول JS -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

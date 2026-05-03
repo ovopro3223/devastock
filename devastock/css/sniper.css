@@ -1,0 +1,110 @@
+/* ===== نمط قنص الأحرف 🎯 ===== */
+#page-sniper {
+  display: flex;
+  flex-direction: column;
+  background: #2D5016;
+}
+
+#sniper-canvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+/* ===== شريط الكلمة المخفية ===== */
+.sniper-word-display {
+  position: absolute;
+  bottom: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.sniper-letter-slot {
+  width: 42px;
+  height: 50px;
+  background: rgba(0,0,0,0.6);
+  border: 2px solid rgba(255,215,0,0.4);
+  border-radius: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: var(--font);
+  color: var(--color-gold);
+}
+
+.sniper-letter-slot.empty {
+  color: rgba(255,215,0,0.2);
+}
+
+.sniper-letter-slot.revealed {
+  background: rgba(255,215,0,0.2);
+  border-color: var(--color-gold);
+  animation: slotReveal 0.4s ease;
+}
+
+@keyframes slotReveal {
+  from { transform: scale(0.5) rotate(-180deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);     opacity: 1; }
+}
+
+/* ===== زر الزووم ===== */
+.sniper-zoom-btn {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.7rem 1.5rem;
+  background: rgba(0,0,0,0.7);
+  border: 2px solid rgba(255,215,0,0.4);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sniper-zoom-btn:hover {
+  background: rgba(255,215,0,0.15);
+  border-color: var(--color-gold);
+}
+
+.sniper-zoom-btn.active {
+  background: rgba(255,215,0,0.3);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.sniper-touch-guide {
+  position: absolute;
+  bottom: 5.5rem;
+  right: 1.2rem;
+  left: 1.2rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.78);
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  z-index: 5;
+  pointer-events: none;
+}
+
+@media (min-width: 720px) {
+  .sniper-touch-guide {
+    display: none;
+  }
+}
