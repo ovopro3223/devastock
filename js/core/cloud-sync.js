@@ -12,6 +12,7 @@ const KEYS = [
   'devastock_profile_unlocked',
   'devastock_settings',
   'devastock_season_v1',
+  'devastock_game_stats',
 ];
 
 let _db         = null;
@@ -80,6 +81,7 @@ function _gatherLocalData() {
     settings:        _parseLS('devastock_settings', { muted: false, musicEnabled: true, volume: 0.8 }),
     profileUnlocked: getState('profile_unlocked', false) === true,
     season:          _parseLS('devastock_season_v1', { seasonId: '', score: 0 }),
+    gameStats:       _parseLS('devastock_game_stats', {}),
   };
 }
 
@@ -103,6 +105,17 @@ async function _updateLeaderboard() {
     const season  = _parseLS('devastock_season_v1', { seasonId: '', score: 0 });
     const tier    = _tierFor(season.score || 0);
 
+    // ===== استخراج highScore لكل لعبة =====
+    const fullStats = _parseLS('devastock_game_stats', {});
+    const gameHighScores = {};
+    for (const [gameId, stats] of Object.entries(fullStats)) {
+      gameHighScores[gameId] = {
+        highScore: stats.highScore || 0,
+        plays: stats.plays || 0,
+        wins: stats.wins || 0,
+      };
+    }
+
     await setDoc(doc(_db, 'leaderboard', _uid), {
       displayName:  profile.name || 'لاعب مجهول',
       avatar:       profile.avatar || '👤',
@@ -116,6 +129,7 @@ async function _updateLeaderboard() {
       tierId:       tier.id,
       tierLabel:    tier.label,
       tierEmoji:    tier.emoji,
+      gameStats:    gameHighScores,
       updatedAt:    serverTimestamp(),
     }, { merge: true });
   } catch (e) {

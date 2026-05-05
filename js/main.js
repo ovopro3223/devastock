@@ -10,6 +10,7 @@ import { initSettings } from './pages/settings.js';
 import { initChallenges, updateChallengesBadge, renderChallenges } from './pages/challenges.js';
 import { initAchievements, renderAchievements } from './pages/achievements.js';
 import { initTrade, renderTrade } from './pages/trade.js';
+import { initHomeLeaderboard, refreshHomeLeaderboard } from './pages/home-leaderboard.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -55,7 +56,10 @@ export function showPage(pageId) {
     if (el) el.classList.toggle('active', id === pageId);
   });
   document.body.classList.toggle('in-game', GAME_PAGES.includes(pageId));
-  if (pageId === 'home') refreshHomeRank();
+  if (pageId === 'home') {
+    refreshHomeRank();
+    refreshHomeLeaderboard();
+  }
   if (pageId === 'menu') updateChallengesBadge();
   if (pageId === 'challenges') renderChallenges();
   if (pageId === 'achievements') renderAchievements();
@@ -72,6 +76,13 @@ export function showPage(pageId) {
       topnavBtn.textContent = '←'; // سهم رجوع
       topnavBtn.title = 'رجوع';
     }
+  }
+
+  // زر فتح المتصدرين — يظهر بكل الصفحات ما عدا الواجهة الرئيسية والألعاب
+  const lbOpenBtn = document.getElementById('lb-open-btn');
+  if (lbOpenBtn) {
+    const hide = pageId === 'home' || GAME_PAGES.includes(pageId);
+    lbOpenBtn.hidden = hide;
   }
 }
 
@@ -96,6 +107,7 @@ initSettings();
 initChallenges();
 initAchievements();
 initTrade();
+initHomeLeaderboard();
 
 // Firebase — يعمل بشكل مستقل في الخلفية
 initAudio();

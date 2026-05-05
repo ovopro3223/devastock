@@ -302,6 +302,16 @@ export class SniperGame {
     document.getElementById('sniper-overlay-pause').hidden = true;
     document.getElementById('sniper-overlay-gameover').hidden = true;
 
+    // أظهر دليل التحكم وأخفه بعد 10 ثوان
+    const touchGuide = document.getElementById('sniper-touch-guide');
+    if (touchGuide) {
+      touchGuide.classList.remove('sniper-touch-guide-hidden');
+      if (this._guideHideTimer) clearTimeout(this._guideHideTimer);
+      this._guideHideTimer = setTimeout(() => {
+        touchGuide.classList.add('sniper-touch-guide-hidden');
+      }, 10000);
+    }
+
     this.running = true;
     this.paused = false;
     this._lastTime = performance.now();
@@ -325,6 +335,7 @@ export class SniperGame {
 
   quit() {
     this.running = false;
+    if (this._guideHideTimer) { clearTimeout(this._guideHideTimer); this._guideHideTimer = null; }
     document.getElementById('sniper-overlay-pause').hidden = true;
     document.getElementById('sniper-overlay-gameover').hidden = true;
     this.onExit();

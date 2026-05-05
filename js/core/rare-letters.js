@@ -3,6 +3,10 @@ import { saveLetterToStock } from './storage.js';
 import { recordLetter, getAccountLetterMultiplier } from './lifetime-storage.js';
 import { getLetterMultiplier } from './game-progression.js';
 
+// ===== مقياس اقتصاد اللعبة =====
+// كل المكافآت ومتطلبات اللفل مضروبة بهذا — يضمن نسبة تقدم ثابتة لكن أرقام أقل
+export const ECONOMY_SCALE = 0.30;
+
 // تصنيف الحروف العربية حسب التكرار في الكلمات
 // الشائعة كلها = ندرة عادية، الحروف الأقل تكراراً = نادرة، أصعبها = ملحمية
 const RARITY = {
@@ -77,7 +81,8 @@ export function awardLetter(gameId, letter, baseCount = 1, spawnTag = null) {
   const accountMult = getAccountLetterMultiplier();
 
   const totalMult = gameMult * rarityMult * specialMult * accountMult;
-  const exact = baseCount * totalMult;
+  // طبق مقياس الاقتصاد على المكافأة النهائية (تخفيض 70%)
+  const exact = baseCount * totalMult * ECONOMY_SCALE;
   const baseFloor = Math.floor(exact);
   const fractional = exact - baseFloor;
   const finalCount = Math.max(1, baseFloor + (Math.random() < fractional ? 1 : 0));

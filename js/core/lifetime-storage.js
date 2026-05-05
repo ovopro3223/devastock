@@ -36,15 +36,17 @@ export function getLifetimeTotal() {
 
 // ===== نظام اللفلات (Levels) =====
 // المستوى 1 إلى 120، الحرف الكلي يحدد اللفل
+// المقياس مضروب بـ 0.30 (تخفيض 70%) عشان يطابق تخفيض المكافآت
+const LEVEL_SCALE = 0.30;
 
 // حساب الحروف المطلوبة من level → level+1
 export function getRequirementForLevel(level) {
   if (level <= 1) return 0;
-  if (level <= 3) return 1000;
-  if (level === 4) return 1500;
-  if (level === 5) return 2000;
-  // من lvl 6 إلى 120، نمو exponential من 2500 إلى 5,000,000
-  return Math.round(2500 * Math.pow(2000, (level - 6) / 114));
+  if (level <= 3) return Math.round(1000 * LEVEL_SCALE);
+  if (level === 4) return Math.round(1500 * LEVEL_SCALE);
+  if (level === 5) return Math.round(2000 * LEVEL_SCALE);
+  // من lvl 6 إلى 120، نمو exponential
+  return Math.round(2500 * Math.pow(2000, (level - 6) / 114) * LEVEL_SCALE);
 }
 
 // حساب اللفل من إجمالي الحروف

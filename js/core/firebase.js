@@ -88,6 +88,7 @@ export async function getPlayers() {
         avatar: data.avatar || '👤',
         avatarImage: data.avatarImage || '',
         score: data.score || 0,
+        totalLetters: data.totalLetters || 0,
         rankEmoji: data.rankEmoji || '🌱',
         rankLabel: data.rankLabel || 'مبتدئ',
         seasonScore: data.seasonScore || 0,
@@ -95,6 +96,7 @@ export async function getPlayers() {
         tierId:      data.tierId || 'bronze',
         tierLabel:   data.tierLabel || 'برونزي',
         tierEmoji:   data.tierEmoji || '🥉',
+        gameStats:   data.gameStats || {},
       });
     });
     return players.sort((a, b) => b.score - a.score); // مرتب حسب الدرجة

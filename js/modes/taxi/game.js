@@ -5,10 +5,30 @@ import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
 
+// ===== أصول الصور =====
+const ASSETS_PATH = 'assets/taxi/';
+function loadImage(src) {
+  const img = new Image();
+  img.src = ASSETS_PATH + src;
+  return img;
+}
+const ASSETS = {
+  taxi:         loadImage('taxi.png'),
+  cars:         [loadImage('car-1.png'), loadImage('car-2.png'), loadImage('car-3.png')],
+  road:         loadImage('road.png'),
+  buildings:    [loadImage('building-1.png'), loadImage('building-2.png')],
+  sign:         loadImage('sign.png'),
+  trafficLight: loadImage('traffic-light.png'),
+};
+function isImgReady(img) {
+  return img && img.complete && img.naturalHeight > 0;
+}
+
 const NUM_LANES = 9;
 const ROAD_WIDTH_RATIO = 0.86;   // نسبة عرض الطريق من الشاشة
-const LETTER_SPACING = 110;       // مسافة عمودية بين الأحرف (أصغر = أحرف أكثر)
-const SIDE_LETTER_RATE = 0.025;   // احتمال ظهور حرف إضافي في كل إطار
+const LETTER_SPACING = 240;       // مسافة عمودية بين الأحرف (أكبر = أقل)
+const SIDE_LETTER_RATE = 0.005;   // احتمال ظهور حرف إضافي في كل إطار (قليل)
+const MIN_LETTER_DIST = 90;       // أقل مسافة بين أي حرفين في نفس الشارع
 
 const TREE_SPAWN_RATE = 0.010;
 const ITEM_SPAWN_RATE = 0.010;
@@ -240,7 +260,16 @@ export class TaxiGame {
   }
 
   _spawnLetter() {
-    const lane = Math.floor(Math.random() * NUM_LANES);
+    // اختر شارع لا يحتوي حرف قريب جداً
+    let lane = -1;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const candidate = Math.floor(Math.random() * NUM_LANES);
+      const tooClose = this.letters.some(l =>
+        l.lane === candidate && Math.abs(l.y - (-50)) < MIN_LETTER_DIST
+      );
+      if (!tooClose) { lane = candidate; break; }
+    }
+    if (lane === -1) return;  // كل الشوارع ممتلئة قرب الأعلى — تخطي
     const char = ARABIC_LETTERS[Math.floor(Math.random() * ARABIC_LETTERS.length)];
     this.letters.push({ char, lane, y: -50, collected: false });
   }
@@ -250,16 +279,25 @@ export class TaxiGame {
     const roadLeft = (this.W - lw * NUM_LANES) / 2;
     const roadRight = roadLeft + lw * NUM_LANES;
     if (Math.random() < 0.7) {
-      // أشجار جانبية خارج الطريق — X ثابت عند الـ spawn
+      // ديكور جانبي خارج الطريق — مبنى أو لافتة
       const side = Math.random() < 0.5 ? 'left' : 'right';
+      const kind = Math.random() < 0.65 ? 'building' : 'sign';
+      const variant = kind === 'building' ? Math.floor(Math.random() * ASSETS.buildings.length) : 0;
+      // المبنى أكبر فيحتاج موضعاً قريباً من الطريق، اللافتة أصغر
+      const offset = kind === 'building'
+        ? 90 + Math.random() * 60
+        : 30 + Math.random() * 40;
       const fixedX = side === 'left'
-        ? Math.max(20, roadLeft - 20 - Math.random() * Math.max(40, roadLeft - 40))
-        : Math.min(this.W - 20, roadRight + 20 + Math.random() * Math.max(40, this.W - roadRight - 40));
-      this.trees.push({ fixedX, y: -60, onRoad: false });
+        ? Math.max(60, roadLeft - offset)
+        : Math.min(this.W - 60, roadRight + offset);
+      this.trees.push({ kind, variant, fixedX, y: -200, onRoad: false });
     } else {
-      // عقبة على الطريق
+      // عقبة على الطريق — سيارة منافسة أو إشارة مرور
+      const isLight = Math.random() < 0.2;
+      const kind = isLight ? 'traffic-light' : 'car';
+      const variant = kind === 'car' ? Math.floor(Math.random() * ASSETS.cars.length) : 0;
       const lane = Math.floor(Math.random() * NUM_LANES);
-      this.trees.push({ lane, y: -60, onRoad: true, hit: false });
+      this.trees.push({ kind, variant, lane, y: -60, onRoad: true, hit: false });
     }
   }
 
@@ -418,25 +456,38 @@ export class TaxiGame {
     ctx.fillStyle = '#4A8B3F';
     ctx.fillRect(0, 0, W, H);
 
-    // الطريق المستقيم (لا منظور للكائنات)
-    const roadGrad = ctx.createLinearGradient(0, 0, 0, H);
-    roadGrad.addColorStop(0, '#3a3a3a');
-    roadGrad.addColorStop(0.5, '#2e2e2e');
-    roadGrad.addColorStop(1, '#252525');
-    ctx.fillStyle = roadGrad;
-    ctx.fillRect(roadLeft, 0, roadW, H);
+    // ===== الطريق — صورة road.png مكررة عمودياً مع scroll =====
+    if (isImgReady(ASSETS.road)) {
+      const rImg = ASSETS.road;
+      const tileH = roadW * (rImg.naturalHeight / rImg.naturalWidth);
+      const off = this.scrollY % tileH;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(roadLeft, 0, roadW, H);
+      ctx.clip();
+      for (let y = -tileH + off; y < H + tileH; y += tileH) {
+        ctx.drawImage(rImg, roadLeft, y, roadW, tileH);
+      }
+      ctx.restore();
+    } else {
+      // احتياطي
+      const roadGrad = ctx.createLinearGradient(0, 0, 0, H);
+      roadGrad.addColorStop(0, '#3a3a3a');
+      roadGrad.addColorStop(1, '#252525');
+      ctx.fillStyle = roadGrad;
+      ctx.fillRect(roadLeft, 0, roadW, H);
+    }
 
-    // حواف الطريق (أبيض)
+    // حواف الطريق (خط أبيض رفيع)
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(roadLeft - 4, 0, 4, H);
-    ctx.fillRect(roadRight,    0, 4, H);
+    ctx.fillRect(roadLeft - 3, 0, 3, H);
+    ctx.fillRect(roadRight,    0, 3, H);
 
-    // خطوط فاصلة بين الشوارع (متقطعة)
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.lineWidth = 2;
+    // خطوط الشوارع (رفيعة شفافة فوق صورة الطريق)
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.5;
     ctx.setLineDash([22, 18]);
-    const dashOffset = -(this.scrollY % 40);
-    ctx.lineDashOffset = dashOffset;
+    ctx.lineDashOffset = -(this.scrollY % 40);
     for (let i = 1; i < NUM_LANES; i++) {
       const x = roadLeft + i * lw;
       ctx.beginPath();
@@ -447,10 +498,11 @@ export class TaxiGame {
     ctx.setLineDash([]);
     ctx.lineDashOffset = 0;
 
-    // الأشجار
-    for (const t of this.trees) {
+    // الأشجار / العقبات / الديكور — مرتبة حسب y (الأبعد للأقرب)
+    const sortedObstacles = [...this.trees].sort((a, b) => a.y - b.y);
+    for (const t of sortedObstacles) {
       const tx = t.onRoad ? this._laneCenter(t.lane) : t.fixedX;
-      this._drawTree(tx, t.y, size);
+      this._drawTree(t, tx, t.y, size);
     }
 
     // الأحرف على الطريق
@@ -500,101 +552,105 @@ export class TaxiGame {
     ctx.fillText(char, x, y + 1);
   }
 
-  _drawTree(x, y, size) {
+  _drawTree(t, x, y, size) {
     const ctx = this.ctx;
-    // جذع
-    ctx.fillStyle = '#6B4423';
-    ctx.fillRect(x - size * 0.07, y, size * 0.14, size * 0.3);
-    // أوراق
-    ctx.fillStyle = '#2D6B2A';
-    ctx.beginPath();
-    ctx.arc(x, y - size * 0.05, size * 0.42, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#3F8B3D';
-    ctx.beginPath();
-    ctx.arc(x - size * 0.18, y - size * 0.18, size * 0.28, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + size * 0.18, y - size * 0.18, size * 0.28, 0, Math.PI * 2);
-    ctx.fill();
+    const kind = t.kind || (t.onRoad ? 'car' : 'building');
+
+    // ===== عقبات على الطريق =====
+    if (kind === 'car') {
+      const img = ASSETS.cars[t.variant || 0];
+      if (isImgReady(img)) {
+        // الصورة الأصلية: الواجهة على اليسار، الخلف على اليمين
+        // ندوّرها +π/2 (CW) عشان "اليسار يصير تحت" → السيارة المنافسة قادمة من الأعلى نحو اللاعب
+        const carW = size * 0.95;                                            // عرض السيارة على الشارع
+        const carH = carW * (img.naturalWidth / img.naturalHeight);          // طول السيارة بعد الدوران
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(img, -carH / 2, -carW / 2, carH, carW);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#c0392b';
+        ctx.fillRect(x - size * 0.4, y - size * 0.6, size * 0.8, size * 1.2);
+      }
+      return;
+    }
+
+    if (kind === 'traffic-light') {
+      const img = ASSETS.trafficLight;
+      if (isImgReady(img)) {
+        const tw = size * 0.55;
+        const th = tw * (img.naturalHeight / img.naturalWidth);
+        ctx.drawImage(img, x - tw / 2, y - th * 0.5, tw, th);
+      }
+      return;
+    }
+
+    // ===== ديكور جانبي خارج الطريق =====
+    if (kind === 'building') {
+      const img = ASSETS.buildings[t.variant || 0];
+      if (isImgReady(img)) {
+        const bw = size * 2.3;
+        const bh = bw * (img.naturalHeight / img.naturalWidth);
+        // y هو موضع قاعدة المبنى
+        ctx.drawImage(img, x - bw / 2, y - bh, bw, bh);
+      } else {
+        ctx.fillStyle = '#888';
+        ctx.fillRect(x - size * 0.6, y - size * 1.5, size * 1.2, size * 1.5);
+      }
+      return;
+    }
+
+    if (kind === 'sign') {
+      const img = ASSETS.sign;
+      if (isImgReady(img)) {
+        const sw = size * 0.7;
+        const sh = sw * (img.naturalHeight / img.naturalWidth);
+        ctx.drawImage(img, x - sw / 2, y - sh, sw, sh);
+      }
+      return;
+    }
   }
 
   _drawCar(x, y, size) {
     const ctx = this.ctx;
+    const img = ASSETS.taxi;
     const w = size;
     const h = size * 1.5;
     const top = y;
     const bottom = y + h;
-    const left = x - w / 2;
-    const right = x + w / 2;
 
-    // ===== ظل =====
+    // ===== ظل تحت السيارة =====
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.beginPath();
-    ctx.ellipse(x + 2, bottom + 3, w * 0.5, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 2, bottom + 3, w * 0.5, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ===== توهج خارجي (يظهر السيارة بوضوح) =====
-    ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
-    ctx.shadowBlur = 14;
-
-    // ===== جسم السيارة (مستطيل بزوايا مدورة — أبسط وأوضح) =====
-    const r = w * 0.18;
-    ctx.fillStyle = '#FFD700';
-    this._roundRect(left, top, w, h, r);
-    ctx.fill();
-
-    // إعادة ضبط الظل بعد رسم الجسم
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
-
-    // حدّ خارجي أسود واضح
-    ctx.strokeStyle = '#1A1A1A';
-    ctx.lineWidth = 2.5;
-    this._roundRect(left, top, w, h, r);
-    ctx.stroke();
-
-    // ===== الزجاج الأمامي (مستطيل بسيط في الأعلى) =====
-    ctx.fillStyle = '#2C3E50';
-    ctx.fillRect(left + w * 0.14, top + h * 0.10, w * 0.72, h * 0.20);
-    // لمعة
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillRect(left + w * 0.16, top + h * 0.11, w * 0.30, h * 0.06);
-
-    // ===== الزجاج الخلفي =====
-    ctx.fillStyle = '#2C3E50';
-    ctx.fillRect(left + w * 0.14, top + h * 0.65, w * 0.72, h * 0.18);
-
-    // ===== شريط TAXI الوسطى =====
-    ctx.fillStyle = '#1A1A1A';
-    ctx.fillRect(left + w * 0.05, top + h * 0.36, w * 0.90, h * 0.24);
-
-    ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${Math.round(h * 0.13)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('TAXI', x, top + h * 0.48);
-
-    // ===== المصابيح الأمامية (أبيض) =====
-    ctx.fillStyle = '#FFFAA0';
-    ctx.fillRect(left + 2, top + 2, w * 0.20, h * 0.05);
-    ctx.fillRect(right - w * 0.20 - 2, top + 2, w * 0.20, h * 0.05);
-
-    // ===== المصابيح الخلفية (أحمر) =====
-    ctx.fillStyle = '#E74C3C';
-    ctx.fillRect(left + 2, bottom - h * 0.05 - 2, w * 0.20, h * 0.05);
-    ctx.fillRect(right - w * 0.20 - 2, bottom - h * 0.05 - 2, w * 0.20, h * 0.05);
-
-    // ===== العجلات (واضحة جداً) =====
-    ctx.fillStyle = '#1A1A1A';
-    const wheelW = 5;
-    const wheelH = h * 0.16;
-    // أمامية
-    ctx.fillRect(left - wheelW + 1, top + h * 0.18, wheelW, wheelH);
-    ctx.fillRect(right - 1, top + h * 0.18, wheelW, wheelH);
-    // خلفية
-    ctx.fillRect(left - wheelW + 1, top + h * 0.66, wheelW, wheelH);
-    ctx.fillRect(right - 1, top + h * 0.66, wheelW, wheelH);
+    if (isImgReady(img)) {
+      // الصورة الأصلية أفقية (200×100): الواجهة على اليسار
+      // ندوّرها -π/2 (CCW) عشان اليسار يصير فوق → السيارة تواجه أعلى الشاشة
+      const carW = w;
+      const carH = carW * (img.naturalWidth / img.naturalHeight);
+      ctx.save();
+      ctx.translate(x, top + h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(img, -carH / 2, -carW / 2, carH, carW);
+      ctx.restore();
+    } else {
+      // احتياطي بسيط
+      ctx.fillStyle = '#FFD700';
+      this._roundRect(x - w / 2, top, w, h, w * 0.18);
+      ctx.fill();
+      ctx.strokeStyle = '#1A1A1A';
+      ctx.lineWidth = 2.5;
+      this._roundRect(x - w / 2, top, w, h, w * 0.18);
+      ctx.stroke();
+      ctx.fillStyle = '#1A1A1A';
+      ctx.font = `bold ${Math.round(h * 0.15)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('TAXI', x, top + h * 0.5);
+    }
   }
 
   _roundRect(x, y, w, h, r) {

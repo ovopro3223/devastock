@@ -69,6 +69,345 @@
   50%     { transform: translateY(-9px); }
 }
 
+/* ===== لوحة المتصدرين على الصفحة الرئيسية (قابلة للطي) ===== */
+.home-leaderboard {
+  width: 100%;
+  max-width: 480px;
+  margin-top: 1rem;
+  background: rgba(20, 20, 40, 0.55);
+  border: 1px solid rgba(255, 215, 0, 0.20);
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.home-lb-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem;
+  background: transparent;
+  border: none;
+  color: var(--color-gold);
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-lb-toggle:hover {
+  background: rgba(255, 215, 0, 0.06);
+}
+
+.home-lb-chevron {
+  font-size: 0.9rem;
+  transition: transform 0.3s ease;
+  color: var(--color-gold);
+}
+
+.home-leaderboard.open .home-lb-chevron {
+  transform: rotate(180deg);
+}
+
+.home-lb-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.3s ease;
+  padding: 0 0.85rem;
+}
+
+.home-leaderboard.open .home-lb-content {
+  max-height: 600px;
+  padding: 0 0.85rem 0.85rem;
+}
+
+.home-lb-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.home-lb-tab {
+  flex: 1;
+  padding: 0.55rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+  color: var(--color-dim);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-lb-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.home-lb-tab.active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(243, 156, 18, 0.18));
+  border-color: rgba(255, 215, 0, 0.55);
+  color: var(--color-gold);
+}
+
+.home-lb-game-picker {
+  margin-bottom: 0.7rem;
+}
+
+.home-lb-select {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-lb-select:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.55);
+}
+
+.home-lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-left: 4px;
+}
+
+.home-lb-list::-webkit-scrollbar {
+  width: 6px;
+}
+.home-lb-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.3);
+  border-radius: 999px;
+}
+
+.home-lb-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-dim);
+  font-size: 0.9rem;
+}
+
+.home-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-lb-row:hover {
+  background: rgba(255, 215, 0, 0.06);
+  border-color: rgba(255, 215, 0, 0.3);
+  transform: translateX(-2px);
+}
+
+.home-lb-rank {
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--color-dim);
+}
+
+.home-lb-rank.gold   { font-size: 1.3rem; }
+.home-lb-rank.silver { font-size: 1.3rem; }
+.home-lb-rank.bronze { font-size: 1.3rem; }
+
+.home-lb-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 215, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  object-fit: cover;
+  border: 1.5px solid rgba(255, 215, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.home-lb-info {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.home-lb-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-lb-meta {
+  font-size: 0.72rem;
+  color: var(--color-dim);
+  margin-top: 2px;
+}
+
+.home-lb-value {
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--color-gold);
+}
+
+/* ===== زر فتح المتصدرين (يظهر تحت زر الدخول خارج الواجهة الرئيسية) ===== */
+.lb-open-btn {
+  position: fixed;
+  top: 3.5rem;
+  left: 0.8rem;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  height: 36px;
+  background: rgba(20, 20, 40, 0.65);
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: 999px;
+  color: var(--color-gold);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.lb-open-btn:hover {
+  background: rgba(40, 40, 70, 0.85);
+  border-color: rgba(255, 215, 0, 0.75);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.25);
+}
+
+.lb-open-btn:active {
+  transform: scale(0.96);
+}
+
+/* ===== modal لوحة المتصدرين ===== */
+.lb-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: lbModalFade 0.2s ease;
+}
+
+.lb-modal[hidden] { display: none; }
+
+@keyframes lbModalFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lb-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lb-modal-box {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.96), rgba(15, 15, 30, 0.98));
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 22px;
+  padding: 1.1rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: lbModalSlide 0.25s ease;
+}
+
+@keyframes lbModalSlide {
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+.lb-modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lb-modal-close:hover {
+  background: rgba(231, 76, 60, 0.7);
+}
+
+.lb-modal-close:active {
+  transform: scale(0.92);
+}
+
+.lb-modal-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-gold);
+  text-align: center;
+  margin-bottom: 0.9rem;
+  padding-right: 2rem;
+}
+
+.lb-modal-box .home-lb-list {
+  max-height: 50vh;
+  flex: 1;
+}
+
 /* ===== حاوية الدخول — فوق يسار ===== */
 .auth-container {
   position: fixed;

@@ -63,6 +63,36 @@
     </div>
   </div>
 
+  <!-- زر فتح المتصدرين — تحت زر الدخول، يظهر خارج الواجهة الرئيسية واللعبة -->
+  <button id="lb-open-btn" class="lb-open-btn" hidden>🏆 المتصدرين</button>
+
+  <!-- مودال المتصدرين -->
+  <div id="lb-modal" class="lb-modal" hidden>
+    <div class="lb-modal-overlay"></div>
+    <div class="lb-modal-box">
+      <button class="lb-modal-close" id="lb-modal-close" aria-label="إغلاق">&times;</button>
+      <h2 class="lb-modal-title">🏆 لوحة المتصدرين</h2>
+      <div class="home-lb-tabs">
+        <button class="home-lb-tab active" data-lb-tab="global" data-lb-scope="modal">🏆 العالمي</button>
+        <button class="home-lb-tab" data-lb-tab="season" data-lb-scope="modal">🎯 الموسم</button>
+        <button class="home-lb-tab" data-lb-tab="game" data-lb-scope="modal">🎮 بكل لعبة</button>
+      </div>
+      <div class="home-lb-game-picker" id="lb-modal-game-picker" hidden>
+        <select id="lb-modal-game-select" class="home-lb-select">
+          <option value="letter-rain">🌧️ مطر الأحرف</option>
+          <option value="letter-blaze">🔥 حريق الحروف</option>
+          <option value="taxi">🚕 التاكسي</option>
+          <option value="fishing">🎣 الصيد</option>
+          <option value="sniper">🎯 القنص</option>
+          <option value="casino">🎰 الكازينو</option>
+        </select>
+      </div>
+      <div class="home-lb-list" id="lb-modal-list">
+        <div class="home-lb-empty">جاري التحميل...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- زر الرجوع/الإيقاف — فوق يمين -->
   <div class="topnav-container">
     <button id="topnav-btn" class="topnav-btn" hidden>⏸</button>
@@ -78,6 +108,34 @@
       <p class="game-subtitle">العب، التقط، اجمع الحروف</p>
       <div id="home-rank-badge" class="rank-badge" hidden></div>
       <button id="btn-start" class="btn btn-primary btn-large">ابدأ</button>
+
+      <!-- ===== لوحة المتصدرين على الصفحة الرئيسية (قابلة للطي) ===== -->
+      <div class="home-leaderboard" id="home-leaderboard">
+        <button class="home-lb-toggle" id="home-lb-toggle" aria-expanded="false">
+          <span class="home-lb-toggle-text">🏆 لوحة المتصدرين</span>
+          <span class="home-lb-chevron">▼</span>
+        </button>
+        <div class="home-lb-content" id="home-lb-content">
+          <div class="home-lb-tabs">
+            <button class="home-lb-tab active" data-lb-tab="global">🏆 العالمي</button>
+            <button class="home-lb-tab" data-lb-tab="season">🎯 الموسم</button>
+            <button class="home-lb-tab" data-lb-tab="game">🎮 بكل لعبة</button>
+          </div>
+          <div class="home-lb-game-picker" id="home-lb-game-picker" hidden>
+            <select id="home-lb-game-select" class="home-lb-select">
+              <option value="letter-rain">🌧️ مطر الأحرف</option>
+              <option value="letter-blaze">🔥 حريق الحروف</option>
+              <option value="taxi">🚕 التاكسي</option>
+              <option value="fishing">🎣 الصيد</option>
+              <option value="sniper">🎯 القنص</option>
+              <option value="casino">🎰 الكازينو</option>
+            </select>
+          </div>
+          <div class="home-lb-list" id="home-lb-list">
+            <div class="home-lb-empty">جاري التحميل...</div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
