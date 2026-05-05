@@ -17,6 +17,29 @@ const SNIPER_WORDS = [
 
 const MAX_MISSES = 3;
 
+// ===== أصول الصور =====
+const ASSETS_PATH = 'assets/sniper/';
+function loadImage(src) {
+  const img = new Image();
+  img.src = ASSETS_PATH + src;
+  return img;
+}
+const ASSETS = {
+  sniperBody:  loadImage('sniper-body.png'),
+  rifle:       loadImage('rifle.png'),
+  trees:       [loadImage('tree-1.png'), loadImage('tree-2.png'), loadImage('tree-3.png')],
+  mountains:   [loadImage('mountain-1.png'), loadImage('mountain-2.png')],
+  grasses:     [loadImage('grass-1.png'), loadImage('grass-2.png')],
+  bush:        loadImage('bush.png'),
+  rocks:       [loadImage('rock-1.png'), loadImage('rock-2.png')],
+  sun:         loadImage('sun.png'),
+  target:      loadImage('target.png'),
+  muzzleFlash: loadImage('muzzle-flash.png'),
+};
+function isImgReady(img) {
+  return img && img.complete && img.naturalHeight > 0;
+}
+
 export class SniperGame {
   constructor(onExit) {
     this.onExit = onExit;
@@ -30,16 +53,17 @@ export class SniperGame {
     this.targets = [];     // الأهداف (أحرف خلف أشجار)
     this.revealed = [];    // ما كُشف من الكلمة
     this.misses = 0;
-    this.zoom = 1;         // 1x أو 8x
+    this.zoom = 1;         // 1x أو 3x (تكبير فعلي)
+    this.zoomFactor = 3;   // معامل التكبير الفعلي عند الزوم
     this.crosshair = { x: 0, y: 0 };
-    this.touchControls = { moveId: null, shootId: null };
+    this.muzzleFlash = 0;
+
+    // كانفاس مخفي لرسم المشهد عشان نقدر نكبره داخل دائرة السكوب
+    this.offCanvas = document.createElement('canvas');
+    this.offCtx = this.offCanvas.getContext('2d');
 
     this.running = false;
     this.paused = false;
-
-    // تحميل صورة القناصة
-    this.sniperImage = new Image();
-    this.sniperImage.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Sniper_rifle.svg/400px-Sniper_rifle.svg';
 
     this._setupListeners();
   }
@@ -53,39 +77,59 @@ export class SniperGame {
 
     document.getElementById('sniper-zoom-btn').onclick = () => this._toggleZoom();
 
-    this.canvas.addEventListener('pointerdown', (e) => this._onPointerDown(e), { passive: false });
-    this.canvas.addEventListener('pointermove', (e) => this._onPointerMove(e), { passive: false });
-    this.canvas.addEventListener('pointerup', (e) => this._onPointerUp(e), { passive: false });
-    this.canvas.addEventListener('pointercancel', (e) => this._onPointerUp(e), { passive: false });
+    const fireBtn = document.getElementById('sniper-fire-btn');
+    if (fireBtn) {
+      fireBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!this.running || this.paused) return;
+        fireBtn.classList.add('firing');
+        this._shoot();
+      });
+      fireBtn.addEventListener('pointerup',     () => fireBtn.classList.remove('firing'));
+      fireBtn.addEventListener('pointercancel', () => fireBtn.classList.remove('firing'));
+      fireBtn.addEventListener('pointerleave',  () => fireBtn.classList.remove('firing'));
+    }
+
+    // الكانفاس: pointermove للتصويب، pointerdown بالماوس للإطلاق المباشر
+    this.canvas.addEventListener('pointermove', (e) => this._onPointerAim(e), { passive: false });
+    this.canvas.addEventListener('pointerdown', (e) => this._onCanvasPointerDown(e), { passive: false });
+
+    // مفتاح المسافة على اللابتوب = إطلاق
+    this._onKeyDown = (e) => {
+      if (!this.running || this.paused) return;
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        this._shoot();
+      }
+    };
+    window.addEventListener('keydown', this._onKeyDown);
 
     window.addEventListener('resize', () => this._resize());
   }
 
-  _onPointerDown(e) {
+  _onPointerAim(e) {
+    if (!this.running || this.paused) return;
+    // مع اللمس: pointermove يُطلق فقط أثناء ضغط الإصبع — ممتاز للسحب
+    // مع الفأرة: يُحدّث دائماً سواء بضغط أو بدونه
+    if (e.pointerType === 'touch' && e.buttons === 0) return;
+    e.preventDefault();
+    const rect = this.canvas.getBoundingClientRect();
+    this.crosshair.x = e.clientX - rect.left;
+    this.crosshair.y = e.clientY - rect.top;
+  }
+
+  _onCanvasPointerDown(e) {
     if (!this.running || this.paused) return;
     e.preventDefault();
     const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // اضغط/المس مكان → يحدد crosshair هناك ثم يطلق
-    this.crosshair.x = x;
-    this.crosshair.y = y;
-    this._shoot();
-  }
-
-  _onPointerMove(e) {
-    if (!this.running || this.paused) return;
-    // تحديث crosshair فقط لو ما زال الإصبع مضغوطاً (للسحب) أو الفأرة على الشاشة
-    if (e.pointerType !== 'touch' || e.buttons > 0) {
-      const rect = this.canvas.getBoundingClientRect();
-      this.crosshair.x = e.clientX - rect.left;
-      this.crosshair.y = e.clientY - rect.top;
+    this.crosshair.x = e.clientX - rect.left;
+    this.crosshair.y = e.clientY - rect.top;
+    // اللمس: ضغطة الإصبع تُحدّث الموقع فقط (لا تُطلق — الإطلاق من زر 🎯)
+    // الفأرة: الكبس على الكانفاس يُطلق مباشرة على نفس المكان
+    if (e.pointerType !== 'touch') {
+      this._shoot();
     }
-  }
-
-  _onPointerUp(e) {
-    // تنظيف
   }
 
   _resize() {
@@ -94,18 +138,9 @@ export class SniperGame {
     this.canvas.height = rect.height;
     this.W = rect.width;
     this.H = rect.height;
-    this.crosshair = { x: this.W / 2, y: this.H / 2 };
-  }
-
-  _onMouseMove(e) {
-    const rect = this.canvas.getBoundingClientRect();
-    this.crosshair.x = e.clientX - rect.left;
-    this.crosshair.y = e.clientY - rect.top;
-  }
-
-  _onShoot(e) {
-    if (!this.running || this.paused) return;
-    this._shoot();
+    if (this.crosshair.x === 0 && this.crosshair.y === 0) {
+      this.crosshair = { x: this.W / 2, y: this.H * 0.45 };
+    }
   }
 
   _shoot() {
@@ -134,6 +169,7 @@ export class SniperGame {
     }
 
     playShotSound();
+    this.muzzleFlash = 6;
 
     if (hit) {
       hit.shot = true;
@@ -158,11 +194,11 @@ export class SniperGame {
   }
 
   _toggleZoom() {
-    this.zoom = this.zoom === 1 ? 8 : 1;
+    this.zoom = this.zoom === 1 ? this.zoomFactor : 1;
     const btn = document.getElementById('sniper-zoom-btn');
     if (btn) {
-      btn.classList.toggle('active', this.zoom === 8);
-      btn.textContent = this.zoom === 1 ? '🔭 زووم 8x' : '👁 خروج زووم';
+      btn.classList.toggle('active', this.zoom > 1);
+      btn.textContent = this.zoom === 1 ? '🔭 زووم 3x' : '👁 خروج زووم';
     }
   }
 
@@ -183,26 +219,80 @@ export class SniperGame {
     this.misses = 0;
     this.zoom = 1;
     document.getElementById('sniper-zoom-btn').classList.remove('active');
-    document.getElementById('sniper-zoom-btn').textContent = '🔭 زووم 8x';
+    document.getElementById('sniper-zoom-btn').textContent = '🔭 زووم 3x';
 
     // اختر كلمة عشوائية
     this.word = SNIPER_WORDS[Math.floor(Math.random() * SNIPER_WORDS.length)];
     this.revealed = new Array(this.word.length).fill(null);
 
-    // أنشئ الأهداف (شجرة لكل حرف)
+    // أنشئ الأهداف (شجرة لكل حرف) — قريبة من خط الأفق (بعيدة عن المصوّر)
     this.targets = [];
     const margin = 80;
-    const treeY = this.H * 0.5;
+    const treeBaseY = this.H * 0.48;  // قاعدة الشجرة قريبة من الأفق (تبدو بعيدة)
     for (let i = 0; i < this.word.length; i++) {
       const x = margin + (this.W - margin * 2) * (i + 0.5) / this.word.length;
+      const ty = treeBaseY + (Math.random() - 0.5) * 24;
       this.targets.push({
         index: i,
         char: this.word[i],
         treeX: x,
-        treeY: treeY + (Math.random() - 0.5) * 40,
-        peekX: x + (Math.random() < 0.5 ? -25 : 25),
-        peekY: treeY - 10,
+        treeY: ty,
+        peekX: x + (Math.random() < 0.5 ? -32 : 32),
+        peekY: ty - 50,
+        treeVariant: Math.floor(Math.random() * ASSETS.trees.length),
         shot: false,
+      });
+    }
+
+    // مشهد الخلفية: جبال، غابة، شجيرات، صخور (موزعة بشكل عشوائي ثابت لكل جولة)
+    this.scenery = {
+      mountains: [],
+      forest: [],
+      bushes: [],
+      rocks: [],
+    };
+    // جبال خلفية
+    const mountainCount = 4;
+    for (let i = 0; i < mountainCount; i++) {
+      this.scenery.mountains.push({
+        x: (this.W / mountainCount) * i + (Math.random() - 0.5) * 80,
+        variant: i % 2,
+        scale: 0.85 + Math.random() * 0.4,
+      });
+    }
+    // ===== غابة كثيفة قدام الجبال (لكن خلف أشجار الأهداف) =====
+    const forestCount = 18;
+    for (let i = 0; i < forestCount; i++) {
+      this.scenery.forest.push({
+        x: Math.random() * (this.W + 100) - 50,
+        y: this.H * (0.40 + Math.random() * 0.10),  // قرب الأفق → تبدو بعيدة
+        variant: Math.floor(Math.random() * ASSETS.trees.length),
+        scale: 0.35 + Math.random() * 0.30,         // صغيرة (perspective بُعد)
+      });
+    }
+    // طبقة غابة وسطى — أكبر شوي وقريبة
+    for (let i = 0; i < 10; i++) {
+      this.scenery.forest.push({
+        x: Math.random() * (this.W + 100) - 50,
+        y: this.H * (0.50 + Math.random() * 0.06),
+        variant: Math.floor(Math.random() * ASSETS.trees.length),
+        scale: 0.55 + Math.random() * 0.20,
+      });
+    }
+    // شجيرات وصخور أمامية
+    for (let i = 0; i < 8; i++) {
+      this.scenery.bushes.push({
+        x: Math.random() * this.W,
+        y: this.H * (0.62 + Math.random() * 0.12),
+        scale: 0.6 + Math.random() * 0.5,
+      });
+    }
+    for (let i = 0; i < 6; i++) {
+      this.scenery.rocks.push({
+        x: Math.random() * this.W,
+        y: this.H * (0.66 + Math.random() * 0.12),
+        variant: Math.floor(Math.random() * ASSETS.rocks.length),
+        scale: 0.6 + Math.random() * 0.5,
       });
     }
 
@@ -327,76 +417,189 @@ export class SniperGame {
     }
   }
 
-  _draw() {
-    const ctx = this.ctx;
+  _drawScene(ctx) {
     const W = this.W, H = this.H;
+    const horizonY = H * 0.38;
 
-    // طبيعة - السماء
-    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+    // ===== السماء =====
+    const sky = ctx.createLinearGradient(0, 0, 0, horizonY);
     sky.addColorStop(0, '#5DADE2');
     sky.addColorStop(1, '#A8D8E8');
     ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H * 0.6);
+    ctx.fillRect(0, 0, W, horizonY);
 
-    // الأرض - عشب
-    const ground = ctx.createLinearGradient(0, H * 0.6, 0, H);
-    ground.addColorStop(0, '#5C8C3A');
-    ground.addColorStop(1, '#2D5016');
-    ctx.fillStyle = ground;
-    ctx.fillRect(0, H * 0.6, W, H * 0.4);
-
-    // جبال خلفية
-    ctx.fillStyle = '#7FB069';
-    for (let i = 0; i < 5; i++) {
-      const x = (W / 5) * i + W / 10;
-      ctx.beginPath();
-      ctx.moveTo(x - 80, H * 0.6);
-      ctx.lineTo(x, H * 0.45);
-      ctx.lineTo(x + 80, H * 0.6);
-      ctx.fill();
+    // ===== الشمس =====
+    if (isImgReady(ASSETS.sun)) {
+      const sw = 130;
+      const sh = sw * (ASSETS.sun.naturalHeight / ASSETS.sun.naturalWidth);
+      ctx.drawImage(ASSETS.sun, W * 0.85 - sw / 2, H * 0.10 - sh / 2, sw, sh);
     }
 
-    // رسم الأشجار والأحرف
-    const isZoom = this.zoom > 1;
-    for (const t of this.targets) {
-      this._drawTree(t.treeX, t.treeY);
+    // ===== الأرض =====
+    const ground = ctx.createLinearGradient(0, horizonY, 0, H);
+    ground.addColorStop(0, '#7CB85A');
+    ground.addColorStop(0.5, '#5C8C3A');
+    ground.addColorStop(1, '#2D5016');
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, horizonY, W, H - horizonY);
 
-      if (!t.shot) {
-        // الحروف دائماً واضحة، أكبر وأبرز عند الزووم
-        ctx.fillStyle = '#FFD700';
-        ctx.font = `bold ${isZoom ? 44 : 28}px Cairo, Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = isZoom ? 4 : 2.5;
-        ctx.strokeText(t.char, t.peekX, t.peekY);
-        ctx.fillText(t.char, t.peekX, t.peekY);
+    // ===== جبال خلفية =====
+    if (this.scenery && this.scenery.mountains.length) {
+      for (const m of this.scenery.mountains) {
+        const img = ASSETS.mountains[m.variant];
+        if (!isImgReady(img)) continue;
+        const mw = 380 * m.scale;
+        const mh = mw * (img.naturalHeight / img.naturalWidth);
+        ctx.drawImage(img, m.x - mw / 2, horizonY - mh * 0.85, mw, mh);
       }
     }
 
+    // ===== شريط عشب على خط الأفق =====
+    if (isImgReady(ASSETS.grasses[0])) {
+      const gImg = ASSETS.grasses[0];
+      const gW = 220;
+      const gH = gW * (gImg.naturalHeight / gImg.naturalWidth);
+      for (let x = 0; x < W; x += gW - 10) {
+        ctx.drawImage(gImg, x, horizonY - gH * 0.15, gW, gH);
+      }
+    }
+
+    // ===== Helper لرسم شجرة بحجم متغير =====
+    const _drawTreeOn = (x, y, variant, scale = 1) => {
+      const img = ASSETS.trees[variant % ASSETS.trees.length];
+      if (isImgReady(img)) {
+        const tw = 150 * scale;
+        const th = tw * (img.naturalHeight / img.naturalWidth);
+        ctx.drawImage(img, x - tw / 2, y - th * 0.92, tw, th);
+      } else {
+        ctx.fillStyle = '#5C2C0E';
+        ctx.fillRect(x - 8 * scale, y, 16 * scale, 50 * scale);
+        ctx.fillStyle = '#2D7A2D';
+        ctx.beginPath();
+        ctx.arc(x, y - 20 * scale, 35 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    // ===== الغابة الخلفية (مرتبة من الأبعد للأقرب) =====
+    if (this.scenery && this.scenery.forest.length) {
+      const sortedForest = [...this.scenery.forest].sort((a, b) => a.y - b.y);
+      for (const f of sortedForest) {
+        _drawTreeOn(f.x, f.y, f.variant, f.scale);
+      }
+    }
+
+    // ===== أشجار الأهداف والأحرف خلفها =====
+    const sortedTargets = [...this.targets].sort((a, b) => a.treeY - b.treeY);
+    for (const t of sortedTargets) {
+      if (!t.shot) {
+        // هدف صغير (دائرة بولزآي) — يكبر مع الزوم
+        if (isImgReady(ASSETS.target)) {
+          const tw = 22;
+          ctx.globalAlpha = 0.9;
+          ctx.drawImage(ASSETS.target, t.peekX - tw / 2, t.peekY - tw / 2, tw, tw);
+          ctx.globalAlpha = 1;
+        }
+        // الحرف صغير جداً بدون زوم — يحتاج السكوب عشان يبيّن واضح
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 12px Cairo, Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1.5;
+        ctx.strokeText(t.char, t.peekX, t.peekY);
+        ctx.fillText(t.char, t.peekX, t.peekY);
+      }
+      _drawTreeOn(t.treeX, t.treeY, t.treeVariant);
+    }
+
+    // ===== شجيرات وصخور =====
+    if (this.scenery) {
+      for (const b of this.scenery.bushes) {
+        if (!isImgReady(ASSETS.bush)) break;
+        const bw = 80 * b.scale;
+        const bh = bw * (ASSETS.bush.naturalHeight / ASSETS.bush.naturalWidth);
+        ctx.drawImage(ASSETS.bush, b.x - bw / 2, b.y - bh, bw, bh);
+      }
+      for (const r of this.scenery.rocks) {
+        const img = ASSETS.rocks[r.variant];
+        if (!isImgReady(img)) continue;
+        const rw = 70 * r.scale;
+        const rh = rw * (img.naturalHeight / img.naturalWidth);
+        ctx.drawImage(img, r.x - rw / 2, r.y - rh, rw, rh);
+      }
+    }
+
+    // ===== شريط عشب أمامي =====
+    if (isImgReady(ASSETS.grasses[1])) {
+      const gImg = ASSETS.grasses[1];
+      const gW = 280;
+      const gH = gW * (gImg.naturalHeight / gImg.naturalWidth);
+      for (let x = -20; x < W; x += gW - 15) {
+        ctx.drawImage(gImg, x, H - gH * 0.95, gW, gH);
+      }
+    }
+  }
+
+  _draw() {
+    const ctx = this.ctx;
+    const W = this.W, H = this.H;
+    const isZoom = this.zoom > 1;
+
+    // ضمان أبعاد الكانفاس المخفي
+    if (this.offCanvas.width !== W || this.offCanvas.height !== H) {
+      this.offCanvas.width = W;
+      this.offCanvas.height = H;
+    }
+
+    // ارسم المشهد الكامل على الكانفاس المخفي
+    this._drawScene(this.offCtx);
+
+    // ارسم الكانفاس المخفي (المشهد العادي) للكانفاس الرئيسي
+    ctx.drawImage(this.offCanvas, 0, 0);
+
     if (isZoom) {
-      // ===== scope يتبع الـ crosshair =====
+      // ===== الزوم الفعلي: تكبير المشهد حول نقطة الـ crosshair =====
       const cx = this.crosshair.x;
       const cy = this.crosshair.y;
-      const radius = Math.min(W, H) * 0.32;
+      const radius = Math.min(W, H) * 0.42;
+      const z = this.zoomFactor;
 
-      // قناع خفيف (40% بدل 85%) — الكل لسه يبين بس مظلم خارج الدائرة
+      // قناع داكن خارج الدائرة
       ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.beginPath();
       ctx.rect(0, 0, W, H);
       ctx.arc(cx, cy, radius, 0, Math.PI * 2, true);
       ctx.fill();
       ctx.restore();
 
-      // إطار scope
-      ctx.strokeStyle = '#1A1A1A';
-      ctx.lineWidth = 6;
+      // داخل الدائرة: ارسم المشهد مكبر بحيث نقطة (cx, cy) في الكانفاس المخفي
+      // تظهر بنفس مكانها (cx, cy) على الكانفاس الرئيسي — يعني التكبير حول crosshair
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.clip();
+      // تطبيق تحويل: تكبير z حول النقطة (cx, cy)
+      ctx.translate(cx, cy);
+      ctx.scale(z, z);
+      ctx.translate(-cx, -cy);
+      ctx.drawImage(this.offCanvas, 0, 0);
+      ctx.restore();
+
+      // إطار السكوب (دائرة سوداء سميكة)
+      ctx.strokeStyle = '#0A0A0A';
+      ctx.lineWidth = 8;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 4, 0, Math.PI * 2);
+      ctx.stroke();
 
-      // خطوط scope cross
+      // خطوط reticle داخل السكوب
       ctx.strokeStyle = 'rgba(255,0,0,0.65)';
       ctx.lineWidth = 1.2;
       ctx.beginPath();
@@ -420,48 +623,102 @@ export class SniperGame {
 
   _drawSniper() {
     const ctx = this.ctx;
-    const sniperW = 200;
-    const sniperH = 60;
-    const sniperX = this.W / 2 - sniperW / 2;
-    const sniperY = this.H - sniperH - 20;
+    const W = this.W, H = this.H;
 
-    if (this.sniperImage.complete && this.sniperImage.naturalHeight !== 0) {
-      ctx.drawImage(this.sniperImage, sniperX, sniperY, sniperW, sniperH);
-    } else {
-      // رسم احتياطي
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(sniperX, sniperY, sniperW, sniperH);
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(sniperX + 10, sniperY + 10, sniperW - 20, sniperH - 20);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 16px Cairo, Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('قناصة', sniperX + sniperW / 2, sniperY + sniperH / 2);
+    // ===== مكان وحجم الجندي =====
+    // الصورة الأصلية عمودية في وضعها الطبيعي — الرأس فوق، الساقين تحت
+    const cx = W / 2;
+    const bodyImg = ASSETS.sniperBody;
+    const bodyW = Math.min(380, W * 0.45);
+    const bodyH = isImgReady(bodyImg)
+      ? bodyW * (bodyImg.naturalHeight / bodyImg.naturalWidth)
+      : bodyW * 0.6;
+
+    // قاعدة الجسم قريبة من أسفل الشاشة
+    const bodyBottomY = H - 30;
+    const bodyTopY = bodyBottomY - bodyH;
+
+    // الكتف/اليدين عند منتصف الجسم تقريباً (هنا الذراعين الممدودتين بالصورة)
+    const shoulderX = cx;
+    const shoulderY = bodyTopY + bodyH * 0.45;
+
+    // زاوية البندقية تتبع الـ crosshair
+    const dx = this.crosshair.x - shoulderX;
+    const dy = this.crosshair.y - shoulderY;
+    let angle = Math.atan2(dy, dx);
+    const maxA = -Math.PI * 0.05;
+    const minA = -Math.PI * 0.95;
+    if (angle > maxA && angle < Math.PI / 2) angle = maxA;
+    else if (angle < minA || angle > Math.PI / 2) angle = minA;
+
+    ctx.save();
+
+    // ===== ظل خفيف تحت الجسم =====
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(cx, bodyBottomY + 6, bodyW * 0.4, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ===== البندقية أولاً (تحت الجسم) — تدور حول الكتف =====
+    // الفوهة في الصورة على اليسار → +π للزاوية
+    const rifleImg = ASSETS.rifle;
+    if (isImgReady(rifleImg)) {
+      ctx.save();
+      ctx.translate(shoulderX, shoulderY);
+      ctx.rotate(angle + Math.PI);
+
+      const rW = 200;
+      const rH = rW * (rifleImg.naturalHeight / rifleImg.naturalWidth);
+      const gripX = rW * 0.72;
+      ctx.drawImage(rifleImg, -gripX, -rH / 2, rW, rH);
+
+      // وميض الإطلاق عند الفوهة
+      if (this.muzzleFlash > 0 && isImgReady(ASSETS.muzzleFlash)) {
+        const t = this.muzzleFlash / 6;
+        const flashImg = ASSETS.muzzleFlash;
+        const fw = 90 * t;
+        const fh = fw * (flashImg.naturalHeight / flashImg.naturalWidth);
+        const muzzleX = -gripX - 5;
+        ctx.globalAlpha = t;
+        ctx.drawImage(flashImg, muzzleX - fw / 2, -fh / 2, fw, fh);
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.restore();
     }
+
+    // ===== جسم القناصة فوق البندقية (يخفي الجزء اللي تحته) =====
+    if (isImgReady(bodyImg)) {
+      ctx.drawImage(bodyImg, cx - bodyW / 2, bodyTopY, bodyW, bodyH);
+    } else {
+      ctx.fillStyle = '#4a5d2f';
+      ctx.beginPath();
+      ctx.ellipse(cx, bodyTopY + bodyH * 0.5, bodyW * 0.4, bodyH * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    if (this.muzzleFlash > 0) this.muzzleFlash--;
   }
 
-  _drawTree(x, y) {
+  _drawTree(x, y, variant = 0) {
     const ctx = this.ctx;
-    // الجذع
-    ctx.fillStyle = '#5C2C0E';
-    ctx.fillRect(x - 8, y, 16, 50);
-    // الأوراق
-    ctx.fillStyle = '#1F5A1F';
-    ctx.beginPath();
-    ctx.arc(x, y - 10, 32, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#2D7A2D';
-    ctx.beginPath();
-    ctx.arc(x - 14, y - 22, 22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + 14, y - 22, 22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#3F8B3D';
-    ctx.beginPath();
-    ctx.arc(x, y - 30, 24, 0, Math.PI * 2);
-    ctx.fill();
+    const img = ASSETS.trees[variant % ASSETS.trees.length];
+    if (isImgReady(img)) {
+      const tw = 150;
+      const th = tw * (img.naturalHeight / img.naturalWidth);
+      // y هو موقع جذع الشجرة على الأرض، الصورة بكاملها فوقه
+      ctx.drawImage(img, x - tw / 2, y - th * 0.92, tw, th);
+    } else {
+      // احتياطي بسيط
+      ctx.fillStyle = '#5C2C0E';
+      ctx.fillRect(x - 8, y, 16, 50);
+      ctx.fillStyle = '#2D7A2D';
+      ctx.beginPath();
+      ctx.arc(x, y - 20, 35, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   _drawCrosshair() {

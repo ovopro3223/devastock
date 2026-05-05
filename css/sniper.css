@@ -59,20 +59,19 @@
 /* ===== زر الزووم ===== */
 .sniper-zoom-btn {
   position: absolute;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0.7rem 1.5rem;
+  bottom: 1.2rem;
+  left: 1.2rem;
+  padding: 0.7rem 1.2rem;
   background: rgba(0,0,0,0.7);
   border: 2px solid rgba(255,215,0,0.4);
   border-radius: 999px;
   color: var(--color-text);
   font-family: var(--font);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  z-index: 5;
-  transition: background 0.2s, transform 0.15s;
+  z-index: 6;
+  transition: background 0.2s, transform 0.15s, border-color 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -85,26 +84,76 @@
   background: rgba(255,215,0,0.3);
   border-color: var(--color-gold);
   color: var(--color-gold);
+  box-shadow: 0 0 18px rgba(255,215,0,0.35);
+}
+
+/* ===== زر الإطلاق ===== */
+.sniper-fire-btn {
+  position: absolute;
+  bottom: 1.2rem;
+  right: 1.2rem;
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: radial-gradient(circle at 35% 30%, #ff6b6b 0%, #c0392b 65%, #7a1d12 100%);
+  border: 3px solid rgba(255,255,255,0.85);
+  border-radius: 50%;
+  color: #fff;
+  font-family: var(--font);
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 6;
+  box-shadow: 0 6px 20px rgba(192,57,43,0.55), inset 0 -4px 10px rgba(0,0,0,0.35);
+  transition: transform 0.08s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.sniper-fire-btn:hover {
+  box-shadow: 0 8px 28px rgba(231,76,60,0.7), inset 0 -4px 10px rgba(0,0,0,0.35);
+}
+
+.sniper-fire-btn:active,
+.sniper-fire-btn.firing {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(192,57,43,0.5), inset 0 -2px 6px rgba(0,0,0,0.35);
+}
+
+.sniper-fire-icon {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.sniper-fire-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
 }
 
 .sniper-touch-guide {
   position: absolute;
-  bottom: 5.5rem;
+  bottom: 7rem;
   right: 1.2rem;
   left: 1.2rem;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
   color: rgba(255,255,255,0.78);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.4);
   border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 999px;
-  padding: 0.6rem 1rem;
+  border-radius: 14px;
+  padding: 0.5rem 1rem;
   z-index: 5;
   pointer-events: none;
 }
 
 @media (min-width: 720px) {
-  .sniper-touch-guide {
-    display: none;
+  .sniper-fire-btn {
+    width: 92px;
+    height: 92px;
   }
 }

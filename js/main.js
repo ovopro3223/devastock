@@ -22,7 +22,7 @@ const PAGE_IDS = [
   'taxi', 'fishing', 'sniper', 'settings', 'achievements', 'challenges', 'trade',
 ];
 
-const GAME_PAGES = ['letter-rain', 'letter-blaze', 'taxi', 'fishing', 'sniper', 'casino'];
+const GAME_PAGES = ['letter-rain', 'letter-blaze', 'taxi', 'fishing', 'sniper'];
 
 // أهداف الرجوع لكل صفحة (لزر التنقل العلوي)
 const BACK_TARGETS = {

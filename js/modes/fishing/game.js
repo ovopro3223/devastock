@@ -7,6 +7,40 @@ import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
 
+// ===== أصول الصور =====
+const ASSETS_PATH = 'assets/fishing/';
+const FISH_FILES = [
+  // facesRight: العين على اليمين (السمك متوجه يمين بطبيعة الصورة)
+  // facesRight = false → السمك متوجه يسار (نقلب الصورة لما يتحرك يمين)
+  { src: 'fish-1.png', facesRight: false, special: false },
+  { src: 'fish-2.png', facesRight: true,  special: 'octopus' }, // أخطبوط/محار 45° — يتحرك ببطء، ما ينقلب
+  { src: 'fish-3.png', facesRight: false, special: false },
+  { src: 'fish-4.png', facesRight: true,  special: false },
+  { src: 'fish-6.png', facesRight: true,  special: false },
+  { src: 'fish-8.png', facesRight: true,  special: false },
+];
+
+function loadImage(src) {
+  const img = new Image();
+  img.src = ASSETS_PATH + src;
+  return img;
+}
+
+const ASSETS = {
+  boat:    loadImage('boat.png'),
+  net:     loadImage('net.png'),
+  bobber:  loadImage('bobber.png'),
+  sun:     loadImage('sun.png'),
+  cloud1:  loadImage('cloud-1.png'),
+  cloud2:  loadImage('cloud-2.png'),
+  wave1:   loadImage('wave-1.png'),
+  fish:    FISH_FILES.map(f => ({ ...f, img: loadImage(f.src) })),
+};
+
+function isImgReady(img) {
+  return img && img.complete && img.naturalHeight > 0;
+}
+
 // حالات الشبكة
 const NET_IDLE = 'idle';        // في القارب
 const NET_CASTING = 'casting';  // تنزل
@@ -56,10 +90,6 @@ export class FishingGame {
     this.t = 0;
 
     this.statusText = '';
-
-    // تحميل صورة الشبكة
-    this.netImage = new Image();
-    this.netImage.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Fishing_net.svg/400px-Fishing_net.svg';
 
     this._setupListeners();
   }
@@ -317,10 +347,11 @@ export class FishingGame {
 
     for (let i = 0; i < 4; i++) {
       this.clouds.push({
+        variant: Math.random() < 0.5 ? 1 : 2,
         x: Math.random() * this.W,
-        y: this.H * 0.05 + Math.random() * this.H * 0.15,
-        size: 30 + Math.random() * 30,
-        speed: 0.15 + Math.random() * 0.15,
+        y: this.H * 0.05 + Math.random() * this.H * 0.18,
+        size: 80 + Math.random() * 60,
+        speed: 0.15 + Math.random() * 0.2,
       });
     }
 
@@ -400,22 +431,22 @@ export class FishingGame {
     const seaTop = this.H * 0.40;
     const seaBottom = this.H * 0.95;
     const fromLeft = Math.random() < 0.5;
+    const fishDef = ASSETS.fish[Math.floor(Math.random() * ASSETS.fish.length)];
+    const isOctopus = fishDef.special === 'octopus';
     this.fish.push({
-      char: ARABIC_LETTERS[Math.floor(Math.random() * ARABIC_LETTERS.length)],
+      def: fishDef,
       x: fromLeft ? -60 : this.W + 60,
-      y: seaTop + Math.random() * (seaBottom - seaTop),
-      vx: (fromLeft ? 1 : -1) * (0.6 + Math.random() * 1.2),
+      y: isOctopus
+        ? seaTop + (seaBottom - seaTop) * (0.55 + Math.random() * 0.4)  // أخطبوط/محار بالأعماق
+        : seaTop + Math.random() * (seaBottom - seaTop),
+      vx: isOctopus
+        ? (fromLeft ? 1 : -1) * 0.25
+        : (fromLeft ? 1 : -1) * (0.6 + Math.random() * 1.2),
+      vy: isOctopus ? -0.15 - Math.random() * 0.15 : 0,  // الأخطبوط يطلع بطيء للأعلى
       bob: Math.random() * Math.PI * 2,
-      bobSpeed: 0.04 + Math.random() * 0.03,
-      tailPhase: Math.random() * Math.PI,
-      size: 18 + Math.random() * 8,
-      color: this._fishColor(),
+      bobSpeed: 0.03 + Math.random() * 0.025,
+      size: isOctopus ? 50 + Math.random() * 14 : 38 + Math.random() * 18,
     });
-  }
-
-  _fishColor() {
-    const colors = ['#E74C3C', '#3498DB', '#9B59B6', '#F39C12', '#1ABC9C', '#E67E22'];
-    return colors[Math.floor(Math.random() * colors.length)];
   }
 
   _addBubble(x, y) {
@@ -465,13 +496,15 @@ export class FishingGame {
     }
 
     // أسماك زينة
+    const seaTop = this.H * 0.40;
     for (const f of this.fish) {
       f.x += f.vx;
       f.bob += f.bobSpeed;
-      f.y += Math.sin(f.bob) * 0.3;
-      f.tailPhase += 0.25;
+      f.y += Math.sin(f.bob) * 0.3 + (f.vy || 0);
     }
-    this.fish = this.fish.filter(f => f.x > -120 && f.x < this.W + 120);
+    this.fish = this.fish.filter(f =>
+      f.x > -150 && f.x < this.W + 150 && f.y > seaTop - 20
+    );
     if (this.fish.length < 6) this._spawnDecorFish();
 
     // فقاعات
@@ -538,22 +571,28 @@ export class FishingGame {
 
     // الشمس
     const sunX = W * 0.78, sunY = H * 0.13;
-    const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 50);
-    sunGrad.addColorStop(0, '#FFF3B0');
-    sunGrad.addColorStop(0.6, '#FFCC33');
-    sunGrad.addColorStop(1, 'rgba(255,200,50,0)');
-    ctx.fillStyle = sunGrad;
-    ctx.beginPath();
-    ctx.arc(sunX, sunY, 50, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFF8DC';
-    ctx.beginPath();
-    ctx.arc(sunX, sunY, 22, 0, Math.PI * 2);
-    ctx.fill();
+    if (isImgReady(ASSETS.sun)) {
+      const sw = 130;
+      const sh = sw * (ASSETS.sun.naturalHeight / ASSETS.sun.naturalWidth);
+      ctx.drawImage(ASSETS.sun, sunX - sw / 2, sunY - sh / 2, sw, sh);
+    } else {
+      const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 50);
+      sunGrad.addColorStop(0, '#FFF3B0');
+      sunGrad.addColorStop(0.6, '#FFCC33');
+      sunGrad.addColorStop(1, 'rgba(255,200,50,0)');
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 50, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF8DC';
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 22, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // الغيوم
     for (const c of this.clouds) {
-      this._drawCloud(c.x, c.y, c.size);
+      this._drawCloud(c);
     }
 
     // ===== البحر =====
@@ -597,26 +636,37 @@ export class FishingGame {
       ctx.stroke();
     }
 
-    // ===== الأمواج (ترسم فوق ما في الماء قرب السطح) =====
+    // ===== الأمواج — صورة wave-1.png تتمرر =====
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    let wave1Off = (this.t * 1.5) % 60;
-    for (let x = -wave1Off; x < W; x += 60) {
-      ctx.moveTo(x, seaY);
-      ctx.quadraticCurveTo(x + 30, seaY - 8, x + 60, seaY);
+    if (isImgReady(ASSETS.wave1)) {
+      const tileW = 180;
+      const tileH = tileW * (ASSETS.wave1.naturalHeight / ASSETS.wave1.naturalWidth);
+      // الموجة الأمامية — متحركة أسرع وأبرز
+      const off1 = (this.t * 1.4) % tileW;
+      ctx.globalAlpha = 0.95;
+      for (let x = -off1; x < W + tileW; x += tileW) {
+        ctx.drawImage(ASSETS.wave1, x, seaY - tileH * 0.55, tileW, tileH);
+      }
+      // طبقة خلفية أبطأ (موجة بعيدة) — شفافة أكثر
+      const tileW2 = 130;
+      const tileH2 = tileW2 * (ASSETS.wave1.naturalHeight / ASSETS.wave1.naturalWidth);
+      const off2 = (this.t * 0.7) % tileW2;
+      ctx.globalAlpha = 0.55;
+      for (let x = -off2; x < W + tileW2; x += tileW2) {
+        ctx.drawImage(ASSETS.wave1, x + 30, seaY - tileH2 * 0.4, tileW2, tileH2);
+      }
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const wave1Off = (this.t * 1.5) % 60;
+      for (let x = -wave1Off; x < W; x += 60) {
+        ctx.moveTo(x, seaY);
+        ctx.quadraticCurveTo(x + 30, seaY - 8, x + 60, seaY);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    let wave2Off = (this.t * 0.8) % 40;
-    for (let x = -wave2Off; x < W; x += 40) {
-      ctx.moveTo(x, seaY + 3);
-      ctx.quadraticCurveTo(x + 20, seaY - 1, x + 40, seaY + 3);
-    }
-    ctx.stroke();
     ctx.restore();
 
     // موجات دائرية
@@ -795,200 +845,115 @@ export class FishingGame {
     ctx.restore();
   }
 
-  _drawCloud(x, y, size) {
+  _drawCloud(c) {
     const ctx = this.ctx;
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.beginPath();
-    ctx.arc(x, y, size * 0.45, 0, Math.PI * 2);
-    ctx.arc(x + size * 0.4, y, size * 0.5, 0, Math.PI * 2);
-    ctx.arc(x + size * 0.7, y + size * 0.1, size * 0.4, 0, Math.PI * 2);
-    ctx.arc(x + size * 0.3, y - size * 0.2, size * 0.4, 0, Math.PI * 2);
-    ctx.fill();
+    const img = c.variant === 2 ? ASSETS.cloud2 : ASSETS.cloud1;
+    if (isImgReady(img)) {
+      const w = c.size * 1.6;
+      const h = w * (img.naturalHeight / img.naturalWidth);
+      ctx.drawImage(img, c.x, c.y - h / 2, w, h);
+    } else {
+      // احتياطي
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(c.x + c.size * 0.5, c.y, c.size * 0.45, 0, Math.PI * 2);
+      ctx.arc(c.x + c.size * 0.9, c.y, c.size * 0.5, 0, Math.PI * 2);
+      ctx.arc(c.x + c.size * 1.2, c.y + c.size * 0.1, c.size * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   _drawBoat(x, y) {
     const ctx = this.ctx;
     const seaY = this.H * 0.32;
+    const img = ASSETS.boat;
+    if (!isImgReady(img)) return;
+
+    // الحجم: عرض ثابت ~220 بكسل، الارتفاع يتبع نسبة الصورة الأصلية
+    const w = 220;
+    const h = w * (img.naturalHeight / img.naturalWidth);
+
     ctx.save();
 
-    // ظل القارب على الماء
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    // ظل خفيف على الماء تحت القارب
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath();
-    ctx.ellipse(x, seaY + 22, 80, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, seaY + 16, w * 0.42, 7, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ===== هيكل القارب — جزء على السطح، جزء غاطس =====
-    // الجزء الغاطس (داخل الماء)
-    const submergedGrad = ctx.createLinearGradient(0, seaY, 0, seaY + 28);
-    submergedGrad.addColorStop(0, '#5C2C0E');
-    submergedGrad.addColorStop(1, '#3E1B07');
-    ctx.fillStyle = submergedGrad;
-    ctx.beginPath();
-    ctx.moveTo(x - 75, seaY);
-    ctx.lineTo(x + 75, seaY);
-    ctx.quadraticCurveTo(x + 60, seaY + 28, x - 60, seaY + 28);
-    ctx.closePath();
-    ctx.fill();
-
-    // الجزء فوق الماء (سطح القارب)
-    const topGrad = ctx.createLinearGradient(0, y, 0, seaY);
-    topGrad.addColorStop(0, '#A0522D');
-    topGrad.addColorStop(1, '#7B3F1A');
-    ctx.fillStyle = topGrad;
-    ctx.beginPath();
-    ctx.moveTo(x - 75, seaY);
-    ctx.lineTo(x + 75, seaY);
-    ctx.lineTo(x + 65, y);
-    ctx.lineTo(x - 65, y);
-    ctx.closePath();
-    ctx.fill();
-
-    // ألواح خشبية للتفاصيل
-    ctx.strokeStyle = 'rgba(62, 27, 7, 0.5)';
-    ctx.lineWidth = 1;
-    for (let i = -55; i <= 55; i += 18) {
-      ctx.beginPath();
-      ctx.moveTo(x + i, y + 2);
-      ctx.lineTo(x + i, seaY - 1);
-      ctx.stroke();
-    }
-
-    // حافة القارب (خط أعلى أبيض)
-    ctx.fillStyle = '#3E1B07';
-    ctx.fillRect(x - 75, y - 3, 150, 4);
-    ctx.fillStyle = '#D4AF37';
-    ctx.fillRect(x - 73, y - 1, 146, 1);
-
-    // ===== الصياد =====
-    // جسم
-    ctx.fillStyle = '#3498DB';
-    ctx.fillRect(x - 22, y - 18, 14, 16);
-
-    // ذراعين تمسكان بالشبكة
-    ctx.strokeStyle = '#F1C27D';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x - 16, y - 12);
-    ctx.lineTo(x + 5, y - 18);
-    ctx.stroke();
-
-    // رأس
-    ctx.fillStyle = '#F1C27D';
-    ctx.beginPath();
-    ctx.arc(x - 15, y - 22, 7, 0, Math.PI * 2);
-    ctx.fill();
-
-    // قبعة الصياد
-    ctx.fillStyle = '#C0392B';
-    ctx.fillRect(x - 24, y - 30, 18, 4);
-    ctx.fillRect(x - 21, y - 35, 12, 7);
-
-    // عمود الشبكة (ممسك في يد الصياد)
-    if (this.net.state === NET_IDLE) {
-      ctx.strokeStyle = '#5C2C0E';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x + 3, y - 18);
-      ctx.lineTo(x + 30, y - 30);
-      ctx.stroke();
-      // إطار الشبكة (دائري صغير)
-      ctx.strokeStyle = '#8B4513';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x + 35, y - 32, 12, 0, Math.PI * 2);
-      ctx.stroke();
-      // شبكة (خطوط)
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.lineWidth = 0.8;
-      for (let dx = -10; dx <= 10; dx += 3) {
-        ctx.beginPath();
-        ctx.moveTo(x + 35 + dx, y - 44);
-        ctx.lineTo(x + 35 + dx, y - 20);
-        ctx.stroke();
-      }
-      for (let dy = -10; dy <= 10; dy += 3) {
-        ctx.beginPath();
-        ctx.moveTo(x + 25, y - 32 + dy);
-        ctx.lineTo(x + 45, y - 32 + dy);
-        ctx.stroke();
-      }
-    }
-
-    // عَلم على القارب
-    ctx.fillStyle = '#E74C3C';
-    ctx.fillRect(x + 35, y - 45, 16, 11);
-    ctx.fillStyle = '#C0392B';
-    ctx.fillRect(x + 35, y - 45, 2, 28);
+    // ارسم القارب بحيث يكون ثلثه السفلي تحت الماء (يعطي إحساس طفو)
+    const drawX = x - w / 2;
+    const drawY = seaY - h * 0.78;
+    ctx.drawImage(img, drawX, drawY, w, h);
 
     ctx.restore();
   }
 
   _drawNet() {
     const ctx = this.ctx;
+    const seaY = this.H * 0.32;
     const x = this.net.x + this.net.shake;
     const y = this.net.y;
-    const boatY = this._boatY();
     const boatX = this._boatScreenX();
+    const boatY = this._boatY();
 
-    // الخيط من الصياد للشبكة
+    const netImg = ASSETS.net;
+    const bobImg = ASSETS.bobber;
+
+    // قياسات الشبكة
+    const netW = 110;
+    const netH = isImgReady(netImg)
+      ? netW * (netImg.naturalHeight / netImg.naturalWidth)
+      : 130;
+
+    // مرتكز ربط الخيط (أعلى الشبكة)
+    const netTopY = y - netH * 0.45;
+
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 1.5;
+
+    // ===== الخيط من القارب إلى سطح الماء (عند الـ bobber) ثم تحت الماء للشبكة =====
+    const lineColor = 'rgba(255,255,255,0.85)';
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(boatX + 3, boatY - 18);
-    ctx.lineTo(x, y - 18);
+    ctx.moveTo(boatX + 30, boatY - 35);   // طرف العصا تقريباً
+    ctx.lineTo(x, seaY + 6);              // نقطة دخول الخيط الماء (عند العوامة)
+    ctx.lineTo(x, netTopY);               // الخيط تحت الماء للشبكة
     ctx.stroke();
 
-    // رسم صورة الشبكة إذا تحميلها
-    if (this.netImage.complete && this.netImage.naturalHeight !== 0) {
-      const netW = 60;
-      const netH = 60;
-      ctx.drawImage(this.netImage, x - netW / 2, y - netH / 2, netW, netH);
-    } else {
-      // إطار الشبكة (دائرة)
-      const radius = 30;
-      ctx.strokeStyle = '#8B4513';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // خيوط الشبكة (شبكة فعلية)
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.lineWidth = 1;
-      // أفقية
-      for (let dy = -radius; dy <= radius; dy += 6) {
-        const halfW = Math.sqrt(radius * radius - dy * dy);
-        ctx.beginPath();
-        ctx.moveTo(x - halfW, y + dy);
-        ctx.lineTo(x + halfW, y + dy);
-        ctx.stroke();
-      }
-      // عمودية
-      for (let dx = -radius; dx <= radius; dx += 6) {
-        const halfH = Math.sqrt(radius * radius - dx * dx);
-        ctx.beginPath();
-        ctx.moveTo(x + dx, y - halfH);
-        ctx.lineTo(x + dx, y + halfH);
-        ctx.stroke();
-      }
+    // ===== العوامة (bobber) على سطح الماء — تتموج خفيف =====
+    if (this.net.state !== NET_IDLE && isImgReady(bobImg)) {
+      const bobW = 28;
+      const bobH = bobW * (bobImg.naturalHeight / bobImg.naturalWidth);
+      const bobBob = Math.sin(this.t * 0.08) * 2 + (this.net.state === NET_BITE ? Math.sin(this.t * 0.7) * 4 : 0);
+      ctx.drawImage(bobImg, x - bobW / 2, seaY - bobH * 0.7 + bobBob, bobW, bobH);
     }
 
-    // إذا في طُعم → أيقونة سمكة
+    // ===== الشبكة =====
+    if (isImgReady(netImg)) {
+      // اهتزاز عند الطُعم
+      const shakeY = this.net.state === NET_BITE ? Math.sin(this.t * 0.8) * 3 : 0;
+      ctx.drawImage(netImg, x - netW / 2, y - netH * 0.45 + shakeY, netW, netH);
+    } else {
+      // احتياطي بسيط لو الصورة ما تحمّلت
+      ctx.fillStyle = 'rgba(60, 80, 95, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, netW * 0.4, netH * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ===== مؤشرات الحالة فوق الشبكة =====
     if (this.net.state === NET_BITE) {
-      ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 24px Cairo, Arial';
+      ctx.font = 'bold 22px Cairo, Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = '#000';
       ctx.shadowBlur = 5;
-      ctx.fillText('🐟', x, y);
+      ctx.fillStyle = '#FFD700';
+      ctx.fillText('🐟', x, y + netH * 0.1);
       ctx.shadowBlur = 0;
     }
 
-    // إذا تعرض النتيجة → علامة ✨ على الشبكة (التفاصيل بـ _drawCatchPanel)
     if ((this.net.state === NET_PULLING || this.net.state === NET_SHOWING)
         && this.net.result && this.net.result.letters && this.net.result.type !== 'loss') {
       ctx.fillStyle = '#FFD700';
@@ -997,7 +962,7 @@ export class FishingGame {
       ctx.textBaseline = 'middle';
       ctx.shadowColor = '#000';
       ctx.shadowBlur = 5;
-      ctx.fillText('✨', x, y);
+      ctx.fillText('✨', x, y + netH * 0.1);
       ctx.shadowBlur = 0;
     }
 
@@ -1006,57 +971,29 @@ export class FishingGame {
 
   _drawFish(f) {
     const ctx = this.ctx;
-    const goLeft = f.vx < 0;
+    const img = f.def.img;
+    if (!isImgReady(img)) return;
+
+    const aspect = img.naturalWidth / img.naturalHeight;
+    const w = f.size * 2;
+    const h = w / aspect;
 
     ctx.save();
     ctx.translate(f.x, f.y);
-    if (goLeft) ctx.scale(-1, 1);
 
-    // ذيل متحرك
-    const tailWag = Math.sin(f.tailPhase || 0) * 0.4;
-    ctx.save();
-    ctx.translate(-f.size, 0);
-    ctx.rotate(tailWag);
-    ctx.fillStyle = f.color;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-f.size * 0.4, -f.size * 0.5);
-    ctx.lineTo(-f.size * 0.55, 0);
-    ctx.lineTo(-f.size * 0.4, f.size * 0.5);
-    ctx.closePath();
-    ctx.fill();
+    // الأخطبوط/المحار: ما ينقلب أبداً (رسم بزاوية ثابتة)
+    if (f.def.special === 'octopus') {
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      return;
+    }
+
+    // قلب الصورة لو السمكة تتحرك بعكس اتجاه عينيها
+    const movingRight = f.vx > 0;
+    const needsFlip = movingRight !== f.def.facesRight;
+    if (needsFlip) ctx.scale(-1, 1);
+
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
     ctx.restore();
-
-    // الجسم (ظلال)
-    const bodyGrad = ctx.createLinearGradient(0, -f.size * 0.55, 0, f.size * 0.55);
-    bodyGrad.addColorStop(0,   this._lighter(f.color, 30));
-    bodyGrad.addColorStop(0.5, f.color);
-    bodyGrad.addColorStop(1,   this._darker(f.color, 30));
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, f.size, f.size * 0.55, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // عين
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(f.size * 0.5, -f.size * 0.18, f.size * 0.22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.arc(f.size * 0.55, -f.size * 0.18, f.size * 0.10, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  _lighter(hex, a) { return this._adjust(hex, a); }
-  _darker(hex, a) { return this._adjust(hex, -a); }
-  _adjust(hex, amount) {
-    const c = hex.replace('#', '');
-    const r = Math.max(0, Math.min(255, parseInt(c.slice(0, 2), 16) + amount));
-    const g = Math.max(0, Math.min(255, parseInt(c.slice(2, 4), 16) + amount));
-    const b = Math.max(0, Math.min(255, parseInt(c.slice(4, 6), 16) + amount));
-    return `rgb(${r},${g},${b})`;
   }
 }
