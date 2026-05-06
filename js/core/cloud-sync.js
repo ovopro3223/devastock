@@ -14,6 +14,7 @@ const KEYS = [
   'devastock_season_v1',
   'devastock_game_stats',
   'devastock_school_v1',
+  'devastock_frames_v1',
 ];
 
 let _db         = null;
@@ -88,6 +89,7 @@ function _gatherLocalData() {
     season:          _parseLS('devastock_season_v1', { seasonId: '', score: 0 }),
     gameStats:       _parseLS('devastock_game_stats', {}),
     school:          _parseLS('devastock_school_v1', { unlockedGrades: [0], students: {}, lastTickAt: Date.now() }),
+    frames:          _parseLS('devastock_frames_v1', { owned: [], equipped: null }),
   };
 }
 
@@ -122,21 +124,26 @@ async function _updateLeaderboard() {
       };
     }
 
+    // الإطار المرتدى
+    const frames = _parseLS('devastock_frames_v1', { owned: [], equipped: null });
+    const equippedFrame = frames.equipped || null;
+
     await setDoc(doc(_db, 'leaderboard', _uid), {
-      displayName:  profile.name || 'لاعب مجهول',
-      avatar:       profile.avatar || '👤',
-      avatarImage:  profile.avatarImage || '',
-      score:        level,
-      totalLetters: total,
-      rankLabel:    `لفل ${level}`,
-      rankEmoji:    emoji,
-      seasonId:     season.seasonId || '',
-      seasonScore:  season.score || 0,
-      tierId:       tier.id,
-      tierLabel:    tier.label,
-      tierEmoji:    tier.emoji,
-      gameStats:    gameHighScores,
-      updatedAt:    serverTimestamp(),
+      displayName:    profile.name || 'لاعب مجهول',
+      avatar:         profile.avatar || '👤',
+      avatarImage:    profile.avatarImage || '',
+      score:          level,
+      totalLetters:   total,
+      rankLabel:      `لفل ${level}`,
+      rankEmoji:      emoji,
+      seasonId:       season.seasonId || '',
+      seasonScore:    season.score || 0,
+      tierId:         tier.id,
+      tierLabel:      tier.label,
+      tierEmoji:      tier.emoji,
+      gameStats:      gameHighScores,
+      equippedFrame:  equippedFrame,
+      updatedAt:      serverTimestamp(),
     }, { merge: true });
   } catch (e) {
     // صامت
@@ -209,6 +216,7 @@ export async function pullFromCloud(db, uid) {
       if (data.season)    setState('season_v1', data.season);
       if (data.gameStats) setState('game_stats', data.gameStats);
       if (data.school)    setState('school_v1', data.school);
+      if (data.frames)    setState('frames_v1', data.frames);
 
       if (data.profileUnlocked === true) {
         setState('profile_unlocked', true);

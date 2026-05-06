@@ -184,15 +184,14 @@
 .home-lb-avatar {
   width: 38px;
   height: 38px;
-  border-radius: 50%;
-  background: rgba(255, 215, 0, 0.15);
-  display: flex;
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.home-lb-avatar > .avatar-inner {
   font-size: 1.2rem;
-  object-fit: cover;
-  border: 1.5px solid rgba(255, 215, 0, 0.3);
-  flex-shrink: 0;
 }
 
 .home-lb-info {
@@ -409,6 +408,13 @@ body.in-game .topnav-container {
   border-radius: 50%;
   object-fit: cover;
   border: 1.5px solid rgba(255, 215, 0, 0.7);
+}
+
+.auth-avatar-wrap {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
 }
 
 .auth-emoji,

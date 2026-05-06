@@ -1,5 +1,6 @@
 // ===== واجهة تسجيل الدخول/الخروج =====
 import { signInWithGoogle, signOutUser } from './firebase.js';
+import { renderAvatarHtml } from './avatar-helper.js';
 
 let _currentUser = null;
 
@@ -11,19 +12,40 @@ export function renderAuthButton(user) {
   _currentUser = user;
 
   if (user) {
-    // مسجل دخول
-    const name = user.displayName?.split(' ')[0] ?? 'لاعب';
+    // الاسم من البروفايل (مش من Google)
+    let name = 'لاعب';
+    let fullName = user.displayName || 'لاعب';
+    try {
+      const profileRaw = localStorage.getItem('devastock_profile');
+      if (profileRaw) {
+        const p = JSON.parse(profileRaw);
+        if (p && p.name) {
+          fullName = p.name;
+          name = p.name.split(' ')[0];
+        } else if (user.displayName) {
+          name = user.displayName.split(' ')[0];
+        }
+      } else if (user.displayName) {
+        name = user.displayName.split(' ')[0];
+      }
+    } catch {
+      if (user.displayName) name = user.displayName.split(' ')[0];
+    }
+
     const photo = user.photoURL;
-    btn.innerHTML = photo
-      ? `<img class="auth-avatar" src="${photo}" alt="${name}"><span class="auth-name">${name}</span>`
-      : `<span class="auth-emoji">👤</span><span class="auth-name">${name}</span>`;
+    const avatarHtml = `<span class="auth-avatar-wrap">${renderAvatarHtml({
+      avatarImage: photo,
+      avatarEmoji: '👤',
+      isSelf: true,
+    })}</span>`;
+    btn.innerHTML = `${avatarHtml}<span class="auth-name">${name}</span>`;
     btn.classList.add('logged-in');
     btn.title = 'اضغط لفتح القائمة';
 
     dropdown.hidden = true;
 
     const userNameEl = dropdown.querySelector('.auth-user-name');
-    if (userNameEl) userNameEl.textContent = user.displayName ?? 'لاعب';
+    if (userNameEl) userNameEl.textContent = fullName;
 
     btn.onclick = (e) => {
       e.stopPropagation();

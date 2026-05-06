@@ -9,6 +9,7 @@ import { signInWithGoogle, getPlayers, getFriends, getIncomingRequests,
 import { canAffordText, spendForText } from '../core/storage.js';
 import { incrementCounter } from '../core/achievements.js';
 import { getSeasonState, getSeasonLabel } from '../core/seasons.js';
+import { renderAvatarHtml } from '../core/avatar-helper.js';
 
 let _chatListenerUnsub = null;
 let _chatPartnerUid = null;
@@ -281,9 +282,12 @@ function renderSeasonLeaderboard() {
 
   list.innerHTML = seasonPlayers.slice(0, 50).map((p, i) => {
     const isSelf = _currentUser && p.uid === _currentUser.uid;
-    const avatarHtml = p.avatarImage
-      ? `<img class="community-player-avatar" src="${p.avatarImage}" alt="Avatar">`
-      : `<div class="community-player-avatar">${p.avatar || p.rankEmoji}</div>`;
+    const avatarHtml = renderAvatarHtml({
+      avatarImage: p.avatarImage,
+      avatarEmoji: p.avatar || p.rankEmoji,
+      frameId: p.equippedFrame,
+      wrapperClass: 'community-player-avatar',
+    });
     return `
       <div class="community-player-card${isSelf ? ' is-self' : ''}" onclick="window._viewProfile('${p.uid}')">
         <div class="leaderboard-rank-num">${i + 1}</div>
@@ -335,9 +339,12 @@ function renderAllPlayers() {
       buttonHTML = `<button class="community-player-button" onclick="window._addFriend('${player.uid}', '${player.displayName}')">أضف</button>`;
     }
 
-    const avatarHtml = player.avatarImage
-      ? `<img class="community-player-avatar" src="${player.avatarImage}" alt="Avatar">`
-      : `<div class="community-player-avatar">${player.avatar || player.rankEmoji}</div>`;
+    const avatarHtml = renderAvatarHtml({
+      avatarImage: player.avatarImage,
+      avatarEmoji: player.avatar || player.rankEmoji,
+      frameId: player.equippedFrame,
+      wrapperClass: 'community-player-avatar',
+    });
 
     return `
       <div class="community-player-card" onclick="window._viewProfile('${player.uid}')">
@@ -370,9 +377,12 @@ function renderFriends() {
   }
 
   container.innerHTML = filtered.map(friend => {
-    const avatarHtml = friend.avatarImage
-      ? `<img class="community-player-avatar" src="${friend.avatarImage}" alt="Avatar">`
-      : `<div class="community-player-avatar">${friend.avatar || friend.rankEmoji}</div>`;
+    const avatarHtml = renderAvatarHtml({
+      avatarImage: friend.avatarImage,
+      avatarEmoji: friend.avatar || friend.rankEmoji,
+      frameId: friend.equippedFrame,
+      wrapperClass: 'community-player-avatar',
+    });
     return `
       <div class="community-player-card" onclick="window._viewProfile('${friend.uid}')">
         ${avatarHtml}
@@ -416,7 +426,15 @@ function renderRequests() {
 window._addFriend = async function(toUid, toName) {
   if (!_currentUser) return;
 
-  const fromName = _currentUser.displayName || 'لاعب';
+  // الاسم من البروفايل مش من Google
+  let fromName = _currentUser.displayName || 'لاعب';
+  try {
+    const profileRaw = localStorage.getItem('devastock_profile');
+    if (profileRaw) {
+      const p = JSON.parse(profileRaw);
+      if (p && p.name) fromName = p.name;
+    }
+  } catch {}
   const success = await sendFriendRequest(_currentUser.uid, toUid, fromName);
   if (success) {
     _markRequestSent(_currentUser.uid, toUid);
@@ -488,9 +506,11 @@ window._viewProfile = async function(uid) {
     }
   }
 
-  const avatarHtml = profile.avatarImage
-    ? `<div class="player-profile-avatar"><img src="${profile.avatarImage}" alt="Avatar"></div>`
-    : `<div class="player-profile-avatar player-profile-avatar-emoji">${profile.avatar}</div>`;
+  const avatarHtml = `<div class="player-profile-avatar">${renderAvatarHtml({
+    avatarImage: profile.avatarImage,
+    avatarEmoji: profile.avatar,
+    frameId: profile.equippedFrame,
+  })}</div>`;
 
   content.innerHTML = `
     ${avatarHtml}

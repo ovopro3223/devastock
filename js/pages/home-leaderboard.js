@@ -1,6 +1,7 @@
 // ===== لوحة المتصدرين — modal يُفتح من بطاقة "المتصدرين" بالقائمة الرئيسية =====
 import { getPlayers } from '../core/firebase.js';
 import { getSeasonState } from '../core/seasons.js';
+import { renderAvatarHtml } from '../core/avatar-helper.js';
 
 let _allPlayers = [];
 let _loaded = false;
@@ -133,9 +134,12 @@ function _render() {
   list.innerHTML = top.map((p, i) => {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-    const avatarHtml = p.avatarImage
-      ? `<img class="home-lb-avatar" src="${p.avatarImage}" alt="">`
-      : `<div class="home-lb-avatar">${p.avatar || '👤'}</div>`;
+    const avatarHtml = renderAvatarHtml({
+      avatarImage: p.avatarImage,
+      avatarEmoji: p.avatar,
+      frameId: p.equippedFrame,
+      wrapperClass: 'home-lb-avatar',
+    });
     return `
       <div class="home-lb-row" onclick="window._viewProfile && window._viewProfile('${p.uid}')">
         <div class="home-lb-rank ${rankClass}">${rankIcon}</div>

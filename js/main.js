@@ -13,6 +13,7 @@ import { initTrade, renderTrade } from './pages/trade.js';
 import { initHomeLeaderboard, refreshHomeLeaderboard } from './pages/home-leaderboard.js';
 import { initSchool, renderSchool, stopSchoolRefresh } from './pages/school.js';
 import { tickIncome } from './core/school-storage.js';
+import { initFrames, renderFrames } from './pages/frames.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -23,7 +24,7 @@ const PAGE_IDS = [
   'home', 'menu', 'modes', 'letter-rain', 'letter-blaze',
   'stock', 'museum', 'museum-cat', 'profile', 'community', 'forum', 'casino',
   'taxi', 'fishing', 'sniper', 'settings', 'achievements', 'challenges', 'trade',
-  'school',
+  'school', 'frames',
 ];
 
 const GAME_PAGES = ['letter-rain', 'letter-blaze', 'taxi', 'fishing', 'sniper'];
@@ -43,6 +44,7 @@ const BACK_TARGETS = {
   challenges: 'menu',
   trade: 'menu',
   school: 'menu',
+  frames: 'menu',
   casino: 'modes',
   taxi: 'modes',
   fishing: 'modes',
@@ -67,6 +69,7 @@ export function showPage(pageId) {
   if (pageId === 'trade') renderTrade();
   if (pageId === 'school') renderSchool();
   else stopSchoolRefresh();
+  if (pageId === 'frames') renderFrames();
   document.dispatchEvent(new CustomEvent('page-show', { detail: pageId }));
 
   // تحديث زر التنقل العلوي
@@ -106,6 +109,7 @@ initAchievements();
 initTrade();
 initHomeLeaderboard();
 initSchool(showPage);
+initFrames(showPage);
 
 // تنفيذ tick أولي عند فتح التطبيق — يحسب الإنتاج التلقائي حتى أوفلاين
 tickIncome();

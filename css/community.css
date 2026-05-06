@@ -195,20 +195,20 @@
 .community-player-avatar {
   width: 54px;
   height: 54px;
-  border-radius: 50%;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  background: rgba(255,255,255,0.08);
-  color: var(--color-gold);
-  font-size: 1.3rem;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.community-player-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.community-player-avatar > .avatar-inner {
+  font-size: 1.3rem;
+  color: var(--color-gold);
+}
+
+/* بدون إطار — حد ذهبي خفيف */
+.community-player-avatar:not(.has-frame) > .avatar-inner {
+  background: rgba(255,255,255,0.08);
 }
 
 .community-player-score {
@@ -868,24 +868,16 @@
 }
 
 .player-profile-avatar {
-  width: 96px;
-  height: 96px;
+  width: 110px;
+  height: 110px;
   margin: 0 auto 0.8rem;
-  border-radius: 50%;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.player-profile-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.player-profile-avatar-emoji {
-  font-size: 2.5rem;
+.player-profile-avatar > .avatar-frame-wrap > .avatar-inner {
+  font-size: 2.8rem;
   color: var(--color-gold);
 }
 

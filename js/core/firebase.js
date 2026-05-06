@@ -97,6 +97,7 @@ export async function getPlayers() {
         tierLabel:   data.tierLabel || 'برونزي',
         tierEmoji:   data.tierEmoji || '🥉',
         gameStats:   data.gameStats || {},
+        equippedFrame: data.equippedFrame || null,
       });
     });
     return players.sort((a, b) => b.score - a.score); // مرتب حسب الدرجة
@@ -126,6 +127,7 @@ export async function getFriends(uid) {
           score: friendData.score || 0,
           rankEmoji: friendData.rankEmoji || '🌱',
           rankLabel: friendData.rankLabel || 'مبتدئ',
+          equippedFrame: friendData.equippedFrame || null,
         });
       }
     }
@@ -271,6 +273,7 @@ export async function getPlayerProfile(uid) {
       totalLetters: lbData.totalLetters || 0,
       rankEmoji: lbData.rankEmoji || '🌱',
       rankLabel: lbData.rankLabel || 'لفل 1',
+      equippedFrame: lbData.equippedFrame || null,
       profile,
       friends: userData.friends || [],
     };

@@ -41,6 +41,7 @@
   <link rel="stylesheet" href="css/challenges.css">
   <link rel="stylesheet" href="css/trade.css">
   <link rel="stylesheet" href="css/school.css">
+  <link rel="stylesheet" href="css/frames.css">
 </head>
 <body>
 
@@ -137,6 +138,10 @@
             <button id="btn-school-menu" class="menu-card menu-card-school">
               <span class="menu-card-icon">🎓</span>
               <span class="menu-card-label">المدرسة</span>
+            </button>
+            <button id="btn-frames-menu" class="menu-card menu-card-frames">
+              <span class="menu-card-icon">🖼</span>
+              <span class="menu-card-label">الإطارات</span>
             </button>
             <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
               <span class="menu-card-icon">🎖</span>
@@ -880,6 +885,33 @@
       </div>
 
       <button class="trade-confirm-btn" id="trade-confirm-btn" disabled>اختر حرفين وكمية</button>
+    </div>
+  </section>
+
+  <!-- ===== متجر الإطارات 🖼 ===== -->
+  <section id="page-frames" class="page">
+    <div class="frames-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">🖼 متجر الإطارات</h2>
+
+      <div class="frames-summary">
+        <div class="frames-summary-card">
+          <div class="frames-summary-label">الحالي</div>
+          <div class="frames-summary-value" id="frames-current">بدون إطار</div>
+        </div>
+        <div class="frames-summary-card">
+          <div class="frames-summary-label">رصيدك</div>
+          <div class="frames-summary-value" id="frames-balance">0</div>
+        </div>
+      </div>
+
+      <div class="frames-tabs">
+        <button class="frames-tab active" data-frames-tab="all">الكل</button>
+        <button class="frames-tab" data-frames-tab="owned">✅ مملوكة</button>
+        <button class="frames-tab" data-frames-tab="locked">🔒 مغلقة</button>
+      </div>
+
+      <div class="frames-grid" id="frames-grid"></div>
     </div>
   </section>
 
