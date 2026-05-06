@@ -1,0 +1,190 @@
+/* ===== لوحة الأدمن ===== */
+.admin-open-btn {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  height: 38px;
+  background: linear-gradient(135deg, #E74C3C, #8E1F1F);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 14px rgba(231, 76, 60, 0.4);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.admin-open-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+}
+
+.admin-open-btn:active {
+  transform: scale(0.95);
+}
+
+/* مودال الأدمن */
+.admin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.admin-modal[hidden] { display: none; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.admin-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.admin-modal-box {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  border-radius: 20px;
+  padding: 1.2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: modalSlideUp 0.25s ease;
+}
+
+.admin-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.admin-modal-close:hover {
+  background: rgba(231, 76, 60, 0.7);
+}
+
+.admin-modal-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #FF8A80;
+  text-align: center;
+  margin-bottom: 1rem;
+  padding-right: 2.2rem;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--font);
+}
+
+.admin-field > span {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-dim);
+}
+
+.admin-field select,
+.admin-field input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.admin-field select:focus,
+.admin-field input:focus {
+  border-color: rgba(231, 76, 60, 0.7);
+}
+
+.admin-send-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #E74C3C, #C0392B);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 0.4rem;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.admin-send-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.5);
+}
+
+.admin-send-btn:active {
+  transform: scale(0.97);
+}
+
+.admin-result {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.5rem;
+  border-radius: 8px;
+  min-height: 1.5em;
+}
+
+.admin-result.success {
+  background: rgba(46, 204, 113, 0.18);
+  color: #6FE7A1;
+}
+
+.admin-result.error {
+  background: rgba(231, 76, 60, 0.18);
+  color: #FF8A80;
+}
+
+.admin-result.pending {
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--color-gold);
+}

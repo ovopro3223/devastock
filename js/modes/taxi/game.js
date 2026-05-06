@@ -278,26 +278,30 @@ export class TaxiGame {
     const lw = this._laneWidth();
     const roadLeft = (this.W - lw * NUM_LANES) / 2;
     const roadRight = roadLeft + lw * NUM_LANES;
-    if (Math.random() < 0.7) {
-      // ديكور جانبي خارج الطريق — مبنى أو لافتة
+    if (Math.random() < 0.75) {
+      // ديكور جانبي خارج الطريق فقط — مبنى أو لافتة أو إشارة مرور (كلها على الأطراف)
       const side = Math.random() < 0.5 ? 'left' : 'right';
-      const kind = Math.random() < 0.65 ? 'building' : 'sign';
+      const r = Math.random();
+      let kind;
+      if (r < 0.55) kind = 'building';
+      else if (r < 0.80) kind = 'sign';
+      else kind = 'traffic-light';
       const variant = kind === 'building' ? Math.floor(Math.random() * ASSETS.buildings.length) : 0;
-      // المبنى أكبر فيحتاج موضعاً قريباً من الطريق، اللافتة أصغر
+      // المسافة عن الطريق حسب نوع الديكور
       const offset = kind === 'building'
         ? 90 + Math.random() * 60
-        : 30 + Math.random() * 40;
+        : kind === 'sign'
+          ? 25 + Math.random() * 25
+          : 35 + Math.random() * 25;  // traffic-light قريب من الطريق
       const fixedX = side === 'left'
-        ? Math.max(60, roadLeft - offset)
-        : Math.min(this.W - 60, roadRight + offset);
+        ? Math.max(50, roadLeft - offset)
+        : Math.min(this.W - 50, roadRight + offset);
       this.trees.push({ kind, variant, fixedX, y: -200, onRoad: false });
     } else {
-      // عقبة على الطريق — سيارة منافسة أو إشارة مرور
-      const isLight = Math.random() < 0.2;
-      const kind = isLight ? 'traffic-light' : 'car';
-      const variant = kind === 'car' ? Math.floor(Math.random() * ASSETS.cars.length) : 0;
+      // عقبة وحيدة على الطريق: سيارة منافسة فقط
+      const variant = Math.floor(Math.random() * ASSETS.cars.length);
       const lane = Math.floor(Math.random() * NUM_LANES);
-      this.trees.push({ kind, variant, lane, y: -60, onRoad: true, hit: false });
+      this.trees.push({ kind: 'car', variant, lane, y: -60, onRoad: true, hit: false });
     }
   }
 
@@ -389,11 +393,21 @@ export class TaxiGame {
     for (const t of this.trees) {
       if (!t.onRoad || t.hit) continue;
       const tx = this._laneCenter(t.lane);
-      if (Math.abs(tx - this.car.x) < carHalfW + objR * 0.6 &&
-          t.y + objR >= carTop && t.y - objR <= carBottom) {
+      // تصادم أدق: لازم يكون فعلاً تداخل في الجسمين (مش مجرد لمسة طرفية)
+      // المسافة الأفقية بين المركزين أقل من 60% من مجموع نصفي العرضين
+      // والتداخل العمودي على الأقل 30% من ارتفاع السيارة
+      const horizontalOverlap = Math.abs(tx - this.car.x) < (carHalfW + objR) * 0.55;
+      const verticalOverlap   = (t.y + objR * 0.7) >= carTop && (t.y - objR * 0.7) <= carBottom;
+      if (horizontalOverlap && verticalOverlap) {
         t.hit = true;
         this.lives--;
         playLoseLifeSound();
+        // اهتزاز التلفون عند التصادم
+        try {
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([60, 30, 80]);
+          }
+        } catch {}
         this._updateHUD();
         this.car.vx *= -0.5;
         if (this.lives <= 0) { this._gameOver(); return; }
@@ -421,9 +435,11 @@ export class TaxiGame {
     this.trees   = this.trees.filter(t => t.y < this.H + 80);
     this.items   = this.items.filter(i => i.y < this.H + 80 && !i.collected);
 
-    if (this.scrollY % 2500 < this.speed) {
-      this.speed = Math.min(4.5, this.speed + 0.08);
-    }
+    // ===== سرعة تصاعدية مستمرة =====
+    // تبدأ 1.9 وترتفع تدريجياً مع مسافة القيادة، حد أقصى 9.0
+    const baseSpeed = 1.9;
+    const speedFromDistance = this.scrollY / 4000;  // كل 4000 بكسل +1 سرعة
+    this.speed = Math.min(9.0, baseSpeed + speedFromDistance);
   }
 
   _draw() {

@@ -1,12 +1,14 @@
 /* ===== صفحة التحديات ===== */
 #page-challenges {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .challenges-container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 20px 4rem;  /* مساحة سفلية إضافية عشان آخر تحدي يبيّن كامل */
   color: #fff;
 }
 

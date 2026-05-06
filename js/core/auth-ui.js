@@ -33,11 +33,12 @@ export function renderAuthButton(user) {
     }
 
     const photo = user.photoURL;
-    const avatarHtml = `<span class="auth-avatar-wrap">${renderAvatarHtml({
+    const avatarHtml = renderAvatarHtml({
       avatarImage: photo,
       avatarEmoji: '👤',
       isSelf: true,
-    })}</span>`;
+      wrapperClass: 'auth-avatar-wrap',
+    });
     btn.innerHTML = `${avatarHtml}<span class="auth-name">${name}</span>`;
     btn.classList.add('logged-in');
     btn.title = 'اضغط لفتح القائمة';

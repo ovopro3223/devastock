@@ -7,22 +7,30 @@ const STATE_KEY = 'school_v1';
 
 // شكل الحالة:
 // {
-//   unlockedGrades: [0, 1, 2, ...],            // مصفوفة معرّفات الصفوف المفتوحة
-//   students: { [name]: { gradeId } },          // الطلاب المفتوحون وصفهم
+//   unlockedGrades: [0, 1, 2, ...],            // معرّفات الصفوف المفتوحة
+//   students: { [name]: { gradeId } },          // الطلاب المفتوحون
 //   lastTickAt: timestamp ms,                   // آخر مرة جمعنا الإنتاج
+//   applicants: [name, ...],                    // طلاب يطلبون القبول حالياً
+//   lastApplicantAt: timestamp ms,              // آخر مرة ولد طالب جديد
 // }
+
+const APPLICANT_INTERVAL_MS = 25 * 60 * 1000; // كل 25 دقيقة طالب جديد
+const MAX_APPLICANTS_QUEUE = 5;                // حد أقصى للطلبات المنتظرة
 
 function _load() {
   const def = {
-    unlockedGrades: [0],   // الروضة مفتوحة افتراضياً
+    unlockedGrades: [0],
     students: {},
     lastTickAt: Date.now(),
+    applicants: [],
+    lastApplicantAt: Date.now(),
   };
   const raw = getState(STATE_KEY, def);
-  // احتياط: تأكد من البنية
   if (!Array.isArray(raw.unlockedGrades) || raw.unlockedGrades.length === 0) raw.unlockedGrades = [0];
   if (!raw.students || typeof raw.students !== 'object') raw.students = {};
   if (!raw.lastTickAt) raw.lastTickAt = Date.now();
+  if (!Array.isArray(raw.applicants)) raw.applicants = [];
+  if (!raw.lastApplicantAt) raw.lastApplicantAt = Date.now();
   return raw;
 }
 
@@ -189,6 +197,94 @@ export function tickIncome() {
   _save(state);
 
   return { lettersAdded: granted, hoursElapsed: hours };
+}
+
+// ===== الطلاب الذين يطلبون القبول =====
+export function getApplicants() {
+  return _load().applicants.slice();
+}
+
+// توليد طلاب جدد بناءً على الزمن المنقضي (يُستدعى عند فتح المدرسة + كل refresh)
+// يرجع عدد الطلاب الجدد المُنشَأين
+export function tickApplicants() {
+  const state = _load();
+  const now = Date.now();
+  const elapsed = now - (state.lastApplicantAt || now);
+  const possible = Math.floor(elapsed / APPLICANT_INTERVAL_MS);
+  if (possible <= 0) return 0;
+
+  // أسماء غير مفتوحة وغير موجودة بقائمة المتقدمين
+  const available = NAMES.filter(n =>
+    !state.students[n] && !state.applicants.includes(n)
+  );
+
+  let added = 0;
+  for (let i = 0; i < possible && added < MAX_APPLICANTS_QUEUE; i++) {
+    if (state.applicants.length >= MAX_APPLICANTS_QUEUE) break;
+    if (available.length === 0) break;
+    const idx = Math.floor(Math.random() * available.length);
+    const name = available.splice(idx, 1)[0];
+    state.applicants.push(name);
+    added++;
+  }
+  state.lastApplicantAt = now;
+  _save(state);
+  return added;
+}
+
+// قبول طالب من قائمة المتقدمين (يخصم نفس تكلفة الطالب العادي)
+// إذا في مكان فاضي → يضاف مباشرة
+// إذا الصفوف ممتلئة → يحتاج replaceWithStudent (اسم طالب يطلع منه)
+export function acceptApplicant(name, replaceTarget = null) {
+  const state = _load();
+  const idx = state.applicants.indexOf(name);
+  if (idx === -1) return { ok: false, reason: 'not_applicant' };
+  if (state.students[name]) return { ok: false, reason: 'already_enrolled' };
+
+  let placement = _findOpenSlot(state);
+
+  // لو لازم نبدّل
+  if (placement === null) {
+    if (!replaceTarget) return { ok: false, reason: 'no_capacity' };
+    if (!state.students[replaceTarget]) return { ok: false, reason: 'invalid_replace' };
+    placement = state.students[replaceTarget].gradeId;
+  }
+
+  // تحقق من توفر الحروف (20 من كل حرف فريد بالاسم)
+  const cost = getStudentCost(name);
+  const stock = getStock();
+  for (const [letter, count] of Object.entries(cost)) {
+    if ((stock[letter] || 0) < count) {
+      return { ok: false, reason: 'not_enough_letters', missing: letter, need: count, have: stock[letter] || 0 };
+    }
+  }
+
+  // اخصم الحروف، اطرد البديل، أضف الطالب الجديد
+  spendLetters(cost);
+  if (replaceTarget) delete state.students[replaceTarget];
+  state.applicants.splice(idx, 1);
+  state.students[name] = { gradeId: placement };
+  _save(state);
+  return { ok: true, gradeId: placement };
+}
+
+// رفض طالب متقدم (يطلع من قائمة المتقدمين)
+export function rejectApplicant(name) {
+  const state = _load();
+  const idx = state.applicants.indexOf(name);
+  if (idx === -1) return { ok: false, reason: 'not_applicant' };
+  state.applicants.splice(idx, 1);
+  _save(state);
+  return { ok: true };
+}
+
+// فصل طالب من المدرسة (يطلع، يتاح اسمه للقبول مرة ثانية)
+export function expelStudent(name) {
+  const state = _load();
+  if (!state.students[name]) return { ok: false, reason: 'not_enrolled' };
+  delete state.students[name];
+  _save(state);
+  return { ok: true };
 }
 
 // ===== إنتاج المدرسة بالساعة (إجمالي حالي) =====

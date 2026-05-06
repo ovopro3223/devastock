@@ -511,6 +511,135 @@
   transform: scale(0.96);
 }
 
+/* ===== لوحة طلبات الالتحاق ===== */
+.school-applicants-panel {
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(33, 150, 243, 0.08));
+  border: 1px solid rgba(46, 204, 113, 0.5);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  animation: schoolBannerSlide 0.4s ease;
+}
+
+.school-applicants-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #5DD3D3;
+}
+
+.school-applicants-icon {
+  font-size: 1.2rem;
+}
+
+.school-applicants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.school-applicant-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+
+.school-applicant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.school-applicant-name {
+  font-weight: 800;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.school-applicant-cost {
+  font-size: 0.72rem;
+  color: var(--color-dim);
+}
+
+.school-applicant-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.school-applicant-btn {
+  padding: 0.35rem 0.7rem;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+
+.school-applicant-btn.accept {
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  color: #fff;
+}
+.school-applicant-btn.accept:hover {
+  transform: scale(1.04);
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+}
+
+.school-applicant-btn.reject {
+  background: rgba(231, 76, 60, 0.7);
+  color: #fff;
+}
+.school-applicant-btn.reject:hover {
+  background: rgba(231, 76, 60, 0.9);
+}
+
+/* زر فصل الطالب على الـchip */
+.school-student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.school-student-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.school-student-expel {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(231, 76, 60, 0.4);
+  border: 1px solid rgba(231, 76, 60, 0.6);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.school-student-expel:hover {
+  background: rgba(231, 76, 60, 0.85);
+  transform: scale(1.1);
+}
+
 /* بطاقة المدرسة بالقائمة */
 .menu-card-school .menu-card-icon {
   filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.4));

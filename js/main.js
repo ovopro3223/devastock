@@ -14,6 +14,7 @@ import { initHomeLeaderboard, refreshHomeLeaderboard } from './pages/home-leader
 import { initSchool, renderSchool, stopSchoolRefresh } from './pages/school.js';
 import { tickIncome } from './core/school-storage.js';
 import { initFrames, renderFrames } from './pages/frames.js';
+import { initAdmin } from './pages/admin.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -110,6 +111,7 @@ initTrade();
 initHomeLeaderboard();
 initSchool(showPage);
 initFrames(showPage);
+initAdmin();
 
 // تنفيذ tick أولي عند فتح التطبيق — يحسب الإنتاج التلقائي حتى أوفلاين
 tickIncome();

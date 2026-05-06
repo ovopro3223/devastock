@@ -1,10 +1,26 @@
 // ===== صفحة المنتدى =====
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { signInWithGoogle, createForumPost, deleteForumPost, listenForForumPosts, listenForForumComments,
-         listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost, getPlayerProfile } from '../core/firebase.js';
+         listenForForumLikes, addForumComment, likeForumPost, unlikeForumPost, getPlayerProfile,
+         getPlayers } from '../core/firebase.js';
 import { canAffordText, spendForText } from '../core/storage.js';
 import { incrementCounter } from '../core/achievements.js';
 import { getProfile } from '../core/profile-storage.js';
+import { renderAvatarHtml } from '../core/avatar-helper.js';
+
+// 10 أقسام عامة
+export const FORUM_CATEGORIES = [
+  { id: 'all',         label: '🏠 الرئيسية',  emoji: '🏠' },
+  { id: 'general',     label: '📂 عام',        emoji: '📂' },
+  { id: 'questions',   label: '❓ أسئلة',     emoji: '❓' },
+  { id: 'suggestions', label: '💡 اقتراحات',  emoji: '💡' },
+  { id: 'lifestyle',   label: '🌿 حياة',       emoji: '🌿' },
+  { id: 'tech',        label: '💻 تقنية',      emoji: '💻' },
+  { id: 'culture',     label: '📚 ثقافة',      emoji: '📚' },
+  { id: 'sports',      label: '⚽ رياضة',      emoji: '⚽' },
+  { id: 'free',        label: '💬 نقاش حر',    emoji: '💬' },
+  { id: 'news',        label: '📰 أخبار',      emoji: '📰' },
+];
 
 function _displayName() {
   const p = getProfile();
@@ -19,6 +35,36 @@ let _postComments = {};
 let _postLikes = {};
 let _forumMetaUnsub = [];
 let _initialized = false;
+let _activeCategory = 'all';
+
+// كاش أسماء اللاعبين الحالية (uid → currentDisplayName) — يُحدث من leaderboard
+const _nameCache = {};
+let _nameCacheLoaded = false;
+
+async function _loadNameCache() {
+  if (_nameCacheLoaded) return;
+  try {
+    const players = await getPlayers();
+    for (const p of players) {
+      _nameCache[p.uid] = {
+        name: p.displayName,
+        avatar: p.avatar,
+        avatarImage: p.avatarImage,
+        rankEmoji: p.rankEmoji,
+        rankTitle: p.rankTitle,
+        rankColor: p.rankColor,
+        equippedFrame: p.equippedFrame,
+      };
+    }
+    _nameCacheLoaded = true;
+  } catch {}
+}
+
+// يرجع أحدث اسم لمستخدم (من cache leaderboard)، fallback لـauthorName المخزن
+function _resolveAuthor(authorUid, fallbackName) {
+  const cached = _nameCache[authorUid];
+  return cached?.name || fallbackName || 'لاعب';
+}
 
 export function initForum(navigate) {
   if (_initialized) return;
@@ -28,20 +74,35 @@ export function initForum(navigate) {
   const forumForm = document.getElementById('forum-post-form');
   const loginBtn = document.getElementById('forum-login-btn');
 
+  // املأ dropdown الأقسام للنشر (بدون "الرئيسية")
+  const sel = document.getElementById('forum-post-category');
+  if (sel) {
+    sel.innerHTML = FORUM_CATEGORIES
+      .filter(c => c.id !== 'all')
+      .map(c => `<option value="${c.id}">${c.label}</option>`)
+      .join('');
+    sel.value = 'general';
+  }
+
+  // اعرض شريط الأقسام للفلترة
+  _renderCategories();
+
   if (forumForm) {
     forumForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!_currentUser) return;
       const textarea = document.getElementById('forum-post-input');
+      const select   = document.getElementById('forum-post-category');
       if (!textarea) return;
       const content = textarea.value.trim();
       if (!content) return;
+      const category = select?.value || 'general';
       const check = canAffordText(content);
       if (!check.ok) {
         alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
         return;
       }
-      const result = await createForumPost(_currentUser.uid, _displayName(), content);
+      const result = await createForumPost(_currentUser.uid, _displayName(), content, category);
       if (result?.success) {
         spendForText(content);
         incrementCounter('forum_posts_created');
@@ -49,7 +110,7 @@ export function initForum(navigate) {
         renderForumPosts();
       } else {
         console.error('Forum post error:', result?.error);
-        alert(`تعذَّر إنشاء الموضوع، حاول مرة أخرى.\n${result?.error || ''}`);
+        alert(`تعذَّر إنشاء الموضوع، حاول مرة أخرى.\n${result?.error || ''}`);
       }
     });
   }
@@ -63,24 +124,41 @@ export function initForum(navigate) {
     updateForumAuthState();
   });
 
-  listenForForumPosts((posts) => {
-    _posts = posts;
-    _subscribeForumMeta(posts);
-    renderForumPosts();
+  // حمّل cache الأسماء (من leaderboard) ثم استمع للمنشورات
+  _loadNameCache().then(() => {
+    listenForForumPosts((posts) => {
+      _posts = posts;
+      _subscribeForumMeta(posts);
+      renderForumPosts();
+    });
+  });
+}
+
+function _renderCategories() {
+  const container = document.getElementById('forum-categories');
+  if (!container) return;
+  container.innerHTML = FORUM_CATEGORIES.map(c => `
+    <button class="forum-cat-tab ${c.id === _activeCategory ? 'active' : ''}" data-cat="${c.id}">
+      ${c.label}
+    </button>
+  `).join('');
+  container.querySelectorAll('.forum-cat-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _activeCategory = btn.dataset.cat;
+      _renderCategories();
+      renderForumPosts();
+    });
   });
 }
 
 function updateForumAuthState() {
-  const userLabel = document.getElementById('forum-user-label');
   const loginPrompt = document.getElementById('forum-login-prompt');
   const createPanel = document.getElementById('forum-create-panel');
 
   if (_currentUser) {
-    if (userLabel) userLabel.textContent = _displayName();
     if (loginPrompt) loginPrompt.hidden = true;
     if (createPanel) createPanel.hidden = false;
   } else {
-    if (userLabel) userLabel.textContent = 'ضيف';
     if (loginPrompt) loginPrompt.hidden = false;
     if (createPanel) createPanel.hidden = true;
   }
@@ -110,29 +188,49 @@ function renderForumPosts() {
   const container = document.getElementById('forum-posts-list');
   if (!container) return;
 
-  if (_posts.length === 0) {
+  // فلترة حسب القسم النشط
+  const filtered = _activeCategory === 'all'
+    ? _posts
+    : _posts.filter(p => (p.category || 'general') === _activeCategory);
+
+  if (filtered.length === 0) {
+    const catLabel = FORUM_CATEGORIES.find(c => c.id === _activeCategory)?.label || '';
     container.innerHTML = `
       <div class="forum-empty">
         <div class="forum-empty-emoji">📝</div>
-        <div>لا توجد منشورات بعد. كن أول من يشارك!</div>
+        <div>لا توجد منشورات في ${catLabel}. كن أول من يشارك!</div>
       </div>
     `;
     return;
   }
 
-  container.innerHTML = _posts.map(post => {
+  container.innerHTML = filtered.map(post => {
     const comments = _postComments[post.id] || [];
     const likes = _postLikes[post.id] || [];
     const liked = _currentUser ? likes.includes(_currentUser.uid) : false;
     const canComment = Boolean(_currentUser);
     const dateLabel = post.createdAt.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' });
 
-    const commentHtml = comments.length > 0 ? comments.map(comment => `
-      <div class="forum-comment">
-        <div class="forum-comment-author forum-clickable" onclick="window._viewForumProfile('${comment.authorUid}')">${escapeHTML(comment.authorName)}</div>
-        <div class="forum-comment-text">${escapeHTML(comment.content)}</div>
-      </div>
-    `).join('') : `<div class="forum-comment-empty">لا توجد تعليقات بعد.</div>`;
+    // اسم المؤلف الحالي من cache leaderboard
+    const cached = _nameCache[post.authorUid];
+    const displayName = _resolveAuthor(post.authorUid, post.authorName);
+    const titleColor = cached?.rankColor || '#FFD700';
+    const rankEmoji = cached?.rankEmoji || '';
+
+    const catObj = FORUM_CATEGORIES.find(c => c.id === (post.category || 'general'));
+    const catBadge = catObj && catObj.id !== 'general'
+      ? `<span class="forum-post-cat-badge">${catObj.label}</span>`
+      : '';
+
+    const commentHtml = comments.length > 0 ? comments.map(comment => {
+      const cName = _resolveAuthor(comment.authorUid, comment.authorName);
+      return `
+        <div class="forum-comment">
+          <div class="forum-comment-author forum-clickable" onclick="window._viewForumProfile('${comment.authorUid}')">${escapeHTML(cName)}</div>
+          <div class="forum-comment-text">${escapeHTML(comment.content)}</div>
+        </div>
+      `;
+    }).join('') : `<div class="forum-comment-empty">لا توجد تعليقات بعد.</div>`;
 
     const isAuthor = _currentUser && post.authorUid === _currentUser.uid;
     const actionsHtml = `
@@ -147,14 +245,22 @@ function renderForumPosts() {
       </div>
     `;
 
+    // أفاتار صاحب المنشور: من cache leaderboard (صورة + إطار)
+    const authorAvatarHtml = renderAvatarHtml({
+      avatarImage: cached?.avatarImage,
+      avatarEmoji: cached?.avatar || (displayName.charAt(0) || '؟'),
+      frameId: cached?.equippedFrame,
+      wrapperClass: 'forum-post-avatar',
+    });
+
     return `
       <div class="forum-post-card">
         <div class="forum-post-header">
           <div class="forum-post-author-block forum-clickable" onclick="window._viewForumProfile('${post.authorUid}')">
-            <div class="forum-post-avatar">${escapeHTML(post.authorName.charAt(0) || '؟')}</div>
+            ${authorAvatarHtml}
             <div>
-              <div class="forum-post-author">${escapeHTML(post.authorName)}</div>
-              <div class="forum-post-meta">${dateLabel}</div>
+              <div class="forum-post-author" style="color:${titleColor}">${rankEmoji} ${escapeHTML(displayName)}</div>
+              <div class="forum-post-meta">${dateLabel} ${catBadge}</div>
             </div>
           </div>
           ${actionsHtml}
@@ -215,15 +321,25 @@ window._viewForumProfile = async function(uid) {
   }
 
   const userProfile = profile.profile || {};
-  const avatarHtml = profile.avatarImage
-    ? `<div class="player-profile-avatar"><img src="${profile.avatarImage}" alt="Avatar"></div>`
-    : `<div class="player-profile-avatar player-profile-avatar-emoji">${profile.avatar || '👤'}</div>`;
+  const titleColor = profile.rankColor || '#FFD700';
+  const prestigeBadge = profile.isPrestige
+    ? `<span class="player-profile-prestige">⭐ بريستيج</span>` : '';
+
+  const avatarHtml = renderAvatarHtml({
+    avatarImage: profile.avatarImage,
+    avatarEmoji: profile.avatar,
+    frameId: profile.equippedFrame,
+    wrapperClass: 'player-profile-avatar',
+  });
 
   content.innerHTML = `
     ${avatarHtml}
-    <div class="player-profile-emoji">${profile.rankEmoji || '🌱'}</div>
     <div class="player-profile-name">${escapeHTML(profile.displayName || 'لاعب')}</div>
-    <div class="player-profile-rank">${profile.rankEmoji || '🌱'} ${escapeHTML(profile.rankLabel || '')}</div>
+    <div class="player-profile-title" style="color: ${titleColor}">
+      ${profile.rankEmoji || '🌱'} ${escapeHTML(profile.rankTitle || '')}
+      ${prestigeBadge}
+    </div>
+    <div class="player-profile-rank">${escapeHTML(profile.rankLabel || '')}</div>
 
     <div class="player-profile-stats">
       <div class="player-profile-stat">
@@ -264,7 +380,7 @@ window._submitForumComment = async function(event, postId) {
   input.value = '';
 };
 
-// إعداد إغلاق modal البروفايل (يعمل من أي صفحة)
+// إعداد إغلاق modal البروفايل
 function _setupProfileModalClose() {
   const modal = document.getElementById('player-profile-modal');
   if (!modal) return;

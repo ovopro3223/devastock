@@ -182,10 +182,14 @@
 .home-lb-rank.bronze { font-size: 1.3rem; }
 
 .home-lb-avatar {
-  width: 38px;
-  height: 38px;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px;
+  min-height: 38px;
+  max-width: 38px;
+  max-height: 38px;
   flex-shrink: 0;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
 }
@@ -411,9 +415,13 @@ body.in-game .topnav-container {
 }
 
 .auth-avatar-wrap {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
+  display: inline-flex !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  min-height: 30px;
+  max-width: 30px;
+  max-height: 30px;
   flex-shrink: 0;
 }
 

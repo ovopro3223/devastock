@@ -11,14 +11,17 @@ export function randomItem(arr) {
 }
 
 // اختبار التصادم: دائري للأحرف (فقاعة) ومربع لباقي الكيانات
+// منطقة اللمس أكبر من الشكل المرئي عشان اللمس أسهل على الموبايل
 export function hitTest(px, py, entity) {
   if (entity.type === 'letter') {
-    const r  = entity.size * 0.66;
+    // 1.0 من الحجم = 52px قطر اللمس (visual ~34) — منطقة لمس مريحة
+    const r  = entity.size * 1.0;
     const dx = px - entity.x;
     const dy = py - entity.y;
     return dx * dx + dy * dy <= r * r;
   }
-  const half = entity.size / 2;
+  // باقي الكيانات (قنبلة/ثلجة): مربع أوسع شوي
+  const half = entity.size * 0.7;
   return (
     px >= entity.x - half &&
     px <= entity.x + half &&

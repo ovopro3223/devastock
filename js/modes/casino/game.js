@@ -2,7 +2,7 @@
 import { getStock, saveLetterToStock, spendLetters, getTotalLetters } from '../../core/storage.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
 import { playWinSound, playLoseLifeSound } from '../../core/audio.js';
-import { recordPlayStart } from '../../core/game-stats.js';
+import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 import { incrementCounter } from '../../core/achievements.js';
 import { addSeasonPoints } from '../../core/seasons.js';
 
@@ -226,13 +226,16 @@ export class CasinoGame {
       const reward = this.currentBet * mult;
       this._awardLetters(topChar, reward);
 
-      // إنجازات + season
+      // إنجازات + season + ليدربورد
       if (topCount >= 3) {
         incrementCounter('casino_triples');
         addSeasonPoints(50 * topCount);
       } else {
         addSeasonPoints(Math.round(this.currentBet / 4));
       }
+
+      // سجل بالليدربورد — السكور = أكبر مكافأة بدارة وحدة
+      recordPlayEnd('casino', { score: reward, lettersCollected: 0, won: true });
 
       const labels = {
         6: '🌌 كوزمي!',
@@ -245,6 +248,8 @@ export class CasinoGame {
       playWinSound();
       this._celebrate(topCount);
     } else {
+      // خسارة — سجل لكن بسكور 0 (ما يأثر على highScore)
+      recordPlayEnd('casino', { score: 0, lettersCollected: 0, won: false });
       this._setResult(`💸 لم يحالفك الحظ — خسرت ${this.currentBet} حرف`, 'lose');
       playLoseLifeSound();
     }

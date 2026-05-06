@@ -7,6 +7,7 @@ import {
   getSchoolState, getStudentsInGrade, isGradeUnlocked, isStudentUnlocked,
   unlockGrade, unlockStudent, tickIncome, getTotalHourlyIncome, getStudentCount,
   getHighestUnlockedGrade, findOpenSlotGrade,
+  getApplicants, tickApplicants, acceptApplicant, rejectApplicant, expelStudent,
 } from '../core/school-storage.js';
 import { getStock, getTotalLetters } from '../core/storage.js';
 
@@ -89,11 +90,11 @@ function _bulkRecruit() {
     _renderRecruit();
     _renderSummary();
     const msg = stopReason === 'no_capacity'
-      ? `جنّدت ${recruited} طالب! 🎉 (الصفوف صارت ممتلئة — افتح صفاً جديداً)`
-      : `جنّدت ${recruited} طالب! 🎉`;
+      ? `قبلت ${recruited} طالب! 🎉 (الصفوف صارت ممتلئة — افتح صفاً جديداً)`
+      : `قبلت ${recruited} طالب! 🎉`;
     alert(msg);
   } else {
-    alert('لا يوجد طالب متاح للتجنيد الآن');
+    alert('لا يوجد طالب متاح للقبول الآن');
   }
 }
 
@@ -114,7 +115,6 @@ function _setActiveFilter() {
 
 // ===== التهيئة عند فتح صفحة المدرسة =====
 export function renderSchool() {
-  // أوقف أي timer سابق
   if (_refreshTimer) {
     clearInterval(_refreshTimer);
     _refreshTimer = null;
@@ -124,14 +124,19 @@ export function renderSchool() {
   const tick = tickIncome();
   _showOfflineBanner(tick);
 
+  // ولّد طلاب جدد (إن كان الوقت سمح)
+  tickApplicants();
+
   _renderSummary();
+  _renderApplicants();
   if (_activeTab === 'grades') _renderGrades();
   else _renderRecruit();
 
-  // حدّث كل 10 ثوان (لأن الإنتاج بطيء، ما نحتاج refresh عالي)
   _refreshTimer = setInterval(() => {
     tickIncome();
+    tickApplicants();
     _renderSummary();
+    _renderApplicants();
     if (_activeTab === 'grades') _renderGrades();
   }, 10000);
 }
@@ -141,6 +146,94 @@ export function stopSchoolRefresh() {
   if (_refreshTimer) {
     clearInterval(_refreshTimer);
     _refreshTimer = null;
+  }
+}
+
+// ===== لوحة طلبات الالتحاق =====
+function _renderApplicants() {
+  const panel = document.getElementById('school-applicants-panel');
+  if (!panel) return;
+  const applicants = getApplicants();
+
+  if (applicants.length === 0) {
+    panel.hidden = true;
+    panel.innerHTML = '';
+    return;
+  }
+
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="school-applicants-header">
+      <span class="school-applicants-icon">📨</span>
+      <span class="school-applicants-title">طلبات التحاق جديدة (${applicants.length})</span>
+    </div>
+    <div class="school-applicants-list">
+      ${applicants.map(name => {
+        const cost = getStudentCost(name);
+        const totalCost = Object.values(cost).reduce((s, n) => s + n, 0);
+        return `
+          <div class="school-applicant-card">
+            <div class="school-applicant-info">
+              <div class="school-applicant-name">${name}</div>
+              <div class="school-applicant-cost">التكلفة: ${totalCost} حرف</div>
+            </div>
+            <div class="school-applicant-actions">
+              <button class="school-applicant-btn accept" data-applicant-accept="${name}">قبول</button>
+              <button class="school-applicant-btn reject" data-applicant-reject="${name}">رفض</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  // ربط الأحداث
+  panel.querySelectorAll('[data-applicant-accept]').forEach(btn => {
+    btn.addEventListener('click', () => _handleAcceptApplicant(btn.dataset.applicantAccept));
+  });
+  panel.querySelectorAll('[data-applicant-reject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      rejectApplicant(btn.dataset.applicantReject);
+      _renderApplicants();
+    });
+  });
+}
+
+function _handleAcceptApplicant(name) {
+  const result = acceptApplicant(name);
+  if (result.ok) {
+    _renderApplicants();
+    _renderSummary();
+    if (_activeTab === 'grades') _renderGrades();
+    else _renderRecruit();
+    return;
+  }
+  if (result.reason === 'not_enough_letters') {
+    alert(`بحاجة ${result.need} من حرف "${result.missing}". عندك ${result.have}`);
+    return;
+  }
+  if (result.reason === 'no_capacity') {
+    const enrolled = Object.keys(getSchoolState().students);
+    if (enrolled.length === 0) {
+      alert('لا يوجد طلاب لاستبدالهم');
+      return;
+    }
+    const list = enrolled.join('\n');
+    const target = prompt(`الصفوف ممتلئة! اكتب اسم الطالب اللي بدك تطرده مكانه:\n\n${list}`);
+    if (!target) return;
+    const r = acceptApplicant(name, target.trim());
+    if (r.ok) {
+      _renderApplicants();
+      _renderSummary();
+      if (_activeTab === 'grades') _renderGrades();
+      else _renderRecruit();
+    } else if (r.reason === 'not_enough_letters') {
+      alert(`بحاجة ${r.need} من حرف "${r.missing}". عندك ${r.have}`);
+    } else {
+      alert('اسم غير صحيح أو فشل الاستبدال');
+    }
+  } else {
+    alert('فشل قبول الطلب');
   }
 }
 
@@ -250,8 +343,13 @@ function _renderGrades() {
     // صف مفتوح
     const lettersHtml = letters.map(l => `<span class="school-grade-letter">${l}</span>`).join('');
     const studentsHtml = students.length === 0
-      ? `<div class="school-grade-empty">لا طلاب بعد — افتح طالب جديد</div>`
-      : students.map(name => `<span class="school-student-chip">${name}</span>`).join('');
+      ? `<div class="school-grade-empty">لا طلاب بعد — اقبل طالب جديد</div>`
+      : students.map(name => `
+          <span class="school-student-chip" title="فصل ${name}">
+            <span class="school-student-name">${name}</span>
+            <button class="school-student-expel" data-expel="${name}" title="فصل من المدرسة">×</button>
+          </span>
+        `).join('');
 
     return `
       <div class="school-grade-card unlocked">
@@ -283,6 +381,18 @@ function _renderGrades() {
       } else {
         alert('غير قادر على فتح الصف');
       }
+    });
+  });
+
+  // ربط أزرار فصل الطلاب
+  list.querySelectorAll('[data-expel]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = btn.dataset.expel;
+      if (!confirm(`فصل ${name} من المدرسة؟ يُلغى إنتاجه ويُتاح اسمه للقبول مجدداً.`)) return;
+      expelStudent(name);
+      _renderGrades();
+      _renderSummary();
     });
   });
 }
@@ -355,7 +465,7 @@ function _renderRecruit() {
     } else if (!affordable) {
       actionHtml = `<button class="school-recruit-btn disabled" disabled>غير كافٍ</button>`;
     } else {
-      actionHtml = `<button class="school-recruit-btn" data-recruit="${name}">جنّد</button>`;
+      actionHtml = `<button class="school-recruit-btn" data-recruit="${name}">اقبل</button>`;
     }
 
     return `

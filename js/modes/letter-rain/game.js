@@ -57,6 +57,9 @@ export class LetterRainGame {
     this._frozen      = false;
     this._paused      = false;
     this._running     = true;
+    this._startMs     = performance.now();
+    this._pausedMs    = 0;
+    this._lastPauseAt = null;
 
     this._spawner.reset();
     this._score.reset();
@@ -98,8 +101,14 @@ export class LetterRainGame {
     if (this._paused) {
       // إيقاف حلقة الـ RAF بشكل نظيف
       if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+      this._lastPauseAt = performance.now();
       this._showOverlay('overlay-pause');
     } else {
+      // أضف فترة الإيقاف لـ_pausedMs عشان مضاعف السرعة ما يحسبها
+      if (this._lastPauseAt) {
+        this._pausedMs = (this._pausedMs || 0) + (performance.now() - this._lastPauseAt);
+        this._lastPauseAt = null;
+      }
       this._hideOverlay('overlay-pause');
       this._loop();
     }
@@ -114,8 +123,20 @@ export class LetterRainGame {
   }
 
   _update() {
+    // ===== مضاعف السرعة بناءً على الوقت المنقضي =====
+    const elapsedMs = (performance.now() - (this._startMs || performance.now())) - (this._pausedMs || 0);
+    const elapsedSec = Math.max(0, elapsedMs / 1000);
+    const speedMult = Math.min(
+      CFG.SPEED_MULT_MAX,
+      1 + elapsedSec * CFG.SPEED_RAMP_PER_SEC
+    );
+
     const entity = this._spawner.tick(this._canvas.width, this._entities);
-    if (entity) this._entities.push(entity);
+    if (entity) {
+      // طبق مضاعف السرعة على الكيان الجديد
+      entity.speed *= speedMult;
+      this._entities.push(entity);
+    }
 
     for (const e of this._entities) e.update(this._frozen);
 
@@ -147,29 +168,33 @@ export class LetterRainGame {
 
   // ===== معالجة النقر/اللمس =====
   _onTap(x, y) {
+    // اعثر على الكيان الأقرب من نقطة اللمس بدلاً من أول كيان يطابق
+    // هيك حتى لو في تداخل بين منطقتي لمس، اللاعب يلمس اللي يقصده
+    let best = null;
+    let bestDist = Infinity;
     for (const e of this._entities) {
       if (!e.alive) continue;
-      // تجاهل الكيانات التي بدأت أنيميشن الاختفاء
       if (e.collected || e.wasHit) continue;
       if (!hitTest(x, y, e)) continue;
+      const dx = x - e.x;
+      const dy = y - e.y;
+      const d  = dx * dx + dy * dy;
+      if (d < bestDist) { bestDist = d; best = e; }
+    }
+    if (!best) return;
 
-      if (e.type === 'letter') {
-        e.collected = true;
-        const result = this._score.addLetter(e.char, e.spawnTag);
-        e._double = (result.count >= 2);
-        this._updateHudScore();
-        this._addToStrip(e.char);
-
-      } else if (e.type === 'bomb') {
-        e.wasHit = true;
-        this._loseLife();
-
-      } else if (e.type === 'snowflake') {
-        e.collected = true;
-        this._activateFreeze();
-      }
-
-      break; // ضربة واحدة لكيان واحد
+    if (best.type === 'letter') {
+      best.collected = true;
+      const result = this._score.addLetter(best.char, best.spawnTag);
+      best._double = (result.count >= 2);
+      this._updateHudScore();
+      this._addToStrip(best.char);
+    } else if (best.type === 'bomb') {
+      best.wasHit = true;
+      this._loseLife();
+    } else if (best.type === 'snowflake') {
+      best.collected = true;
+      this._activateFreeze();
     }
   }
 

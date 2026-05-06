@@ -506,17 +506,26 @@ window._viewProfile = async function(uid) {
     }
   }
 
-  const avatarHtml = `<div class="player-profile-avatar">${renderAvatarHtml({
+  const avatarHtml = renderAvatarHtml({
     avatarImage: profile.avatarImage,
     avatarEmoji: profile.avatar,
     frameId: profile.equippedFrame,
-  })}</div>`;
+    wrapperClass: 'player-profile-avatar',
+  });
+
+  const titleColor = profile.rankColor || '#FFD700';
+  const prestigeBadge = profile.isPrestige
+    ? `<span class="player-profile-prestige">⭐ بريستيج</span>`
+    : '';
 
   content.innerHTML = `
     ${avatarHtml}
-    <div class="player-profile-emoji">${profile.rankEmoji}</div>
     <div class="player-profile-name">${profile.displayName}</div>
-    <div class="player-profile-rank">${profile.rankEmoji} ${profile.rankLabel}</div>
+    <div class="player-profile-title" style="color: ${titleColor}">
+      ${profile.rankEmoji} ${profile.rankTitle || ''}
+      ${prestigeBadge}
+    </div>
+    <div class="player-profile-rank">${profile.rankLabel}</div>
 
     <div class="player-profile-stats">
       <div class="player-profile-stat">

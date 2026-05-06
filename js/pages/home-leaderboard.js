@@ -140,13 +140,15 @@ function _render() {
       frameId: p.equippedFrame,
       wrapperClass: 'home-lb-avatar',
     });
+    const titleStyle = p.rankColor ? `color:${p.rankColor};` : '';
+    const prestigeIcon = p.isPrestige ? '⭐' : '';
     return `
       <div class="home-lb-row" onclick="window._viewProfile && window._viewProfile('${p.uid}')">
         <div class="home-lb-rank ${rankClass}">${rankIcon}</div>
         ${avatarHtml}
         <div class="home-lb-info">
-          <div class="home-lb-name">${p.tierEmoji || '🥉'} ${_escape(p.displayName)}</div>
-          <div class="home-lb-meta">${p.rankLabel || ''}</div>
+          <div class="home-lb-name">${_escape(p.displayName)} ${prestigeIcon}</div>
+          <div class="home-lb-meta" style="${titleStyle}">${p.rankEmoji || ''} ${p.rankTitle || ''} • ${p.rankLabel || ''}</div>
         </div>
         <div class="home-lb-value">${valueExtractor(p)}</div>
       </div>

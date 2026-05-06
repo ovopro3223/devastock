@@ -90,7 +90,10 @@ export async function getPlayers() {
         score: data.score || 0,
         totalLetters: data.totalLetters || 0,
         rankEmoji: data.rankEmoji || '🌱',
-        rankLabel: data.rankLabel || 'مبتدئ',
+        rankLabel: data.rankLabel || 'لفل 1',
+        rankTitle: data.rankTitle || 'بذرة',
+        rankColor: data.rankColor || '#5DD3D3',
+        isPrestige: data.isPrestige || false,
         seasonScore: data.seasonScore || 0,
         seasonId:    data.seasonId || '',
         tierId:      data.tierId || 'bronze',
@@ -273,6 +276,9 @@ export async function getPlayerProfile(uid) {
       totalLetters: lbData.totalLetters || 0,
       rankEmoji: lbData.rankEmoji || '🌱',
       rankLabel: lbData.rankLabel || 'لفل 1',
+      rankTitle: lbData.rankTitle || 'بذرة',
+      rankColor: lbData.rankColor || '#5DD3D3',
+      isPrestige: lbData.isPrestige || false,
       equippedFrame: lbData.equippedFrame || null,
       profile,
       friends: userData.friends || [],
@@ -392,6 +398,7 @@ export function listenForForumPosts(callback) {
           authorUid: data.authorUid,
           authorName: data.authorName || 'لاعب',
           content: data.content || '',
+          category: data.category || 'general',
           createdAt: data.createdAt?.toDate() || new Date(),
         });
       });
@@ -440,7 +447,7 @@ export function listenForForumLikes(postId, callback) {
   }
 }
 
-export async function createForumPost(authorUid, authorName, content) {
+export async function createForumPost(authorUid, authorName, content, category = 'general') {
   try {
     if (!authorUid || !content.trim()) {
       return { success: false, error: 'Invalid author or empty content.' };
@@ -449,6 +456,7 @@ export async function createForumPost(authorUid, authorName, content) {
       authorUid,
       authorName,
       content: content.trim(),
+      category,
       createdAt: serverTimestamp(),
     });
     return { success: true, id: postRef.id };

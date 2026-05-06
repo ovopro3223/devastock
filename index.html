@@ -42,6 +42,7 @@
   <link rel="stylesheet" href="css/trade.css">
   <link rel="stylesheet" href="css/school.css">
   <link rel="stylesheet" href="css/frames.css">
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 
@@ -62,6 +63,46 @@
         <span class="auth-user-rank"></span>
       </div>
       <button id="auth-logout-btn" class="auth-dropdown-item">🚪 خروج</button>
+    </div>
+  </div>
+
+  <!-- زر الأدمن — يظهر فقط لحساب الأدمن -->
+  <button id="admin-open-btn" class="admin-open-btn" hidden>🛡️ أدمن</button>
+
+  <!-- مودال الأدمن: إرسال أحرف للاعب -->
+  <div id="admin-modal" class="admin-modal" hidden>
+    <div class="admin-modal-overlay"></div>
+    <div class="admin-modal-box">
+      <button class="admin-modal-close" id="admin-modal-close" aria-label="إغلاق">&times;</button>
+      <h2 class="admin-modal-title">🛡️ لوحة الأدمن — إرسال أحرف</h2>
+      <div class="admin-form">
+        <label class="admin-field">
+          <span>اللاعب (اختر من القائمة):</span>
+          <select id="admin-player-select"><option value="">— اختر لاعب —</option></select>
+        </label>
+        <label class="admin-field">
+          <span>الحرف:</span>
+          <select id="admin-letter-select">
+            <option value="ا">ا</option><option value="ب">ب</option><option value="ت">ت</option>
+            <option value="ث">ث</option><option value="ج">ج</option><option value="ح">ح</option>
+            <option value="خ">خ</option><option value="د">د</option><option value="ذ">ذ</option>
+            <option value="ر">ر</option><option value="ز">ز</option><option value="س">س</option>
+            <option value="ش">ش</option><option value="ص">ص</option><option value="ض">ض</option>
+            <option value="ط">ط</option><option value="ظ">ظ</option><option value="ع">ع</option>
+            <option value="غ">غ</option><option value="ف">ف</option><option value="ق">ق</option>
+            <option value="ك">ك</option><option value="ل">ل</option><option value="م">م</option>
+            <option value="ن">ن</option><option value="ه">ه</option><option value="و">و</option>
+            <option value="ي">ي</option>
+            <option value="__ALL__">📋 كل الأحرف (نفس الكمية)</option>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>الكمية:</span>
+          <input type="number" id="admin-amount" min="1" max="9999999" value="100">
+        </label>
+        <button id="admin-send-btn" class="admin-send-btn">إرسال 🎁</button>
+        <div id="admin-result" class="admin-result"></div>
+      </div>
     </div>
   </div>
 
@@ -761,12 +802,19 @@
       <button class="btn-back" data-target="menu">&#8594; رجوع</button>
       <h2 class="page-title">📝 المنتدى</h2>
 
-      <div class="forum-grid">
-        <main class="forum-main">
+      <!-- شريط الأقسام -->
+      <div class="forum-categories" id="forum-categories"></div>
+
+      <!-- التخطيط: نشر يسار، منشورات يمين (يصير عمودي على الموبايل) -->
+      <div class="forum-layout">
+        <aside class="forum-publish-side">
           <div id="forum-create-panel" class="forum-create-panel">
-            <h3>انشر موضوعاً جديداً</h3>
+            <h3>انشر موضوعاً</h3>
             <form id="forum-post-form" class="forum-post-form">
               <textarea id="forum-post-input" rows="4" placeholder="ما الجديد؟"></textarea>
+              <select id="forum-post-category" class="forum-post-category-select">
+                <option value="general">📂 عام (افتراضي)</option>
+              </select>
               <button type="submit" class="btn btn-primary">نشر</button>
             </form>
           </div>
@@ -776,19 +824,11 @@
             <div>سجّل دخول لتتمكن من المشاركة في المنتدى.</div>
             <button class="btn btn-primary" id="forum-login-btn">تسجيل الدخول</button>
           </div>
+        </aside>
 
+        <main class="forum-posts-side">
           <div id="forum-posts-list" class="forum-posts-list"></div>
         </main>
-
-        <aside class="forum-sidebar">
-          <div class="forum-sidebar-card">
-            <h3>مرحبا بك في المنتدى</h3>
-            <p>ناقش استراتيجيات اللعب، شارك إنجازاتك، أو اطلب نصائح من المجتمع.</p>
-            <div class="forum-profile-summary">
-              <div>الحالة: <span id="forum-user-label">ضيف</span></div>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   </section>
@@ -949,10 +989,13 @@
         </div>
       </div>
 
+      <!-- بانر طلبات الالتحاق -->
+      <div class="school-applicants-panel" id="school-applicants-panel" hidden></div>
+
       <!-- تبويبات -->
       <div class="school-tabs">
         <button class="school-tab active" data-school-tab="grades">📚 صفوفي</button>
-        <button class="school-tab" data-school-tab="recruit">👥 تجنيد طالب</button>
+        <button class="school-tab" data-school-tab="recruit">👥 قبول طلاب</button>
       </div>
 
       <!-- محتوى تبويب "صفوفي" -->
@@ -960,17 +1003,17 @@
         <div class="school-grades-list" id="school-grades-list"></div>
       </div>
 
-      <!-- محتوى تبويب "تجنيد" -->
+      <!-- محتوى تبويب "قبول طلاب" -->
       <div class="school-tab-content" data-school-content="recruit" hidden>
         <input type="text" class="school-search" id="school-search" placeholder="🔍 ابحث عن اسم...">
         <div class="school-recruit-toolbar">
           <div class="school-recruit-filters">
-            <button class="school-filter active" data-school-filter="affordable">💰 يمكن فتحه الآن</button>
+            <button class="school-filter active" data-school-filter="affordable">💰 يمكن قبوله الآن</button>
             <button class="school-filter" data-school-filter="all">📋 الكل</button>
-            <button class="school-filter" data-school-filter="unlocked">✅ المفتوحون</button>
+            <button class="school-filter" data-school-filter="unlocked">✅ المقبولون</button>
           </div>
           <button class="school-bulk-recruit-btn" id="school-bulk-recruit-btn">
-            ⚡ جنّد كل المتاح
+            ⚡ اقبل كل المتاحين
           </button>
         </div>
         <div class="school-recruit-list" id="school-recruit-list"></div>
