@@ -1,11 +1,10 @@
-// ===== لوحة المتصدرين (مكوّن قابل لإعادة الاستخدام) =====
-// يدعم أكثر من container — تستعمل في الواجهة الرئيسية وفي modal من القائمة
+// ===== لوحة المتصدرين — modal يُفتح من بطاقة "المتصدرين" بالقائمة الرئيسية =====
 import { getPlayers } from '../core/firebase.js';
 import { getSeasonState } from '../core/seasons.js';
 
 let _allPlayers = [];
 let _loaded = false;
-const _widgets = [];
+let _widget = null;
 
 const GAME_LABELS = {
   'letter-rain':  '🌧️ مطر الأحرف',
@@ -16,12 +15,15 @@ const GAME_LABELS = {
   'casino':        '🎰 الكازينو',
 };
 
-// إنشاء widget جديد. opts:
-//   tabsScope: 'home' أو 'modal' (لتمييز الأزرار)
-//   pickerEl, selectEl, listEl: عناصر DOM
-function _createWidget({ scope, listEl, pickerEl, selectEl }) {
-  const widget = {
-    scope,
+export function initHomeLeaderboard() {
+  // ===== widget الـ modal =====
+  const listEl   = document.getElementById('lb-modal-list');
+  const pickerEl = document.getElementById('lb-modal-game-picker');
+  const selectEl = document.getElementById('lb-modal-game-select');
+
+  if (!listEl) return; // الـmodal مش موجود
+
+  _widget = {
     listEl,
     pickerEl,
     selectEl,
@@ -29,91 +31,50 @@ function _createWidget({ scope, listEl, pickerEl, selectEl }) {
     currentGame: 'letter-rain',
   };
 
-  // ربط التبويبات (تستعمل [data-lb-tab][data-lb-scope=...])
-  document.querySelectorAll(`[data-lb-tab][data-lb-scope="${scope}"], .home-leaderboard [data-lb-tab]:not([data-lb-scope])`).forEach(btn => {
-    if (scope === 'home' && btn.dataset.lbScope) return;
-    if (scope === 'modal' && !btn.dataset.lbScope) return;
+  // ربط التبويبات
+  document.querySelectorAll('[data-lb-tab][data-lb-scope="modal"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      widget.currentTab = btn.dataset.lbTab;
-      _setActiveTab(widget);
-      widget.pickerEl.hidden = widget.currentTab !== 'game';
-      _renderInto(widget);
+      _widget.currentTab = btn.dataset.lbTab;
+      _setActiveTab();
+      _widget.pickerEl.hidden = _widget.currentTab !== 'game';
+      _render();
     });
   });
 
   // ربط dropdown اللعبة
   if (selectEl) {
     selectEl.addEventListener('change', () => {
-      widget.currentGame = selectEl.value;
-      _renderInto(widget);
+      _widget.currentGame = selectEl.value;
+      _render();
     });
   }
 
-  _widgets.push(widget);
-  return widget;
-}
+  // ===== فتح/إغلاق modal =====
+  const modal       = document.getElementById('lb-modal');
+  const closeBtn    = document.getElementById('lb-modal-close');
+  const overlay     = modal?.querySelector('.lb-modal-overlay');
+  const menuCardBtn = document.getElementById('btn-leaderboard-menu');
 
-function _setActiveTab(widget) {
-  const tabs = widget.scope === 'home'
-    ? document.querySelectorAll('.home-leaderboard [data-lb-tab]')
-    : document.querySelectorAll('[data-lb-tab][data-lb-scope="modal"]');
-  tabs.forEach(t => t.classList.toggle('active', t.dataset.lbTab === widget.currentTab));
-}
-
-// ===== التهيئة =====
-export function initHomeLeaderboard() {
-  // ===== widget الواجهة الرئيسية =====
-  _createWidget({
-    scope: 'home',
-    listEl:   document.getElementById('home-lb-list'),
-    pickerEl: document.getElementById('home-lb-game-picker'),
-    selectEl: document.getElementById('home-lb-game-select'),
-  });
-
-  // toggle الطي/الفتح للوحة الواجهة
-  const toggleBtn = document.getElementById('home-lb-toggle');
-  const homeLB = document.getElementById('home-leaderboard');
-  if (toggleBtn && homeLB) {
-    toggleBtn.addEventListener('click', () => {
-      const isOpen = homeLB.classList.toggle('open');
-      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      // أول مرة تنفتح، اعمل refresh لو ما كان محمّل
-      if (isOpen && !_loaded) refreshHomeLeaderboard();
-    });
-  }
-
-  // ===== widget الـ modal =====
-  _createWidget({
-    scope: 'modal',
-    listEl:   document.getElementById('lb-modal-list'),
-    pickerEl: document.getElementById('lb-modal-game-picker'),
-    selectEl: document.getElementById('lb-modal-game-select'),
-  });
-
-  // زر فتح/إغلاق modal
-  const openBtn  = document.getElementById('lb-open-btn');
-  const modal    = document.getElementById('lb-modal');
-  const closeBtn = document.getElementById('lb-modal-close');
-  const overlay  = modal?.querySelector('.lb-modal-overlay');
-
-  if (openBtn && modal) {
-    openBtn.addEventListener('click', () => {
+  if (menuCardBtn && modal) {
+    menuCardBtn.addEventListener('click', () => {
       modal.hidden = false;
-      // اعمل refresh عند فتح المودال — البيانات قد تكون قديمة
       refreshHomeLeaderboard();
     });
   }
   if (closeBtn && modal) closeBtn.addEventListener('click', () => modal.hidden = true);
-  if (overlay && modal)  overlay.addEventListener('click', () => modal.hidden = true);
+  if (overlay && modal)  overlay.addEventListener('click',  () => modal.hidden = true);
 }
 
-// تحميل اللاعبين وعرضهم في كل الـ widgets
+function _setActiveTab() {
+  document.querySelectorAll('[data-lb-tab][data-lb-scope="modal"]').forEach(t =>
+    t.classList.toggle('active', t.dataset.lbTab === _widget.currentTab)
+  );
+}
+
 export async function refreshHomeLeaderboard() {
-  // أظهر "جاري التحميل" لو أول مرة
+  if (!_widget) return;
   if (!_loaded) {
-    _widgets.forEach(w => {
-      if (w.listEl) w.listEl.innerHTML = `<div class="home-lb-empty">جاري التحميل...</div>`;
-    });
+    _widget.listEl.innerHTML = `<div class="home-lb-empty">جاري التحميل...</div>`;
   }
 
   try {
@@ -121,19 +82,17 @@ export async function refreshHomeLeaderboard() {
     _loaded = true;
   } catch (e) {
     if (!_loaded) {
-      _widgets.forEach(w => {
-        if (w.listEl) w.listEl.innerHTML = `<div class="home-lb-empty">⚠️ تعذّر تحميل المتصدرين</div>`;
-      });
+      _widget.listEl.innerHTML = `<div class="home-lb-empty">⚠️ تعذّر تحميل المتصدرين</div>`;
     }
     return;
   }
 
-  _widgets.forEach(_renderInto);
+  _render();
 }
 
-function _renderInto(widget) {
-  const list = widget.listEl;
-  if (!list) return;
+function _render() {
+  if (!_widget) return;
+  const list = _widget.listEl;
 
   if (_allPlayers.length === 0) {
     list.innerHTML = `<div class="home-lb-empty">🌱 لا متصدرين بعد — كن أول!</div>`;
@@ -142,10 +101,10 @@ function _renderInto(widget) {
 
   let sorted, valueExtractor;
 
-  if (widget.currentTab === 'global') {
+  if (_widget.currentTab === 'global') {
     sorted = [..._allPlayers].sort((a, b) => (b.totalLetters || 0) - (a.totalLetters || 0));
     valueExtractor = p => `${(p.totalLetters || 0).toLocaleString('ar-EG')} حرف`;
-  } else if (widget.currentTab === 'season') {
+  } else if (_widget.currentTab === 'season') {
     const state = getSeasonState();
     const sid = state.seasonId;
     sorted = _allPlayers
@@ -153,7 +112,7 @@ function _renderInto(widget) {
       .sort((a, b) => (b.seasonScore || 0) - (a.seasonScore || 0));
     valueExtractor = p => `${p.seasonScore || 0} نقطة`;
   } else {
-    const gid = widget.currentGame;
+    const gid = _widget.currentGame;
     sorted = _allPlayers
       .filter(p => p.gameStats && p.gameStats[gid] && (p.gameStats[gid].highScore || 0) > 0)
       .sort((a, b) => (b.gameStats[gid].highScore || 0) - (a.gameStats[gid].highScore || 0));
@@ -161,10 +120,10 @@ function _renderInto(widget) {
   }
 
   if (sorted.length === 0) {
-    const msg = widget.currentTab === 'season'
+    const msg = _widget.currentTab === 'season'
       ? 'لا متنافسون في هذا الموسم بعد'
-      : widget.currentTab === 'game'
-        ? `لا أحد لعب ${GAME_LABELS[widget.currentGame]} بعد`
+      : _widget.currentTab === 'game'
+        ? `لا أحد لعب ${GAME_LABELS[_widget.currentGame]} بعد`
         : 'لا متصدرين بعد';
     list.innerHTML = `<div class="home-lb-empty">🌱 ${msg}</div>`;
     return;

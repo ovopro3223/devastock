@@ -1,0 +1,517 @@
+/* ===== صفحة المدرسة 🎓 ===== */
+#page-school {
+  background: linear-gradient(160deg, #0F1A2E 0%, #1A2A3E 100%);
+  overflow-y: auto;
+}
+
+.school-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.2rem 1rem 3rem;
+}
+
+/* شريط ملخص أعلى */
+.school-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.school-summary-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  border-radius: 14px;
+  padding: 0.65rem 0.8rem;
+  text-align: center;
+}
+
+.school-summary-label {
+  font-size: 0.72rem;
+  color: var(--color-dim);
+  margin-bottom: 0.25rem;
+}
+
+.school-summary-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-gold);
+}
+
+/* بانر الإنتاج أوفلاين */
+.school-offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(243, 156, 18, 0.10));
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  animation: schoolBannerSlide 0.4s ease;
+}
+
+@keyframes schoolBannerSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.school-offline-emoji { font-size: 1.6rem; }
+.school-offline-title {
+  font-weight: 800;
+  color: var(--color-gold);
+  font-size: 0.95rem;
+}
+.school-offline-detail {
+  color: var(--color-text);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+/* تبويبات */
+.school-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.school-tab {
+  flex: 1;
+  padding: 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  color: var(--color-dim);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.school-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.school-tab.active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(243, 156, 18, 0.15));
+  border-color: rgba(255, 215, 0, 0.55);
+  color: var(--color-gold);
+}
+
+/* ===== تبويب الصفوف ===== */
+.school-grades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.school-grade-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.school-grade-card.unlocked {
+  border-color: rgba(255, 215, 0, 0.35);
+  background: rgba(255, 215, 0, 0.04);
+}
+
+.school-grade-card.locked {
+  opacity: 0.85;
+}
+
+.school-grade-card.blocked {
+  opacity: 0.5;
+}
+
+.school-grade-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.5rem;
+}
+
+.school-grade-emoji {
+  font-size: 1.4rem;
+}
+
+.school-grade-name {
+  flex: 1;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.school-grade-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.school-grade-tag.unlocked {
+  color: var(--color-gold);
+  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.10);
+}
+
+.school-grade-tag.locked {
+  color: var(--color-dim);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.school-grade-stats {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--color-dim);
+  margin-bottom: 0.6rem;
+}
+
+.school-grade-stats b {
+  color: var(--color-gold);
+}
+
+.school-grade-letters {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.school-grade-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 215, 0, 0.10);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: var(--color-gold);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.school-grade-students {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.school-student-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.school-grade-empty {
+  font-size: 0.82rem;
+  color: var(--color-dim);
+  font-style: italic;
+}
+
+.school-grade-locked-msg {
+  font-size: 0.82rem;
+  color: var(--color-dim);
+  text-align: center;
+  padding: 0.4rem;
+}
+
+.school-grade-unlock-btn {
+  width: 100%;
+  padding: 0.6rem;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-orange));
+  border: none;
+  border-radius: 10px;
+  color: #1A1A2E;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.school-grade-unlock-btn:hover:not(.disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+}
+
+.school-grade-unlock-btn.disabled {
+  background: rgba(120, 120, 120, 0.3);
+  color: var(--color-dim);
+  cursor: not-allowed;
+}
+
+.school-grade-unlock-btn small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 2px;
+  opacity: 0.85;
+}
+
+/* ===== تبويب التجنيد ===== */
+.school-search {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  margin-bottom: 0.65rem;
+}
+
+.school-search:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.55);
+}
+
+.school-recruit-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.school-filter {
+  padding: 0.4rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+  color: var(--color-dim);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.school-filter.active {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.5);
+  color: var(--color-gold);
+}
+
+.school-recruit-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.65rem;
+}
+
+.school-recruit-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-dim);
+}
+
+.school-recruit-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.school-recruit-card.is-unlocked {
+  border-color: rgba(46, 204, 113, 0.35);
+  background: rgba(46, 204, 113, 0.06);
+}
+
+.school-recruit-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.school-cost-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+.school-cost-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.school-cost-chip.ok {
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  color: #2ECC71;
+}
+
+.school-cost-chip.short {
+  background: rgba(231, 76, 60, 0.10);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  color: #FF7B6D;
+}
+
+.school-cost-chip small {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.school-recruit-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-orange));
+  border: none;
+  border-radius: 10px;
+  color: #1A1A2E;
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s;
+}
+
+.school-recruit-btn:hover {
+  transform: scale(1.02);
+}
+
+.school-recruit-btn.disabled,
+.school-recruit-btn:disabled {
+  background: rgba(120, 120, 120, 0.3);
+  color: var(--color-dim);
+  cursor: not-allowed;
+}
+
+.school-recruit-status {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.4rem;
+  border-radius: 8px;
+}
+
+.school-recruit-status.unlocked {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ECC71;
+}
+
+/* معاينة الصف القادم */
+.school-next-grade {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.12), rgba(33, 150, 243, 0.06));
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.school-next-grade-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  margin-bottom: 0.35rem;
+}
+
+.school-next-grade-header b {
+  color: #A5D6A7;
+}
+
+.school-next-grade-icon {
+  font-size: 1.05rem;
+}
+
+.school-next-grade-stats {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--color-dim);
+  margin-bottom: 0.45rem;
+}
+
+.school-next-grade-bar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+}
+
+.school-next-grade-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #FFD700);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.school-next-grade-cost {
+  font-size: 0.78rem;
+  color: var(--color-dim);
+  text-align: left;
+  direction: ltr;
+}
+
+/* شريط أدوات التجنيد */
+.school-recruit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.school-recruit-toolbar .school-recruit-filters {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.school-bulk-recruit-btn {
+  padding: 0.45rem 0.9rem;
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  border: 1px solid rgba(76, 175, 80, 0.6);
+  border-radius: 999px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.school-bulk-recruit-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+}
+
+.school-bulk-recruit-btn:active {
+  transform: scale(0.96);
+}
+
+/* بطاقة المدرسة بالقائمة */
+.menu-card-school .menu-card-icon {
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.4));
+}

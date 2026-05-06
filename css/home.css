@@ -69,64 +69,7 @@
   50%     { transform: translateY(-9px); }
 }
 
-/* ===== لوحة المتصدرين على الصفحة الرئيسية (قابلة للطي) ===== */
-.home-leaderboard {
-  width: 100%;
-  max-width: 480px;
-  margin-top: 1rem;
-  background: rgba(20, 20, 40, 0.55);
-  border: 1px solid rgba(255, 215, 0, 0.20);
-  border-radius: 18px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-.home-lb-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.85rem 1.1rem;
-  background: transparent;
-  border: none;
-  color: var(--color-gold);
-  font-family: var(--font);
-  font-size: 1rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background 0.2s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.home-lb-toggle:hover {
-  background: rgba(255, 215, 0, 0.06);
-}
-
-.home-lb-chevron {
-  font-size: 0.9rem;
-  transition: transform 0.3s ease;
-  color: var(--color-gold);
-}
-
-.home-leaderboard.open .home-lb-chevron {
-  transform: rotate(180deg);
-}
-
-.home-lb-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease, padding 0.3s ease;
-  padding: 0 0.85rem;
-}
-
-.home-leaderboard.open .home-lb-content {
-  max-height: 600px;
-  padding: 0 0.85rem 0.85rem;
-}
-
+/* ===== أنماط لوحة المتصدرين (تستعمل داخل الـmodal من القائمة الرئيسية) ===== */
 .home-lb-tabs {
   display: flex;
   gap: 0.4rem;
@@ -278,43 +221,6 @@
   font-weight: 800;
   font-size: 0.85rem;
   color: var(--color-gold);
-}
-
-/* ===== زر فتح المتصدرين (يظهر تحت زر الدخول خارج الواجهة الرئيسية) ===== */
-.lb-open-btn {
-  position: fixed;
-  top: 3.5rem;
-  left: 0.8rem;
-  z-index: 999;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.9rem;
-  height: 36px;
-  background: rgba(20, 20, 40, 0.65);
-  border: 1px solid rgba(255, 215, 0, 0.45);
-  border-radius: 999px;
-  color: var(--color-gold);
-  font-family: var(--font);
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
-}
-
-.lb-open-btn:hover {
-  background: rgba(40, 40, 70, 0.85);
-  border-color: rgba(255, 215, 0, 0.75);
-  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.25);
-}
-
-.lb-open-btn:active {
-  transform: scale(0.96);
 }
 
 /* ===== modal لوحة المتصدرين ===== */

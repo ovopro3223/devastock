@@ -13,6 +13,7 @@ const KEYS = [
   'devastock_settings',
   'devastock_season_v1',
   'devastock_game_stats',
+  'devastock_school_v1',
 ];
 
 let _db         = null;
@@ -26,6 +27,10 @@ export function setupSync(db, uid) {
   _db  = db;
   _uid = uid;
   if (!_hooked) _hookLocalStorage();
+  // عند الدخول، حدّث lb فوراً عشان يتم تطبيق LEVEL_SCALE الجديد
+  if (db && uid) {
+    setTimeout(() => _updateLeaderboard(), 1500);
+  }
 }
 
 // ===== اعتراض localStorage بشكل شفاف =====
@@ -82,6 +87,7 @@ function _gatherLocalData() {
     profileUnlocked: getState('profile_unlocked', false) === true,
     season:          _parseLS('devastock_season_v1', { seasonId: '', score: 0 }),
     gameStats:       _parseLS('devastock_game_stats', {}),
+    school:          _parseLS('devastock_school_v1', { unlockedGrades: [0], students: {}, lastTickAt: Date.now() }),
   };
 }
 
@@ -160,12 +166,14 @@ function _calculateLevel(totalLetters) {
   return level;
 }
 
+// لازم يطابق lifetime-storage.js LEVEL_SCALE
+const _LEVEL_SCALE = 0.30;
 function _requirementForLevel(level) {
   if (level <= 1) return 0;
-  if (level <= 3) return 1000;
-  if (level === 4) return 1500;
-  if (level === 5) return 2000;
-  return Math.round(2500 * Math.pow(2000, (level - 6) / 114));
+  if (level <= 3) return Math.round(1000 * _LEVEL_SCALE);
+  if (level === 4) return Math.round(1500 * _LEVEL_SCALE);
+  if (level === 5) return Math.round(2000 * _LEVEL_SCALE);
+  return Math.round(2500 * Math.pow(2000, (level - 6) / 114) * _LEVEL_SCALE);
 }
 
 function _levelEmoji(level) {
@@ -193,12 +201,14 @@ export async function pullFromCloud(db, uid) {
     const data = snap.data();
     _restoring = true;
     try {
-      if (data.stock)    setState('stock', data.stock);
-      if (data.museum)   setState('museum', data.museum);
-      if (data.lifetime) setState('lifetime', data.lifetime);
-      if (data.profile)  setState('profile', data.profile);
-      if (data.settings) setState('settings', data.settings);
-      if (data.season)   setState('season_v1', data.season);
+      if (data.stock)     setState('stock', data.stock);
+      if (data.museum)    setState('museum', data.museum);
+      if (data.lifetime)  setState('lifetime', data.lifetime);
+      if (data.profile)   setState('profile', data.profile);
+      if (data.settings)  setState('settings', data.settings);
+      if (data.season)    setState('season_v1', data.season);
+      if (data.gameStats) setState('game_stats', data.gameStats);
+      if (data.school)    setState('school_v1', data.school);
 
       if (data.profileUnlocked === true) {
         setState('profile_unlocked', true);

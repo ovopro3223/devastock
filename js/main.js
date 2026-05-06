@@ -11,6 +11,8 @@ import { initChallenges, updateChallengesBadge, renderChallenges } from './pages
 import { initAchievements, renderAchievements } from './pages/achievements.js';
 import { initTrade, renderTrade } from './pages/trade.js';
 import { initHomeLeaderboard, refreshHomeLeaderboard } from './pages/home-leaderboard.js';
+import { initSchool, renderSchool, stopSchoolRefresh } from './pages/school.js';
+import { tickIncome } from './core/school-storage.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -21,6 +23,7 @@ const PAGE_IDS = [
   'home', 'menu', 'modes', 'letter-rain', 'letter-blaze',
   'stock', 'museum', 'museum-cat', 'profile', 'community', 'forum', 'casino',
   'taxi', 'fishing', 'sniper', 'settings', 'achievements', 'challenges', 'trade',
+  'school',
 ];
 
 const GAME_PAGES = ['letter-rain', 'letter-blaze', 'taxi', 'fishing', 'sniper'];
@@ -39,6 +42,7 @@ const BACK_TARGETS = {
   achievements: 'menu',
   challenges: 'menu',
   trade: 'menu',
+  school: 'menu',
   casino: 'modes',
   taxi: 'modes',
   fishing: 'modes',
@@ -56,14 +60,13 @@ export function showPage(pageId) {
     if (el) el.classList.toggle('active', id === pageId);
   });
   document.body.classList.toggle('in-game', GAME_PAGES.includes(pageId));
-  if (pageId === 'home') {
-    refreshHomeRank();
-    refreshHomeLeaderboard();
-  }
+  if (pageId === 'home') refreshHomeRank();
   if (pageId === 'menu') updateChallengesBadge();
   if (pageId === 'challenges') renderChallenges();
   if (pageId === 'achievements') renderAchievements();
   if (pageId === 'trade') renderTrade();
+  if (pageId === 'school') renderSchool();
+  else stopSchoolRefresh();
   document.dispatchEvent(new CustomEvent('page-show', { detail: pageId }));
 
   // تحديث زر التنقل العلوي
@@ -78,12 +81,6 @@ export function showPage(pageId) {
     }
   }
 
-  // زر فتح المتصدرين — يظهر بكل الصفحات ما عدا الواجهة الرئيسية والألعاب
-  const lbOpenBtn = document.getElementById('lb-open-btn');
-  if (lbOpenBtn) {
-    const hide = pageId === 'home' || GAME_PAGES.includes(pageId);
-    lbOpenBtn.hidden = hide;
-  }
 }
 
 document.querySelectorAll('.btn-back').forEach(btn => {
@@ -108,6 +105,10 @@ initChallenges();
 initAchievements();
 initTrade();
 initHomeLeaderboard();
+initSchool(showPage);
+
+// تنفيذ tick أولي عند فتح التطبيق — يحسب الإنتاج التلقائي حتى أوفلاين
+tickIncome();
 
 // Firebase — يعمل بشكل مستقل في الخلفية
 initAudio();

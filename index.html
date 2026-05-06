@@ -40,6 +40,7 @@
   <link rel="stylesheet" href="css/achievements.css">
   <link rel="stylesheet" href="css/challenges.css">
   <link rel="stylesheet" href="css/trade.css">
+  <link rel="stylesheet" href="css/school.css">
 </head>
 <body>
 
@@ -63,10 +64,7 @@
     </div>
   </div>
 
-  <!-- زر فتح المتصدرين — تحت زر الدخول، يظهر خارج الواجهة الرئيسية واللعبة -->
-  <button id="lb-open-btn" class="lb-open-btn" hidden>🏆 المتصدرين</button>
-
-  <!-- مودال المتصدرين -->
+  <!-- مودال المتصدرين (يفتح من بطاقة "المتصدرين" بالقائمة الرئيسية) -->
   <div id="lb-modal" class="lb-modal" hidden>
     <div class="lb-modal-overlay"></div>
     <div class="lb-modal-box">
@@ -109,33 +107,6 @@
       <div id="home-rank-badge" class="rank-badge" hidden></div>
       <button id="btn-start" class="btn btn-primary btn-large">ابدأ</button>
 
-      <!-- ===== لوحة المتصدرين على الصفحة الرئيسية (قابلة للطي) ===== -->
-      <div class="home-leaderboard" id="home-leaderboard">
-        <button class="home-lb-toggle" id="home-lb-toggle" aria-expanded="false">
-          <span class="home-lb-toggle-text">🏆 لوحة المتصدرين</span>
-          <span class="home-lb-chevron">▼</span>
-        </button>
-        <div class="home-lb-content" id="home-lb-content">
-          <div class="home-lb-tabs">
-            <button class="home-lb-tab active" data-lb-tab="global">🏆 العالمي</button>
-            <button class="home-lb-tab" data-lb-tab="season">🎯 الموسم</button>
-            <button class="home-lb-tab" data-lb-tab="game">🎮 بكل لعبة</button>
-          </div>
-          <div class="home-lb-game-picker" id="home-lb-game-picker" hidden>
-            <select id="home-lb-game-select" class="home-lb-select">
-              <option value="letter-rain">🌧️ مطر الأحرف</option>
-              <option value="letter-blaze">🔥 حريق الحروف</option>
-              <option value="taxi">🚕 التاكسي</option>
-              <option value="fishing">🎣 الصيد</option>
-              <option value="sniper">🎯 القنص</option>
-              <option value="casino">🎰 الكازينو</option>
-            </select>
-          </div>
-          <div class="home-lb-list" id="home-lb-list">
-            <div class="home-lb-empty">جاري التحميل...</div>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -159,8 +130,16 @@
         <div class="menu-section">
           <h3 class="menu-section-title">📈 التقدم</h3>
           <div class="menu-grid">
-            <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
+            <button id="btn-leaderboard-menu" class="menu-card menu-card-leaderboard">
               <span class="menu-card-icon">🏆</span>
+              <span class="menu-card-label">المتصدرين</span>
+            </button>
+            <button id="btn-school-menu" class="menu-card menu-card-school">
+              <span class="menu-card-icon">🎓</span>
+              <span class="menu-card-label">المدرسة</span>
+            </button>
+            <button id="btn-achievements-menu" class="menu-card menu-card-achievements">
+              <span class="menu-card-icon">🎖</span>
               <span class="menu-card-label">الإنجازات</span>
               <span id="achievements-badge" class="notification-badge" hidden>0</span>
             </button>
@@ -901,6 +880,69 @@
       </div>
 
       <button class="trade-confirm-btn" id="trade-confirm-btn" disabled>اختر حرفين وكمية</button>
+    </div>
+  </section>
+
+  <!-- ===== صفحة المدرسة 🎓 ===== -->
+  <section id="page-school" class="page">
+    <div class="school-container">
+      <button class="btn-back" data-target="menu">&#8594; رجوع</button>
+      <h2 class="page-title">🎓 المدرسة</h2>
+
+      <!-- شريط ملخص (أعلى الصفحة) -->
+      <div class="school-summary">
+        <div class="school-summary-card">
+          <div class="school-summary-label">صفي الحالي</div>
+          <div class="school-summary-value" id="school-current-grade">—</div>
+        </div>
+        <div class="school-summary-card">
+          <div class="school-summary-label">طلاب</div>
+          <div class="school-summary-value" id="school-student-count">0</div>
+        </div>
+        <div class="school-summary-card">
+          <div class="school-summary-label">حروف/ساعة</div>
+          <div class="school-summary-value" id="school-hourly-rate">0</div>
+        </div>
+      </div>
+
+      <!-- معاينة الصف القادم -->
+      <div class="school-next-grade" id="school-next-grade" hidden></div>
+
+      <!-- إشعار الإنتاج عند الدخول (offline catchup) -->
+      <div class="school-offline-banner" id="school-offline-banner" hidden>
+        <span class="school-offline-emoji">📦</span>
+        <div class="school-offline-text">
+          <div class="school-offline-title">جاء طلابك بحروف وأنت غايب!</div>
+          <div class="school-offline-detail" id="school-offline-detail"></div>
+        </div>
+      </div>
+
+      <!-- تبويبات -->
+      <div class="school-tabs">
+        <button class="school-tab active" data-school-tab="grades">📚 صفوفي</button>
+        <button class="school-tab" data-school-tab="recruit">👥 تجنيد طالب</button>
+      </div>
+
+      <!-- محتوى تبويب "صفوفي" -->
+      <div class="school-tab-content" data-school-content="grades">
+        <div class="school-grades-list" id="school-grades-list"></div>
+      </div>
+
+      <!-- محتوى تبويب "تجنيد" -->
+      <div class="school-tab-content" data-school-content="recruit" hidden>
+        <input type="text" class="school-search" id="school-search" placeholder="🔍 ابحث عن اسم...">
+        <div class="school-recruit-toolbar">
+          <div class="school-recruit-filters">
+            <button class="school-filter active" data-school-filter="affordable">💰 يمكن فتحه الآن</button>
+            <button class="school-filter" data-school-filter="all">📋 الكل</button>
+            <button class="school-filter" data-school-filter="unlocked">✅ المفتوحون</button>
+          </div>
+          <button class="school-bulk-recruit-btn" id="school-bulk-recruit-btn">
+            ⚡ جنّد كل المتاح
+          </button>
+        </div>
+        <div class="school-recruit-list" id="school-recruit-list"></div>
+      </div>
     </div>
   </section>
 

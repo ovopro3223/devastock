@@ -141,6 +141,26 @@
   border-color: rgba(120,110,255,0.6);
   box-shadow: 0 6px 20px rgba(120,110,255,0.20);
 }
+.menu-card-leaderboard {
+  background: linear-gradient(135deg, rgba(255,215,0,0.16), rgba(243,156,18,0.08));
+  border-color: rgba(255,215,0,0.5);
+  color: #FFD54F;
+}
+.menu-card-leaderboard:hover {
+  background: linear-gradient(135deg, rgba(255,215,0,0.26), rgba(243,156,18,0.14));
+  border-color: rgba(255,215,0,0.8);
+  box-shadow: 0 6px 20px rgba(255,215,0,0.28);
+}
+.menu-card-school {
+  background: linear-gradient(135deg, rgba(76,175,80,0.16), rgba(33,150,243,0.10));
+  border-color: rgba(76,175,80,0.5);
+  color: #A5D6A7;
+}
+.menu-card-school:hover {
+  background: linear-gradient(135deg, rgba(76,175,80,0.26), rgba(33,150,243,0.16));
+  border-color: rgba(76,175,80,0.8);
+  box-shadow: 0 6px 20px rgba(76,175,80,0.25);
+}
 .menu-card-achievements {
   background: linear-gradient(135deg, rgba(255,193,7,0.14), rgba(255,87,34,0.06));
   border-color: rgba(255,193,7,0.4);

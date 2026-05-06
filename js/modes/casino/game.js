@@ -1,6 +1,5 @@
 // ===== كازينو الأحرف 🎰 =====
 import { getStock, saveLetterToStock, spendLetters, getTotalLetters } from '../../core/storage.js';
-import { ECONOMY_SCALE } from '../../core/rare-letters.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
 import { playWinSound, playLoseLifeSound } from '../../core/audio.js';
 import { recordPlayStart } from '../../core/game-stats.js';
@@ -143,13 +142,12 @@ export class CasinoGame {
   }
 
   _awardLetters(letter, count) {
-    // طبق مقياس الاقتصاد على المكافأة (ضمن الـ70% reduction)
-    const scaled = Math.max(1, Math.round(count * ECONOMY_SCALE));
-    for (let i = 0; i < scaled; i++) {
+    // الكازينو يعطي المكافأة كاملة بدون مقياس الاقتصاد (تربح 100 = تأخذ 100)
+    for (let i = 0; i < count; i++) {
       saveLetterToStock(letter);
     }
     // الخبرة (lifetime) من الكازينو 10% فقط — ما يقدر يفرّخ levels من الكازينو
-    const xpCount = Math.floor(scaled * 0.1);
+    const xpCount = Math.floor(count * 0.1);
     if (xpCount > 0) recordLetter(letter, xpCount);
   }
 
