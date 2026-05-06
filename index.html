@@ -69,39 +69,108 @@
   <!-- زر الأدمن — يظهر فقط لحساب الأدمن -->
   <button id="admin-open-btn" class="admin-open-btn" hidden>🛡️ أدمن</button>
 
-  <!-- مودال الأدمن: إرسال أحرف للاعب -->
+  <!-- مودال الأدمن: لوحة كاملة بتبويبات -->
   <div id="admin-modal" class="admin-modal" hidden>
     <div class="admin-modal-overlay"></div>
-    <div class="admin-modal-box">
+    <div class="admin-modal-box admin-modal-box-large">
       <button class="admin-modal-close" id="admin-modal-close" aria-label="إغلاق">&times;</button>
-      <h2 class="admin-modal-title">🛡️ لوحة الأدمن — إرسال أحرف</h2>
-      <div class="admin-form">
-        <label class="admin-field">
-          <span>اللاعب (اختر من القائمة):</span>
-          <select id="admin-player-select"><option value="">— اختر لاعب —</option></select>
-        </label>
-        <label class="admin-field">
-          <span>الحرف:</span>
-          <select id="admin-letter-select">
-            <option value="ا">ا</option><option value="ب">ب</option><option value="ت">ت</option>
-            <option value="ث">ث</option><option value="ج">ج</option><option value="ح">ح</option>
-            <option value="خ">خ</option><option value="د">د</option><option value="ذ">ذ</option>
-            <option value="ر">ر</option><option value="ز">ز</option><option value="س">س</option>
-            <option value="ش">ش</option><option value="ص">ص</option><option value="ض">ض</option>
-            <option value="ط">ط</option><option value="ظ">ظ</option><option value="ع">ع</option>
-            <option value="غ">غ</option><option value="ف">ف</option><option value="ق">ق</option>
-            <option value="ك">ك</option><option value="ل">ل</option><option value="م">م</option>
-            <option value="ن">ن</option><option value="ه">ه</option><option value="و">و</option>
-            <option value="ي">ي</option>
-            <option value="__ALL__">📋 كل الأحرف (نفس الكمية)</option>
-          </select>
-        </label>
-        <label class="admin-field">
-          <span>الكمية:</span>
-          <input type="number" id="admin-amount" min="1" max="9999999" value="100">
-        </label>
-        <button id="admin-send-btn" class="admin-send-btn">إرسال 🎁</button>
-        <div id="admin-result" class="admin-result"></div>
+      <h2 class="admin-modal-title">🛡️ لوحة الأدمن</h2>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-admin-tab="letters">🎁 أحرف</button>
+        <button class="admin-tab" data-admin-tab="player">👤 لاعب</button>
+        <button class="admin-tab" data-admin-tab="broadcast">📢 إعلان</button>
+        <button class="admin-tab" data-admin-tab="forum">🗑️ منتدى</button>
+      </div>
+
+      <!-- تبويب: إرسال أحرف -->
+      <div class="admin-tab-content" data-admin-content="letters">
+        <div class="admin-form">
+          <label class="admin-field">
+            <span>اللاعب:</span>
+            <select id="admin-player-select"><option value="">— اختر لاعب —</option></select>
+          </label>
+          <label class="admin-field">
+            <span>الحرف:</span>
+            <select id="admin-letter-select">
+              <option value="ا">ا</option><option value="ب">ب</option><option value="ت">ت</option>
+              <option value="ث">ث</option><option value="ج">ج</option><option value="ح">ح</option>
+              <option value="خ">خ</option><option value="د">د</option><option value="ذ">ذ</option>
+              <option value="ر">ر</option><option value="ز">ز</option><option value="س">س</option>
+              <option value="ش">ش</option><option value="ص">ص</option><option value="ض">ض</option>
+              <option value="ط">ط</option><option value="ظ">ظ</option><option value="ع">ع</option>
+              <option value="غ">غ</option><option value="ف">ف</option><option value="ق">ق</option>
+              <option value="ك">ك</option><option value="ل">ل</option><option value="م">م</option>
+              <option value="ن">ن</option><option value="ه">ه</option><option value="و">و</option>
+              <option value="ي">ي</option>
+              <option value="__ALL__">📋 كل الأحرف (نفس الكمية)</option>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>الكمية:</span>
+            <input type="number" id="admin-amount" min="1" max="9999999" value="100">
+          </label>
+          <button id="admin-send-btn" class="admin-send-btn">إرسال 🎁</button>
+          <div id="admin-result" class="admin-result"></div>
+        </div>
+      </div>
+
+      <!-- تبويب: إدارة لاعب -->
+      <div class="admin-tab-content" data-admin-content="player" hidden>
+        <div class="admin-form">
+          <label class="admin-field">
+            <span>اللاعب:</span>
+            <select id="admin-player2-select"><option value="">— اختر لاعب —</option></select>
+          </label>
+          <button id="admin-player-load-btn" class="admin-secondary-btn">جلب البيانات 🔍</button>
+          <div id="admin-player-info" class="admin-player-info"></div>
+          <div id="admin-player-actions" class="admin-player-actions" hidden>
+            <button class="admin-action-btn" data-admin-action="clear-stock">🗑️ تصفير المخزن</button>
+            <div class="admin-inline-form">
+              <input type="number" id="admin-set-lifetime-input" min="0" placeholder="إجمالي الحروف">
+              <button class="admin-action-btn" data-admin-action="set-lifetime">📈 ضبط اللفل</button>
+            </div>
+            <div class="admin-inline-form">
+              <select id="admin-grant-frame-select">
+                <option value="">— اختر إطار —</option>
+                <option value="nasij">ناسج</option>
+                <option value="blue">الأزرق</option>
+                <option value="floral">الزهري</option>
+                <option value="islamic">الإسلامي</option>
+                <option value="roses">الورود</option>
+                <option value="tropical">الاستوائي</option>
+                <option value="magical">الساحر</option>
+                <option value="fire">الناري</option>
+                <option value="royal">الملكي</option>
+                <option value="mythic">الملحمي</option>
+              </select>
+              <button class="admin-action-btn" data-admin-action="grant-frame">🖼️ منح</button>
+            </div>
+            <button class="admin-action-btn ban-btn" data-admin-action="toggle-ban">🚫 حظر/فك حظر</button>
+          </div>
+          <div id="admin-player-result" class="admin-result"></div>
+        </div>
+      </div>
+
+      <!-- تبويب: إعلان عام -->
+      <div class="admin-tab-content" data-admin-content="broadcast" hidden>
+        <div class="admin-form">
+          <label class="admin-field">
+            <span>رسالة الإعلان (يستلمها كل اللاعبين):</span>
+            <textarea id="admin-broadcast-msg" rows="4" placeholder="اكتب الإعلان..."></textarea>
+          </label>
+          <button id="admin-broadcast-btn" class="admin-send-btn">📢 أرسل للجميع</button>
+          <div id="admin-broadcast-result" class="admin-result"></div>
+        </div>
+      </div>
+
+      <!-- تبويب: إدارة المنتدى -->
+      <div class="admin-tab-content" data-admin-content="forum" hidden>
+        <div class="admin-form">
+          <button id="admin-forum-load-btn" class="admin-secondary-btn">🔄 حمّل آخر المنشورات</button>
+          <div id="admin-forum-list" class="admin-forum-list"></div>
+          <div id="admin-forum-result" class="admin-result"></div>
+        </div>
       </div>
     </div>
   </div>

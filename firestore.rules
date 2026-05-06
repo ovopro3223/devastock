@@ -36,16 +36,22 @@ service cloud.firestore {
       allow delete: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
     }
 
-    // المنتدى
+    // الإعلانات العامة — الكل يقرأ، الأدمن يكتب
+    match /announcements/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // المنتدى — الأدمن يقدر يحذف أي شي
     match /forumPosts/{postId} {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.authorUid == request.auth.uid;
+      allow update, delete: if request.auth != null && (resource.data.authorUid == request.auth.uid || isAdmin());
 
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
-        allow update, delete: if request.auth != null && resource.data.authorUid == request.auth.uid;
+        allow update, delete: if request.auth != null && (resource.data.authorUid == request.auth.uid || isAdmin());
       }
 
       match /likes/{likeId} {

@@ -15,6 +15,8 @@ import { initSchool, renderSchool, stopSchoolRefresh } from './pages/school.js';
 import { tickIncome } from './core/school-storage.js';
 import { initFrames, renderFrames } from './pages/frames.js';
 import { initAdmin } from './pages/admin.js';
+import { checkForBroadcast, checkIfBanned } from './core/admin.js';
+import { signOutUser } from './core/firebase.js';
 import { initAudio }   from './core/audio.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
@@ -118,7 +120,21 @@ tickIncome();
 
 // Firebase — يعمل بشكل مستقل في الخلفية
 initAudio();
-initAuth((user) => {
+initAuth(async (user) => {
+  // فحص حظر اللاعب فور تسجيل دخوله
+  if (user) {
+    const banResult = await checkIfBanned();
+    if (banResult.banned) {
+      alert(`🚫 حسابك محظور.${banResult.reason ? '\nالسبب: ' + banResult.reason : ''}`);
+      signOutUser();
+      return;
+    }
+    // فحص الإعلانات الجديدة
+    const announcement = await checkForBroadcast();
+    if (announcement) {
+      setTimeout(() => alert(`📢 إعلان من الإدارة:\n\n${announcement}`), 1200);
+    }
+  }
   // بعد سحب البيانات من السحابة، تأكد إن lifetime ≥ stock
   syncLifetimeWithStock();
   renderAuthButton(user);

@@ -64,12 +64,59 @@
   position: relative;
   width: 100%;
   max-width: 420px;
+  max-height: 88vh;
+  overflow-y: auto;
   background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
   border: 1px solid rgba(231, 76, 60, 0.5);
   border-radius: 20px;
   padding: 1.2rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   animation: modalSlideUp 0.25s ease;
+}
+
+.admin-modal-box-large {
+  max-width: 540px;
+}
+
+/* تبويبات */
+.admin-tabs {
+  display: flex;
+  gap: 0.3rem;
+  margin: 0.6rem 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.admin-tab {
+  flex: 1;
+  padding: 0.5rem 0.5rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  color: var(--color-dim);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-tab:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.admin-tab.active {
+  background: linear-gradient(135deg, rgba(231,76,60,0.30), rgba(192,57,43,0.18));
+  border-color: rgba(231,76,60,0.65);
+  color: #FF8A80;
+}
+
+.admin-tab-content {
+  display: block;
+}
+.admin-tab-content[hidden] {
+  display: none;
 }
 
 .admin-modal-close {
@@ -191,4 +238,168 @@
 .admin-result.pending {
   background: rgba(255, 215, 0, 0.15);
   color: var(--color-gold);
+}
+
+/* زر ثانوي */
+.admin-secondary-btn {
+  width: 100%;
+  padding: 0.6rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.admin-secondary-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+/* بطاقة معلومات لاعب */
+.admin-info-card {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  margin: 0.5rem 0;
+  font-size: 0.86rem;
+  color: var(--color-text);
+}
+
+.admin-info-row {
+  padding: 0.18rem 0;
+}
+
+.admin-info-row b {
+  color: var(--color-dim);
+  font-weight: 700;
+  margin-left: 0.3rem;
+}
+
+.admin-info-row.danger {
+  background: rgba(231,76,60,0.15);
+  border: 1px solid rgba(231,76,60,0.4);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  margin-top: 0.5rem;
+  color: #FF8A80;
+}
+
+/* إجراءات اللاعب */
+.admin-player-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+
+.admin-action-btn {
+  width: 100%;
+  padding: 0.55rem;
+  background: rgba(255,215,0,0.12);
+  border: 1px solid rgba(255,215,0,0.4);
+  border-radius: 10px;
+  color: var(--color-gold);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.admin-action-btn:hover {
+  background: rgba(255,215,0,0.20);
+}
+
+.admin-action-btn.ban-btn {
+  background: rgba(231,76,60,0.18);
+  border-color: rgba(231,76,60,0.55);
+  color: #FF8A80;
+}
+.admin-action-btn.ban-btn:hover {
+  background: rgba(231,76,60,0.30);
+}
+
+.admin-inline-form {
+  display: flex;
+  gap: 0.4rem;
+}
+.admin-inline-form input,
+.admin-inline-form select {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.85rem;
+}
+.admin-inline-form .admin-action-btn {
+  width: auto;
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+}
+
+/* textarea */
+.admin-field textarea {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.admin-field textarea:focus {
+  outline: none;
+  border-color: rgba(231,76,60,0.7);
+}
+
+/* قائمة المنتدى للأدمن */
+.admin-forum-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 360px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.admin-forum-item {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-forum-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--color-dim);
+}
+
+.admin-forum-item-text {
+  font-size: 0.88rem;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.admin-forum-item .admin-action-btn {
+  align-self: flex-start;
+  width: auto;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
 }
