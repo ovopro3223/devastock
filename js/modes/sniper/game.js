@@ -146,14 +146,14 @@ export class SniperGame {
   _shoot() {
     if (!this.running || this.paused) return;
 
-    // crosshair يحفظ إحداثيات الشاشة (مكان الضغط)
-    // الأهداف موجودة بإحداثيات الشاشة (peekX, peekY بدون تحويل)
-    // فالمقارنة مباشرة بدون تحويل
+    // crosshair بإحداثيات الكانفاس، الأهداف بنفس الإحداثيات
     const aimX = this.crosshair.x;
     const aimY = this.crosshair.y;
 
-    // منطقة إصابة كبيرة لتسهيل اللعب (خاصة على الموبايل)
-    const hitRadius = this.zoom > 1 ? 70 : 55;
+    // إصابة دقيقة: فقط داخل دائرة الهدف الفعلية (نصف القطر = نصف حجم الصورة)
+    // TARGET_SIZE = 14 px → نصف القطر 7 px (صغير جداً، يحتاج زوم)
+    const TARGET_SIZE = 14;
+    const hitRadius = TARGET_SIZE / 2;
 
     let hit = null;
     let bestDist = Infinity;
@@ -162,7 +162,7 @@ export class SniperGame {
       const dx = t.peekX - aimX;
       const dy = t.peekY - aimY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < hitRadius && dist < bestDist) {
+      if (dist <= hitRadius && dist < bestDist) {
         hit = t;
         bestDist = dist;
       }
@@ -500,28 +500,30 @@ export class SniperGame {
       }
     }
 
-    // ===== أشجار الأهداف والأحرف خلفها =====
+    // ===== أشجار الأهداف (الشجرة أولاً) ثم الأهداف فوقها =====
     const sortedTargets = [...this.targets].sort((a, b) => a.treeY - b.treeY);
+
+    // طبقة 1: ارسم كل الأشجار أولاً
     for (const t of sortedTargets) {
-      if (!t.shot) {
-        // هدف صغير (دائرة بولزآي) — يكبر مع الزوم
-        if (isImgReady(ASSETS.target)) {
-          const tw = 22;
-          ctx.globalAlpha = 0.9;
-          ctx.drawImage(ASSETS.target, t.peekX - tw / 2, t.peekY - tw / 2, tw, tw);
-          ctx.globalAlpha = 1;
-        }
-        // الحرف صغير جداً بدون زوم — يحتاج السكوب عشان يبيّن واضح
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 12px Cairo, Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1.5;
-        ctx.strokeText(t.char, t.peekX, t.peekY);
-        ctx.fillText(t.char, t.peekX, t.peekY);
-      }
       _drawTreeOn(t.treeX, t.treeY, t.treeVariant);
+    }
+    // طبقة 2: ارسم الأهداف والأحرف فوق الأشجار (مش متخفية)
+    for (const t of sortedTargets) {
+      if (t.shot) continue;
+      // الهدف (دائرة بولزآي) — صغير 14 px، دائماً مرئي
+      if (isImgReady(ASSETS.target)) {
+        const tw = 14;
+        ctx.drawImage(ASSETS.target, t.peekX - tw / 2, t.peekY - tw / 2, tw, tw);
+      }
+      // الحرف فوق الهدف — صغير، يحتاج زوم لقراءته
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 11px Cairo, Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.5;
+      ctx.strokeText(t.char, t.peekX, t.peekY);
+      ctx.fillText(t.char, t.peekX, t.peekY);
     }
 
     // ===== شجيرات وصخور =====
