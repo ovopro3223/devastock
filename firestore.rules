@@ -3,17 +3,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // كل مستخدم يقرأ بياناته، والـ users قابلة للقراءة لأي مسجل دخول
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid in ['KyOf1zfyclMPwdg5KGBHf1Kpt952'];
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // كتابة كاملة للمستخدم نفسه،
-      // أو تعديل قائمة الأصدقاء فقط من قبل لاعب آخر،
-      // أو الأدمن يقدر يعدّل pendingGifts وpendingGiftsUpdatedAt فقط لأي لاعب
+      allow create: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // كتابة:
+      // - المستخدم نفسه (كتابة كاملة)
+      // - تعديل قائمة الأصدقاء فقط من قبل لاعب آخر
+      // - الأدمن يقدر يعدّل أي حقل لأي لاعب (للهدايا والصيانة)
       allow update: if request.auth != null && (
         request.auth.uid == userId ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']) ||
-        (request.auth.uid == 'KyOf1zfyclMPwdg5KGBHf1Kpt952'
-         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingGifts', 'pendingGiftsUpdatedAt']))
+        isAdmin()
       );
     }
 

@@ -1,4 +1,8 @@
 /* ===== لوحة الأدمن ===== */
+.admin-open-btn[hidden] {
+  display: none !important;
+}
+
 .admin-open-btn {
   position: fixed;
   bottom: 1rem;

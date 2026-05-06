@@ -18,10 +18,19 @@ export function initAdmin() {
   const sendBtn  = document.getElementById('admin-send-btn');
   const playerSel = document.getElementById('admin-player-select');
 
+  // ابدأ مخفي دائماً (احتياط ضد أي flash)
+  if (openBtn) {
+    openBtn.hidden = true;
+    openBtn.style.display = 'none';
+  }
+
   // مراقبة حالة المصادقة — أظهر الزر للأدمن فقط
   const auth = getAuth();
   onAuthStateChanged(auth, (user) => {
-    if (openBtn) openBtn.hidden = !isAdmin(user);
+    if (!openBtn) return;
+    const showIt = isAdmin(user);
+    openBtn.hidden = !showIt;
+    openBtn.style.display = showIt ? '' : 'none';
   });
 
   if (openBtn && modal) {
