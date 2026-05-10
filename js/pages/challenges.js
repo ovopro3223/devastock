@@ -1,5 +1,6 @@
 // ===== صفحة التحديات =====
 import { getChallengesState, claimChallenge, formatTimeLeft, getReadyChallengeCount } from '../core/challenges.js';
+import { showGameNotification } from '../core/notifications.js';
 
 let _initialized = false;
 
@@ -63,15 +64,14 @@ function _renderCard(c) {
 window._claimChallenge = function(tplId) {
   const result = claimChallenge(tplId);
   if (!result.ok) {
-    if (result.reason === 'not_complete') alert('التحدي لم يكتمل بعد.');
-    else if (result.reason === 'already_claimed') alert('تم استلام المكافأة سابقاً.');
-    else alert('تعذَّر استلام المكافأة.');
+    if (result.reason === 'not_complete') showGameNotification('التحدي لم يكتمل بعد.', 'error');
+    else if (result.reason === 'already_claimed') showGameNotification('تم استلام المكافأة سابقاً.', 'warning');
+    else showGameNotification('تعذَّر استلام المكافأة.', 'error');
     return;
   }
-  // إشعار صغير
   const grantedSummary = Object.entries(result.granted)
     .map(([c, n]) => `${c}×${n}`).join(' ');
-  alert(`🎁 ربحت ${result.reward} حرف!\n${grantedSummary}`);
+  showGameNotification(`🎁 ربحت ${result.reward} حرف!\n${grantedSummary}`, 'success');
   renderChallenges();
   _updateMenuBadge();
 };

@@ -1008,6 +1008,153 @@
   margin: 0.5rem 0;
 }
 
+/* ===== غلاف البروفايل (Cover + Quote) ===== */
+.player-profile-cover {
+  margin: -1.2rem -1.2rem 0.8rem;
+  padding: 1.2rem 1rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.10), rgba(155, 107, 255, 0.06));
+  border-bottom: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 18px 18px 0 0;
+  text-align: center;
+}
+
+.player-profile-quote {
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #FFD54F;
+  line-height: 1.6;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+}
+
+/* ===== جدار البروفايل ===== */
+.player-profile-wall {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+  text-align: right;
+}
+
+.wall-header {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-gold);
+  margin-bottom: 0.6rem;
+  text-align: center;
+}
+
+.wall-loading,
+.wall-empty {
+  text-align: center;
+  color: var(--color-dim);
+  padding: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.wall-login-prompt {
+  text-align: center;
+  color: var(--color-dim);
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.wall-post-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.wall-post-form textarea {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  resize: vertical;
+  min-height: 50px;
+}
+
+.wall-post-form textarea:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.wall-post-form .btn {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.wall-posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-left: 4px;
+}
+
+.wall-post {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+}
+
+.wall-post-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.wall-post-author {
+  font-weight: 800;
+  color: var(--color-gold);
+  flex: 1;
+}
+
+.wall-post-date {
+  color: var(--color-dim);
+  font-size: 0.72rem;
+}
+
+.wall-delete-btn {
+  background: rgba(231,76,60,0.2);
+  border: 1px solid rgba(231,76,60,0.4);
+  border-radius: 50%;
+  color: #FF8A80;
+  width: 22px;
+  height: 22px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wall-delete-btn:hover {
+  background: rgba(231,76,60,0.5);
+  color: #fff;
+}
+
+.wall-post-content {
+  font-size: 0.88rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .player-profile-name {
   font-size: 1.4rem;
   font-weight: 700;

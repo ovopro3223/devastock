@@ -2,6 +2,7 @@
 import { getState, setState } from './app-state.js';
 import { getLifetimeTotal, getLevel } from './lifetime-storage.js';
 import { getStock } from './storage.js';
+import { playAchievementSound } from './audio.js';
 
 // ===== تعريفات الإنجازات =====
 // كل إنجاز: id, title, desc, icon, category, target, getProgress(state)
@@ -149,6 +150,7 @@ function _showNextToast() {
   }
   _toastShowing = true;
   const ach = _toastQueue.shift();
+  playAchievementSound();
   const toast = document.getElementById('achievement-toast');
   const icon  = document.getElementById('achievement-toast-icon');
   const title = document.getElementById('achievement-toast-title');

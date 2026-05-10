@@ -1,6 +1,6 @@
 // ===== تاكسي الأحرف 🚕 =====
 import { awardLetter } from '../../core/rare-letters.js';
-import { playCollectSound, playLoseLifeSound, startEngine, stopEngine } from '../../core/audio.js';
+import { playCollectSound, playLoseLifeSound, startEngine, stopEngine, playCrashSound, playLetterGatheringTaxiSound } from '../../core/audio.js';
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
@@ -386,6 +386,7 @@ export class TaxiGame {
           if (this.multiplierUses <= 0) { this.multiplier = 1; this.multiplierUses = 0; }
         }
         playCollectSound();
+        playLetterGatheringTaxiSound();
         this._updateHUD();
       }
     }
@@ -402,6 +403,7 @@ export class TaxiGame {
         t.hit = true;
         this.lives--;
         playLoseLifeSound();
+        playCrashSound();
         // اهتزاز التلفون عند التصادم
         try {
           if (typeof navigator !== 'undefined' && navigator.vibrate) {

@@ -2,7 +2,7 @@
 import { saveLetterToStock } from '../../core/storage.js';
 import { awardLetter } from '../../core/rare-letters.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
-import { playShotSound, playCollectSound, playLoseLifeSound } from '../../core/audio.js';
+import { playShotSound, playCollectSound, playLoseLifeSound, playHitSound, playMissSound, playLooseSound, playScopeOnSound } from '../../core/audio.js';
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 import { incrementCounter } from '../../core/achievements.js';
 
@@ -177,6 +177,7 @@ export class SniperGame {
       const r = awardLetter('sniper', hit.char);
       this._lettersCollectedThisRun = (this._lettersCollectedThisRun || 0) + r.count;
       playCollectSound();
+      playHitSound();
       this._updateWordDisplay();
 
       if (this.revealed.every(r => r !== null)) {
@@ -185,6 +186,7 @@ export class SniperGame {
     } else {
       this.misses++;
       playLoseLifeSound();
+      playMissSound();
       this._updateHUD();
       this._flashMiss();
       if (this.misses >= MAX_MISSES) {
@@ -195,6 +197,7 @@ export class SniperGame {
 
   _toggleZoom() {
     this.zoom = this.zoom === 1 ? this.zoomFactor : 1;
+    playScopeOnSound();
     const btn = document.getElementById('sniper-zoom-btn');
     if (btn) {
       btn.classList.toggle('active', this.zoom > 1);
@@ -314,6 +317,7 @@ export class SniperGame {
 
     this.running = true;
     this.paused = false;
+    this.canvas.classList.remove('frozen');
     this._lastTime = performance.now();
     this._lettersCollectedThisRun = 0;
     recordPlayStart('sniper');
@@ -335,6 +339,7 @@ export class SniperGame {
 
   quit() {
     this.running = false;
+    this._setGameInteraction(true);
     if (this._guideHideTimer) { clearTimeout(this._guideHideTimer); this._guideHideTimer = null; }
     document.getElementById('sniper-overlay-pause').hidden = true;
     document.getElementById('sniper-overlay-gameover').hidden = true;
@@ -343,32 +348,29 @@ export class SniperGame {
 
   restart() {
     document.getElementById('sniper-overlay-gameover').hidden = true;
+    this._setGameInteraction(true);
     this.start();
   }
 
   _gameOver() {
-    this.running = false;
+    playLooseSound();
     recordPlayEnd('sniper', {
       score: 0,
       lettersCollected: this._lettersCollectedThisRun || 0,
       won: false,
     });
-    document.getElementById('sniper-end-title').textContent = 'خسرت 💔';
-    document.getElementById('sniper-final-word').textContent = this.word;
-    document.getElementById('sniper-overlay-gameover').hidden = false;
+    this._showGameResult('خسرت 💔', this.word, 'إعادة كلمة جديدة أو العودة للقائمة');
   }
 
   _win() {
-    this.running = false;
+    playWinSound();
     incrementCounter('sniper_words_completed');
     recordPlayEnd('sniper', {
       score: this.word.length * 10,
       lettersCollected: this._lettersCollectedThisRun || 0,
       won: true,
     });
-    document.getElementById('sniper-end-title').textContent = 'فزت! 🎯';
-    document.getElementById('sniper-final-word').textContent = this.word;
-    document.getElementById('sniper-overlay-gameover').hidden = false;
+    this._showGameResult('فزت! 🎯', this.word, 'إعادة كلمة جديدة أو العودة للقائمة');
   }
 
   _updateHUD() {
@@ -394,6 +396,34 @@ export class SniperGame {
     }).join('');
 
     this._updateHUD();
+    this._checkWordCompletion();
+  }
+
+  _checkWordCompletion() {
+    if (!this.running || this.paused) return;
+    if (this.revealed.length === 0) return;
+    if (this.revealed.every(r => r !== null)) {
+      this._win();
+    }
+  }
+
+  _setGameInteraction(enabled) {
+    const canvas = this.canvas;
+    const fireBtn = document.getElementById('sniper-fire-btn');
+    const zoomBtn = document.getElementById('sniper-zoom-btn');
+    if (canvas) canvas.style.pointerEvents = enabled ? '' : 'none';
+    if (fireBtn) fireBtn.disabled = !enabled;
+    if (zoomBtn) zoomBtn.disabled = !enabled;
+  }
+
+  _showGameResult(title, word, message) {
+    this.running = false;
+    this._setGameInteraction(false);
+    document.getElementById('sniper-end-title').textContent = title;
+    document.getElementById('sniper-final-word').textContent = word;
+    const messageEl = document.getElementById('sniper-end-message');
+    if (messageEl) messageEl.textContent = message;
+    document.getElementById('sniper-overlay-gameover').hidden = false;
   }
 
   _flashMiss() {
@@ -411,6 +441,7 @@ export class SniperGame {
 
     try {
       this._update(dt);
+      this._checkWordCompletion();
       this._draw();
     } catch (e) {
       console.error('Sniper loop error:', e);

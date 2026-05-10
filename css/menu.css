@@ -161,6 +161,28 @@
   border-color: rgba(76,175,80,0.8);
   box-shadow: 0 6px 20px rgba(76,175,80,0.25);
 }
+/* أزرار البطل (ابدأ اللعب + المجتمع) */
+.menu-hero-buttons {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.btn-community-hero {
+  background: linear-gradient(135deg, #5DD3D3, #2E7D7D);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(93, 211, 211, 0.35);
+  padding: 1rem 2.2rem;
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
+}
+
+.btn-community-hero:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 22px rgba(93, 211, 211, 0.55);
+}
+
 .menu-card-achievements {
   background: linear-gradient(135deg, rgba(255,193,7,0.14), rgba(255,87,34,0.06));
   border-color: rgba(255,193,7,0.4);

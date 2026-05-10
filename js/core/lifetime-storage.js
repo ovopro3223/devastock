@@ -35,97 +35,74 @@ export function getLifetimeTotal() {
 }
 
 // ===== نظام اللفلات (Levels) =====
-// 1-120: اللفلات العادية. 121-150: لفلات prestige (تظهر كـ "P-1" إلى "P-30")
-// كل مدى من 10 لفلات له لقب خاص ولون
-const LEVEL_SCALE = 0.30;
-export const MAX_LEVEL = 150;          // 120 + 30 prestige
-export const PRESTIGE_START = 121;     // أول لفل بريستيج
+// 1-100 — لا prestige. الوصول للفل 100 يتطلب 14 مليون حرف تراكمياً
+export const MAX_LEVEL = 100;
+const TOTAL_LETTERS_AT_MAX = 14_000_000;
 
-// حساب الحروف المطلوبة من level → level+1
+// منحنى تربيعي: cum(N) = 14M × ((N-1)/99)^2
+// يعطي تدرج طبيعي — البداية سهلة، النهاية صعبة
+function _cumLetters(level) {
+  if (level <= 1) return 0;
+  if (level >= MAX_LEVEL) return TOTAL_LETTERS_AT_MAX;
+  const t = (level - 1) / (MAX_LEVEL - 1);
+  return Math.round(TOTAL_LETTERS_AT_MAX * t * t);
+}
+
+// حروف مطلوبة من level → level+1
 export function getRequirementForLevel(level) {
   if (level <= 1) return 0;
-  if (level <= 3) return Math.round(1000 * LEVEL_SCALE);
-  if (level === 4) return Math.round(1500 * LEVEL_SCALE);
-  if (level === 5) return Math.round(2000 * LEVEL_SCALE);
-  // 6-120: نمو exponential عادي
-  if (level <= 120) {
-    return Math.round(2500 * Math.pow(2000, (level - 6) / 114) * LEVEL_SCALE);
-  }
-  // 121-150 (prestige): تكلفة عالية ثابتة الأساس + نمو خفيف
-  // أساسها = تكلفة لفل 120 × 2، ثم تتضاعف كل 5 لفلات
-  const base = Math.round(2500 * Math.pow(2000, (120 - 6) / 114) * LEVEL_SCALE);
-  const prestigeIdx = level - 120; // 1..30
-  return Math.round(base * 2 * Math.pow(1.15, prestigeIdx - 1));
+  return Math.max(1, _cumLetters(level) - _cumLetters(level - 1));
 }
 
-// حساب اللفل الخام (1..150) من إجمالي الحروف
+// حساب اللفل من إجمالي الحروف (1..100)
 export function getLevel(totalLetters) {
-  let level = 1;
-  let cumulative = 0;
-  while (level < MAX_LEVEL) {
-    const required = getRequirementForLevel(level + 1);
-    if (cumulative + required > totalLetters) break;
-    cumulative += required;
-    level++;
+  if (totalLetters <= 0) return 1;
+  if (totalLetters >= TOTAL_LETTERS_AT_MAX) return MAX_LEVEL;
+  // بحث ثنائي
+  let lo = 1, hi = MAX_LEVEL;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (_cumLetters(mid) <= totalLetters) lo = mid;
+    else hi = mid - 1;
   }
-  return level;
+  return lo;
 }
 
-// تحويل اللفل الخام (1..150) لمعلومات العرض
-// { displayLevel, isPrestige, prestigeLevel?, rawLevel }
+// معلومات العرض (للحفاظ على API القديم)
 export function getDisplayLevelInfo(rawLevel) {
-  if (rawLevel <= 120) {
-    return { rawLevel, displayLevel: rawLevel, isPrestige: false };
+  return { rawLevel, displayLevel: rawLevel, isPrestige: false };
+}
+
+// تقدم اللاعب في اللفل الحالي
+export function getLevelProgress(totalLetters) {
+  const level = getLevel(totalLetters);
+  if (level >= MAX_LEVEL) {
+    return { currentLevel: MAX_LEVEL, progress: 0, required: 0, percent: 100 };
   }
-  const prestigeLevel = rawLevel - 120; // 1..30
+  const cumNow = _cumLetters(level);
+  const cumNext = _cumLetters(level + 1);
+  const required = Math.max(1, cumNext - cumNow);
+  const progress = Math.max(0, totalLetters - cumNow);
   return {
-    rawLevel,
-    displayLevel: prestigeLevel,
-    prestigeLevel,
-    isPrestige: true,
+    currentLevel: level,
+    progress,
+    required,
+    percent: Math.min(100, Math.floor((progress / required) * 100)),
   };
 }
 
-// تقدم اللاعب في اللفل الحالي (للـ progress bar)
-export function getLevelProgress(totalLetters) {
-  let level = 1;
-  let cumulative = 0;
-  while (level < MAX_LEVEL) {
-    const required = getRequirementForLevel(level + 1);
-    if (cumulative + required > totalLetters) {
-      return {
-        currentLevel: level,
-        progress: totalLetters - cumulative,
-        required: required,
-        percent: Math.floor(((totalLetters - cumulative) / required) * 100),
-      };
-    }
-    cumulative += required;
-    level++;
-  }
-  return { currentLevel: MAX_LEVEL, progress: 0, required: 0, percent: 100 };
-}
-
-// ===== الألقاب — كل 10 لفلات لها لقب ولون =====
-// 12 لقب أساسي (1-120) + 3 ألقاب prestige (P1-P30)
+// ===== الألقاب — 10 ألقاب، كل 10 لفلات =====
 const RANK_TIERS = [
-  // 1-120 base
-  { from:   1, to:  10, title: 'بذرة',         emoji: '🌱', color: '#5DD3D3' },
-  { from:  11, to:  20, title: 'فسيلة',        emoji: '🌿', color: '#2ECC71' },
-  { from:  21, to:  30, title: 'مغامر',        emoji: '⚡', color: '#F1C40F' },
-  { from:  31, to:  40, title: 'محارب',        emoji: '🔥', color: '#E67E22' },
-  { from:  41, to:  50, title: 'فارس',         emoji: '⭐', color: '#E74C3C' },
-  { from:  51, to:  60, title: 'بطل',          emoji: '💎', color: '#9B59B6' },
-  { from:  61, to:  70, title: 'نبيل',         emoji: '🏆', color: '#3498DB' },
-  { from:  71, to:  80, title: 'أمير',         emoji: '👑', color: '#F39C12' },
-  { from:  81, to:  90, title: 'ملك',          emoji: '🚀', color: '#FFD700' },
-  { from:  91, to: 100, title: 'إمبراطور',     emoji: '💫', color: '#FF1493' },
-  { from: 101, to: 110, title: 'أسطورة',       emoji: '🌟', color: '#00FFFF' },
-  { from: 111, to: 120, title: 'خرافي',        emoji: '🌌', color: '#8A2BE2' },
-  // 121-150 prestige
-  { from: 121, to: 130, title: 'منتخب',         emoji: '🔱', color: '#FF4500', prestige: true },
-  { from: 131, to: 140, title: 'عرّاف',         emoji: '🦅', color: '#00CED1', prestige: true },
-  { from: 141, to: 150, title: 'سيد العرش',     emoji: '👁️', color: '#FF00FF', prestige: true },
+  { from:  1, to:  10, title: 'بذرة',     emoji: '🌱', color: '#5DD3D3' },
+  { from: 11, to:  20, title: 'فسيلة',    emoji: '🌿', color: '#2ECC71' },
+  { from: 21, to:  30, title: 'مغامر',    emoji: '⚡', color: '#F1C40F' },
+  { from: 31, to:  40, title: 'محارب',    emoji: '🔥', color: '#E67E22' },
+  { from: 41, to:  50, title: 'فارس',     emoji: '⭐', color: '#E74C3C' },
+  { from: 51, to:  60, title: 'بطل',      emoji: '💎', color: '#9B59B6' },
+  { from: 61, to:  70, title: 'نبيل',     emoji: '🏆', color: '#3498DB' },
+  { from: 71, to:  80, title: 'أمير',     emoji: '👑', color: '#F39C12' },
+  { from: 81, to:  90, title: 'ملك',      emoji: '🚀', color: '#FFD700' },
+  { from: 91, to: 100, title: 'أسطورة',   emoji: '🌌', color: '#FF00FF' },
 ];
 
 function _findTier(rawLevel) {
@@ -158,19 +135,18 @@ export function calculateScore() {
 
 // "الرتبة" — تنسيق نصي
 export function getRank(rawLevel) {
-  const info = getDisplayLevelInfo(rawLevel);
   const title = getLevelTitle(rawLevel);
   const emoji = getLevelEmoji(rawLevel);
-  const label = info.isPrestige
-    ? `بريستيج ${info.prestigeLevel}`
-    : `لفل ${info.displayLevel}`;
-  return { label, emoji, title, color: getLevelColor(rawLevel), isPrestige: info.isPrestige };
+  return {
+    label: `لفل ${rawLevel}`,
+    emoji, title,
+    color: getLevelColor(rawLevel),
+    isPrestige: false,
+  };
 }
 
-// مضاعف الحروف حسب لفل الحساب — يكافئ المستويات العالية
+// مضاعف الحروف حسب لفل الحساب — 1.0 → 2.5 خطياً
 export function getAccountLetterMultiplier() {
   const level = getLevel(getLifetimeTotal());
-  // 1: ×1.0، 50: ×1.6، 100: ×2.2، 120: ×2.5، prestige: 2.5..3.5
-  if (level <= 120) return 1 + (level - 1) / 80;
-  return 2.5 + (level - 120) / 30; // P1: 2.53, P30: 3.5
+  return 1 + (level - 1) / 66; // L1=1.0, L50=1.74, L100=2.5
 }

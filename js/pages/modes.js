@@ -1,5 +1,6 @@
 // ===== منطق صفحة الأنماط =====
 import { getGameProgression } from '../core/game-progression.js';
+import { playStartGameSound } from '../core/audio.js';
 
 const MODE_CONFIG = {
   'letter-rain':  { path: '../modes/letter-rain/game.js',  className: 'LetterRainGame',  method: 'start', hasExit: true },
@@ -41,6 +42,7 @@ export function initModes(navigate) {
     if (!button) return;
 
     button.addEventListener('click', async () => {
+      playStartGameSound();
       try {
         const instance = await loadMode(mode, navigate);
         navigate(mode);

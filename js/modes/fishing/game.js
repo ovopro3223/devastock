@@ -2,7 +2,7 @@
 import { saveLetterToStock, spendLetters, getStock } from '../../core/storage.js';
 import { awardLetter } from '../../core/rare-letters.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
-import { playSplashSound, playCollectSound, playLoseLifeSound, playWinSound } from '../../core/audio.js';
+import { playSplashSound, playCollectSound, playLoseLifeSound, playWinSound, playFishingNetThrewSound } from '../../core/audio.js';
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
@@ -160,6 +160,7 @@ export class FishingGame {
     this.net.shake = 0;
     this.net.result = null;
     document.getElementById('fishing-instructions').classList.add('hidden');
+    playFishingNetThrewSound();
     playSplashSound();
 
     // فقاعات عند الرمي

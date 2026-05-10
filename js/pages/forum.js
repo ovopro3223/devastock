@@ -7,6 +7,7 @@ import { canAffordText, spendForText } from '../core/storage.js';
 import { incrementCounter } from '../core/achievements.js';
 import { getProfile } from '../core/profile-storage.js';
 import { renderAvatarHtml } from '../core/avatar-helper.js';
+import { applyTextFilter, BAD_WORDS_PENALTY } from '../core/text-filter.js';
 
 // 10 أقسام عامة
 export const FORUM_CATEGORIES = [
@@ -97,6 +98,17 @@ export function initForum(navigate) {
       const content = textarea.value.trim();
       if (!content) return;
       const category = select?.value || 'general';
+
+      // فلتر الكلمات الممنوعة
+      const filter = applyTextFilter(content);
+      if (filter.blocked) {
+        const penaltyMsg = filter.penaltyApplied
+          ? `\nخُصم ${filter.penaltyAmount} حرف من مخزنك كعقوبة.`
+          : '';
+        alert(`🚫 تم رفض المنشور — يحتوي على كلمة ممنوعة.${penaltyMsg}`);
+        return;
+      }
+
       const check = canAffordText(content);
       if (!check.ok) {
         alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
@@ -307,6 +319,20 @@ window._deleteForumPost = async function(postId) {
 
 window._viewForumProfile = async function(uid) {
   if (!uid) return;
+
+  // فحص اللفل: لازم لفل 20+ لفتح بروفايل غيرك
+  const me = getAuth().currentUser;
+  if (me && uid !== me.uid) {
+    try {
+      const { getLevel, getLifetimeTotal } = await import('../core/lifetime-storage.js');
+      const myLevel = getLevel(getLifetimeTotal());
+      if (myLevel < 20) {
+        alert(`🔒 يجب أن تكون لفل 20 على الأقل لفتح بروفايلات اللاعبين.\nأنت حالياً لفل ${myLevel}.`);
+        return;
+      }
+    } catch {}
+  }
+
   const modal = document.getElementById('player-profile-modal');
   const content = document.getElementById('player-profile-content');
   if (!modal || !content) return;
@@ -369,6 +395,17 @@ window._submitForumComment = async function(event, postId) {
   if (!input) return;
   const content = input.value.trim();
   if (!content) return;
+
+  // فلتر الكلمات الممنوعة
+  const filter = applyTextFilter(content);
+  if (filter.blocked) {
+    const penaltyMsg = filter.penaltyApplied
+      ? `\nخُصم ${filter.penaltyAmount} حرف من مخزنك كعقوبة.`
+      : '';
+    alert(`🚫 تم رفض التعليق — يحتوي على كلمة ممنوعة.${penaltyMsg}`);
+    return;
+  }
+
   const check = canAffordText(content);
   if (!check.ok) {
     alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);

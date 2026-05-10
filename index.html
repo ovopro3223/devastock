@@ -62,6 +62,7 @@
         <span class="auth-user-name"></span>
         <span class="auth-user-rank"></span>
       </div>
+      <button id="auth-my-profile-btn" class="auth-dropdown-item">👤 ملفي الشخصي</button>
       <button id="auth-logout-btn" class="auth-dropdown-item">🚪 خروج</button>
     </div>
   </div>
@@ -232,8 +233,11 @@
       </div>
 
       <div class="menu-hero">
-        <button id="btn-modes" class="btn btn-primary btn-large btn-start-play">ابدأ اللعب</button>
-        <p class="menu-hero-desc">اختَر نمطك المفضل وابدأ الجولة من هنا.</p>
+        <div class="menu-hero-buttons">
+          <button id="btn-modes" class="btn btn-primary btn-large btn-start-play">ابدأ اللعب</button>
+          <button id="btn-community-hero" class="btn btn-large btn-community-hero">👥 المجتمع</button>
+        </div>
+        <p class="menu-hero-desc">اختَر نمطك المفضل أو ادخل المجتمع للتواصل.</p>
       </div>
 
       <nav class="menu-nav">
@@ -581,6 +585,7 @@
         <h2 id="sniper-end-title">انتهت الجولة 🎯</h2>
         <p class="final-score-label">الكلمة كانت</p>
         <p class="final-score" id="sniper-final-word">-</p>
+        <p class="final-message" id="sniper-end-message">إعادة كلمة جديدة أو العودة للقائمة</p>
         <button class="btn btn-primary"    id="sniper-btn-restart">كلمة جديدة</button>
         <button class="btn btn-exit-style" id="sniper-btn-quit-gameover">العودة للقائمة</button>
       </div>
@@ -1120,6 +1125,14 @@
     <div class="achievement-toast-body">
       <div class="achievement-toast-label">إنجاز جديد!</div>
       <div class="achievement-toast-title" id="achievement-toast-title"></div>
+    </div>
+  </div>
+
+  <!-- ===== Toast إشعار عام ===== -->
+  <div id="game-toast" class="game-toast" hidden>
+    <div class="game-toast-icon" id="game-toast-icon">🔔</div>
+    <div class="game-toast-body">
+      <div class="game-toast-title" id="game-toast-title"></div>
     </div>
   </div>
 

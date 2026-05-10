@@ -13,6 +13,136 @@ let _engineOsc = null;
 let _resumeListenerAttached = false;
 let _settingsUnsub = null;
 
+// خريطة الملفات الصوتية
+const SOUND_FILES = {
+  // أصوات رئيسية
+  'letter-collecting': 'assets/sounds/main/letter collecting.mp3',
+  'achievement': 'assets/sounds/main/achivment.mp3',
+  'notification': 'assets/sounds/main/Notification.mp3',
+  'page-opening': 'assets/sounds/main/page opening.mp3',
+  'start-game': 'assets/sounds/main/start game sound.mp3',
+  'museum-words-opening': 'assets/sounds/main/musiem words opening.mp3',
+  'background-music': 'assets/sounds/main/background music.mp3',
+  'key-sfx': 'assets/sounds/main/mrstokes302-key-videogame-sfx-mrstokes302-423629.mp3',
+  
+  // أصوات القناصة
+  'shot': 'assets/sounds/sniper/shot.mp3',
+  'hit': 'assets/sounds/sniper/hit.mp3',
+  'miss-hit': 'assets/sounds/sniper/miss hit.mp3',
+  'loose': 'assets/sounds/sniper/loose.mp3',
+  'win': 'assets/sounds/sniper/win.mp3',
+  'scope-on': 'assets/sounds/sniper/scope on.mp3',
+  
+  // أصوات الصيد
+  'fishing-net-threw': 'assets/sounds/fishing/fishing net threw.mp3',
+  'gathering-fishes': 'assets/sounds/fishing/gathering fishes.mp3',
+  
+  // أصوات التاكسي
+  'crash': 'assets/sounds/taxi/crash.mp3',
+  'engine-sound': 'assets/sounds/taxi/engine sound.mp3',
+  'letter-gathering-taxi': 'assets/sounds/taxi/letter gathering.mp3',
+  
+  // أصوات الكازينو
+  'jackpot': 'assets/sounds/casino/jackpot.mp3',
+  'loose-casino': 'assets/sounds/casino/loose.mp3',
+  'spining': 'assets/sounds/casino/spining.mp3',
+  'stop': 'assets/sounds/casino/stop.mp3',
+  
+  // أصوات مطر الحروف
+  'game-over': 'assets/sounds/rain letter/game over.mp3',
+  'heart-loosing': 'assets/sounds/rain letter/heart loosing.mp3',
+  'ice-freez': 'assets/sounds/rain letter/ice freez.mp3',
+  'letter-gathering-rain': 'assets/sounds/rain letter/letter gathering.mp3',
+  'rain-sound': 'assets/sounds/rain letter/rain sound.mp3',
+};
+
+let _loadedSounds = new Map();
+let _backgroundAudio = null;
+let _engineAudio = null;
+
+function _createBackgroundAudio() {
+  if (_backgroundAudio) return;
+  const url = SOUND_FILES['background-music'];
+  if (!url) return;
+  _backgroundAudio = new Audio(encodeURI(url));
+  _backgroundAudio.loop = true;
+  _backgroundAudio.preload = 'auto';
+  _backgroundAudio.volume = Math.min(0.35, 0.18 * _volume);
+  _backgroundAudio.muted = _muted;
+}
+
+function _createEngineAudio() {
+  if (_engineAudio) return;
+  const url = SOUND_FILES['engine-sound'];
+  if (!url) return;
+  _engineAudio = new Audio(encodeURI(url));
+  _engineAudio.loop = true;
+  _engineAudio.preload = 'auto';
+  _engineAudio.volume = Math.min(0.35, 0.16 * _volume);
+  _engineAudio.muted = _muted;
+}
+
+// تحميل ملف صوتي واحد
+async function _loadSound(key) {
+  if (_loadedSounds.has(key)) return _loadedSounds.get(key);
+  
+  const url = SOUND_FILES[key];
+  if (!url || key === 'background-music') return null;
+  
+  try {
+    const response = await fetch(encodeURI(url));
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await _ctx.decodeAudioData(arrayBuffer);
+    _loadedSounds.set(key, audioBuffer);
+    return audioBuffer;
+  } catch (error) {
+    console.warn(`Failed to load sound: ${key}`, error);
+    return null;
+  }
+}
+
+// تحميل جميع الملفات الصوتية
+export async function loadAllSounds() {
+  if (!_ctx) return;
+  
+  const promises = Object.keys(SOUND_FILES)
+    .filter(key => key !== 'background-music')
+    .map(key => _loadSound(key));
+  await Promise.all(promises);
+  _createBackgroundAudio();
+  console.log('All sounds loaded');
+}
+
+function _playBuffer(buffer, volumeMultiplier = 1) {
+  const source = _ctx.createBufferSource();
+  source.buffer = buffer;
+
+  const gain = _ctx.createGain();
+  gain.gain.setValueAtTime(Math.min(0.3, volumeMultiplier * _volume), _ctx.currentTime);
+
+  source.connect(gain);
+  gain.connect(_ctx.destination);
+
+  source.start();
+}
+
+// تشغيل صوت من ملف
+function _playSoundFile(key, volumeMultiplier = 1) {
+  if (!_shouldPlaySounds()) return;
+  
+  const buffer = _loadedSounds.get(key);
+  if (buffer) {
+    _playBuffer(buffer, volumeMultiplier);
+    return;
+  }
+
+  _loadSound(key).then((loaded) => {
+    if (loaded && _shouldPlaySounds()) {
+      _playBuffer(loaded, volumeMultiplier);
+    }
+  });
+}
+
 function _applySettingsFromState() {
   const settings = getSettings();
   _muted = Boolean(settings.muted);
@@ -31,10 +161,10 @@ function _saveSettings(updates) {
 function _updateActiveGainLevels() {
   if (!_ctx) return;
   if (_ambientGain) {
-    _ambientGain.gain.setValueAtTime(Math.min(0.3, 0.04 * _volume), _ctx.currentTime);
+    _ambientGain.gain.setValueAtTime(Math.min(0.35, 0.18 * _volume), _ctx.currentTime);
   }
   if (_engineGain) {
-    _engineGain.gain.setValueAtTime(Math.min(0.18, 0.04 * _volume), _ctx.currentTime);
+    _engineGain.gain.setValueAtTime(Math.min(0.35, 0.16 * _volume), _ctx.currentTime);
   }
 }
 
@@ -120,6 +250,7 @@ export function initAudio() {
   _applySettingsFromState();
   _attachSettingsListener();
   _createContext();
+  loadAllSounds(); // تحميل جميع الملفات الصوتية
 }
 
 export function isMuted() {
@@ -166,236 +297,164 @@ export function setMusicEnabled(value) {
 export function setVolume(value) {
   const volume = Math.min(1, Math.max(0, Number(value)));
   _saveSettings({ volume });
+  if (_backgroundAudio) {
+    _backgroundAudio.volume = Math.min(0.35, 0.18 * volume);
+  }
+  if (_engineAudio) {
+    _engineAudio.volume = Math.min(0.35, 0.16 * volume);
+  }
   if (_ambientGain && _ctx) {
-    _ambientGain.gain.setValueAtTime(Math.min(0.3, 0.04 * volume), _ctx.currentTime);
+    _ambientGain.gain.setValueAtTime(Math.min(0.35, 0.18 * volume), _ctx.currentTime);
   }
   if (_engineGain && _ctx) {
-    _engineGain.gain.setValueAtTime(Math.min(0.18, 0.04 * volume), _ctx.currentTime);
+    _engineGain.gain.setValueAtTime(Math.min(0.35, 0.16 * volume), _ctx.currentTime);
   }
   return _volume;
 }
 
 export function playCollectSound() {
-  if (!_shouldPlaySounds()) return;
-  const ctx = _ctx;
-  const osc = ctx.createOscillator();
-  const gain = _createSfxGain(ctx, 0.16);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(880, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
-
-  osc.start();
-  osc.stop(ctx.currentTime + 0.2);
+  _playSoundFile('letter-collecting', 0.8);
 }
 
 export function playLoseLifeSound() {
-  if (!_shouldPlaySounds()) return;
-  const ctx = _ctx;
-  const osc = ctx.createOscillator();
-  const gain = _createSfxGain(ctx, 0.18);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(220, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3);
-
-  gain.gain.setValueAtTime(Math.min(0.3, 0.2 * _volume), ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-
-  osc.start();
-  osc.stop(ctx.currentTime + 0.3);
+  _playSoundFile('heart-loosing', 0.9);
 }
 
 export function playShotSound() {
-  if (!_shouldPlaySounds()) return;
-  const ctx = _ctx;
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-  }
-  const noise = ctx.createBufferSource();
-  noise.buffer = buffer;
-
-  const gain = ctx.createGain();
-  noise.connect(gain);
-  gain.connect(ctx.destination);
-
-  gain.gain.setValueAtTime(Math.min(0.3, 0.25 * _volume), ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-
-  noise.start();
+  _playSoundFile('shot', 1.0);
 }
 
 export function playSplashSound() {
-  if (!_shouldPlaySounds()) return;
-  const ctx = _ctx;
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.25, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) * 0.45;
-  }
-  const noise = ctx.createBufferSource();
-  noise.buffer = buffer;
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 900;
-
-  const gain = ctx.createGain();
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
-
-  gain.gain.setValueAtTime(Math.min(0.3, 0.2 * _volume), ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-
-  noise.start();
+  _playSoundFile('gathering-fishes', 0.8);
 }
 
 export function playWinSound() {
-  if (!_shouldPlaySounds()) return;
-  const ctx = _ctx;
-  const notes = [523, 659, 784, 1047];
-  notes.forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+  _playSoundFile('win', 1.0);
+}
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+export function playHitSound() {
+  _playSoundFile('hit', 0.9);
+}
 
-    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
-    gain.gain.linearRampToValueAtTime(Math.min(0.3, 0.15 * _volume), ctx.currentTime + i * 0.1 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.1 + 0.3);
+export function playMissSound() {
+  _playSoundFile('miss-hit', 0.8);
+}
 
-    osc.start(ctx.currentTime + i * 0.1);
-    osc.stop(ctx.currentTime + i * 0.1 + 0.3);
-  });
+export function playLooseSound() {
+  _playSoundFile('loose', 0.9);
+}
+
+export function playScopeOnSound() {
+  _playSoundFile('scope-on', 0.7);
+}
+
+export function playFishingNetThrewSound() {
+  _playSoundFile('fishing-net-threw', 0.8);
+}
+
+export function playCrashSound() {
+  _playSoundFile('crash', 1.0);
+}
+
+export function playEngineSound() {
+  _playSoundFile('engine-sound', 0.6);
+}
+
+export function playLetterGatheringTaxiSound() {
+  _playSoundFile('letter-gathering-taxi', 0.8);
+}
+
+export function playJackpotSound() {
+  _playSoundFile('jackpot', 1.0);
+}
+
+export function playLooseCasinoSound() {
+  _playSoundFile('loose-casino', 0.9);
+}
+
+export function playSpiningSound() {
+  _playSoundFile('spining', 0.7);
+}
+
+export function playStopSound() {
+  _playSoundFile('stop', 0.8);
+}
+
+export function playGameOverSound() {
+  _playSoundFile('game-over', 0.9);
+}
+
+export function playIceFreezSound() {
+  _playSoundFile('ice-freez', 0.8);
+}
+
+export function playLetterGatheringRainSound() {
+  _playSoundFile('letter-gathering-rain', 0.8);
+}
+
+export function playRainSound() {
+  _playSoundFile('rain-sound', 0.5);
+}
+
+export function playAchievementSound() {
+  _playSoundFile('achievement', 1.0);
+}
+
+export function playNotificationSound() {
+  _playSoundFile('notification', 0.8);
+}
+
+export function playPageOpeningSound() {
+  _playSoundFile('page-opening', 0.7);
+}
+
+export function playStartGameSound() {
+  _playSoundFile('start-game', 0.9);
+}
+
+export function playMuseumWordsOpeningSound() {
+  _playSoundFile('museum-words-opening', 0.8);
+}
+
+export function playKeySfxSound() {
+  _playSoundFile('key-sfx', 0.6);
 }
 
 export function startAmbient() {
   if (_muted || !_musicEnabled) return;
-  const ctx = _createContext();
-  if (!ctx) return;
-  if (ctx.state === 'suspended') {
-    _attachResumeListener();
-    return;
+  _createBackgroundAudio();
+
+  if (_backgroundAudio) {
+    _backgroundAudio.volume = Math.min(0.3, 0.04 * _volume);
+    _backgroundAudio.muted = _muted;
+    _backgroundAudio.play().catch(() => {});
   }
-
-  stopAmbient();
-
-  _ambientOsc = ctx.createOscillator();
-  _ambientGain = ctx.createGain();
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 800;
-
-  _ambientOsc.connect(filter);
-  filter.connect(_ambientGain);
-  _ambientGain.connect(ctx.destination);
-
-  _ambientOsc.type = 'sine';
-  _ambientOsc.frequency.setValueAtTime(110, ctx.currentTime);
-
-  _ambientGain.gain.setValueAtTime(0, ctx.currentTime);
-  _ambientGain.gain.linearRampToValueAtTime(Math.min(0.08, 0.04 * _volume), ctx.currentTime + 1.5);
-
-  _ambientOsc.start();
-
-  const lfo = ctx.createOscillator();
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 5;
-  lfo.frequency.value = 0.3;
-  lfo.connect(lfoGain);
-  lfoGain.connect(_ambientOsc.frequency);
-  lfo.start();
 }
 
 export function stopAmbient() {
-  if (_ambientGain && _ctx) {
+  if (_backgroundAudio) {
     try {
-      _ambientGain.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.5);
-      const oscRef = _ambientOsc;
-      setTimeout(() => {
-        try { oscRef && oscRef.stop(); } catch {}
-      }, 600);
+      _backgroundAudio.pause();
     } catch {}
   }
-  _ambientGain = null;
-  _ambientOsc = null;
 }
 
 export function startEngine() {
   if (_muted) return;
-  const ctx = _createContext();
-  if (!ctx) return;
-  if (ctx.state === 'suspended') {
-    ctx.resume().then(() => {
-      startEngine();
-    }).catch(console.error);
-    return;
+  _createEngineAudio();
+
+  if (_engineAudio) {
+    _engineAudio.volume = Math.min(0.3, 0.08 * _volume);
+    _engineAudio.muted = _muted;
+    _engineAudio.play().catch(() => {});
   }
-
-  stopEngine();
-
-  // صوت انطلاق قصير
-  const revOsc = ctx.createOscillator();
-  const revGain = ctx.createGain();
-  revOsc.connect(revGain);
-  revGain.connect(ctx.destination);
-  revOsc.frequency.setValueAtTime(100, ctx.currentTime);
-  revOsc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
-  revGain.gain.setValueAtTime(0.2 * _volume, ctx.currentTime);
-  revGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-  revOsc.start();
-  revOsc.stop(ctx.currentTime + 0.2);
-
-  // ثم صوت المحرك المستمر
-  _engineOsc = ctx.createOscillator();
-  _engineGain = ctx.createGain();
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 400;
-
-  _engineOsc.connect(filter);
-  filter.connect(_engineGain);
-  _engineGain.connect(ctx.destination);
-
-  _engineOsc.type = 'sawtooth';
-  _engineOsc.frequency.setValueAtTime(60, ctx.currentTime);
-
-  _engineGain.gain.setValueAtTime(0, ctx.currentTime);
-  _engineGain.gain.linearRampToValueAtTime(Math.min(0.3, 0.12 * _volume), ctx.currentTime + 0.3);
-
-  _engineOsc.start();
-
-  const lfo = ctx.createOscillator();
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 8;
-  lfo.frequency.value = 4;
-  lfo.connect(lfoGain);
-  lfoGain.connect(_engineOsc.frequency);
-  lfo.start();
 }
 
 export function stopEngine() {
-  if (_engineGain && _ctx) {
+  if (_engineAudio) {
     try {
-      _engineGain.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.3);
-      const oscRef = _engineOsc;
-      setTimeout(() => {
-        try { oscRef && oscRef.stop(); } catch {}
-      }, 400);
+      _engineAudio.pause();
+      _engineAudio.currentTime = 0;
     } catch {}
   }
-  _engineGain = null;
-  _engineOsc = null;
 }

@@ -3,6 +3,7 @@
 
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getState, setState, removeState } from './app-state.js';
+import { showGameNotification } from './notifications.js';
 
 const KEYS = [
   'devastock_stock',
@@ -138,7 +139,7 @@ async function _updateLeaderboard() {
       rankEmoji:      rankInfo.emoji,
       rankTitle:      rankInfo.title,
       rankColor:      rankInfo.color,
-      isPrestige:     rankInfo.isPrestige,
+      isPrestige:     false,
       seasonId:       season.seasonId || '',
       seasonScore:    season.score || 0,
       tierId:         tier.id,
@@ -153,34 +154,27 @@ async function _updateLeaderboard() {
   }
 }
 
-// نسخة مكررة محلياً (نفس RANK_TIERS من lifetime-storage.js)
+// نسخة مكررة محلياً (نفس RANK_TIERS من lifetime-storage.js) — 10 ألقاب
 const _RANK_TIERS = [
-  { from:   1, to:  10, title: 'بذرة',     emoji: '🌱', color: '#5DD3D3' },
-  { from:  11, to:  20, title: 'فسيلة',    emoji: '🌿', color: '#2ECC71' },
-  { from:  21, to:  30, title: 'مغامر',    emoji: '⚡', color: '#F1C40F' },
-  { from:  31, to:  40, title: 'محارب',    emoji: '🔥', color: '#E67E22' },
-  { from:  41, to:  50, title: 'فارس',     emoji: '⭐', color: '#E74C3C' },
-  { from:  51, to:  60, title: 'بطل',      emoji: '💎', color: '#9B59B6' },
-  { from:  61, to:  70, title: 'نبيل',     emoji: '🏆', color: '#3498DB' },
-  { from:  71, to:  80, title: 'أمير',     emoji: '👑', color: '#F39C12' },
-  { from:  81, to:  90, title: 'ملك',      emoji: '🚀', color: '#FFD700' },
-  { from:  91, to: 100, title: 'إمبراطور', emoji: '💫', color: '#FF1493' },
-  { from: 101, to: 110, title: 'أسطورة',   emoji: '🌟', color: '#00FFFF' },
-  { from: 111, to: 120, title: 'خرافي',    emoji: '🌌', color: '#8A2BE2' },
-  { from: 121, to: 130, title: 'منتخب',     emoji: '🔱', color: '#FF4500', prestige: true },
-  { from: 131, to: 140, title: 'عرّاف',     emoji: '🦅', color: '#00CED1', prestige: true },
-  { from: 141, to: 150, title: 'سيد العرش', emoji: '👁️', color: '#FF00FF', prestige: true },
+  { from:  1, to:  10, title: 'بذرة',   emoji: '🌱', color: '#5DD3D3' },
+  { from: 11, to:  20, title: 'فسيلة',  emoji: '🌿', color: '#2ECC71' },
+  { from: 21, to:  30, title: 'مغامر',  emoji: '⚡', color: '#F1C40F' },
+  { from: 31, to:  40, title: 'محارب',  emoji: '🔥', color: '#E67E22' },
+  { from: 41, to:  50, title: 'فارس',   emoji: '⭐', color: '#E74C3C' },
+  { from: 51, to:  60, title: 'بطل',    emoji: '💎', color: '#9B59B6' },
+  { from: 61, to:  70, title: 'نبيل',   emoji: '🏆', color: '#3498DB' },
+  { from: 71, to:  80, title: 'أمير',   emoji: '👑', color: '#F39C12' },
+  { from: 81, to:  90, title: 'ملك',    emoji: '🚀', color: '#FFD700' },
+  { from: 91, to: 100, title: 'أسطورة', emoji: '🌌', color: '#FF00FF' },
 ];
 function _rankInfo(rawLevel) {
   const tier = _RANK_TIERS.find(t => rawLevel >= t.from && rawLevel <= t.to) || _RANK_TIERS[0];
-  const isPrestige = !!tier.prestige;
-  const display = isPrestige ? rawLevel - 120 : rawLevel;
   return {
-    label: isPrestige ? `بريستيج ${display}` : `لفل ${display}`,
+    label: `لفل ${rawLevel}`,
     title: tier.title,
     emoji: tier.emoji,
     color: tier.color,
-    isPrestige,
+    isPrestige: false,
   };
 }
 
@@ -195,32 +189,27 @@ function _tierFor(score) {
 }
 
 // ===== حساب اللفل (مكرر هنا تجنباً لـ circular import) =====
-function _calculateLevel(totalLetters) {
-  let level = 1;
-  let cumulative = 0;
-  while (level < 150) {  // 120 + 30 prestige
-    const required = _requirementForLevel(level + 1);
-    if (cumulative + required > totalLetters) break;
-    cumulative += required;
-    level++;
-  }
-  return level;
+// نظام لفلات جديد — 100 لفل، 14M حرف لإكمال اللفل 100
+const _MAX_LEVEL = 100;
+const _TOTAL_AT_MAX = 14_000_000;
+
+function _cumLetters(level) {
+  if (level <= 1) return 0;
+  if (level >= _MAX_LEVEL) return _TOTAL_AT_MAX;
+  const t = (level - 1) / (_MAX_LEVEL - 1);
+  return Math.round(_TOTAL_AT_MAX * t * t);
 }
 
-// لازم يطابق lifetime-storage.js LEVEL_SCALE
-const _LEVEL_SCALE = 0.30;
-function _requirementForLevel(level) {
-  if (level <= 1) return 0;
-  if (level <= 3) return Math.round(1000 * _LEVEL_SCALE);
-  if (level === 4) return Math.round(1500 * _LEVEL_SCALE);
-  if (level === 5) return Math.round(2000 * _LEVEL_SCALE);
-  if (level <= 120) {
-    return Math.round(2500 * Math.pow(2000, (level - 6) / 114) * _LEVEL_SCALE);
+function _calculateLevel(totalLetters) {
+  if (totalLetters <= 0) return 1;
+  if (totalLetters >= _TOTAL_AT_MAX) return _MAX_LEVEL;
+  let lo = 1, hi = _MAX_LEVEL;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (_cumLetters(mid) <= totalLetters) lo = mid;
+    else hi = mid - 1;
   }
-  // prestige levels 121-150
-  const base = Math.round(2500 * Math.pow(2000, (120 - 6) / 114) * _LEVEL_SCALE);
-  const prestigeIdx = level - 120;
-  return Math.round(base * 2 * Math.pow(1.15, prestigeIdx - 1));
+  return lo;
 }
 
 function _levelEmoji(level) {

@@ -30,6 +30,7 @@ const FIELDS = [
   { key: 'city',    label: 'المدينة',       icon: '🏙️', type: 'text',     maxlen: 20, placeholder: 'مدينتك...' },
   { key: 'hobbies', label: 'الهوايات',      icon: '⭐', type: 'text',     maxlen: 50, placeholder: 'القراءة، السفر...' },
   { key: 'bio',     label: 'نبذة تعريفية', icon: '📝', type: 'textarea', maxlen: 80, placeholder: 'عرّف بنفسك بكلماتك...' },
+  { key: 'quote',   label: 'مقولتي / حكمتي', icon: '💬', type: 'textarea', maxlen: 120, placeholder: 'اقتباس / بيت شعر / آية / لقب...' },
 ];
 
 const AVATARS = ['👤','🧑','👨','👩','🧔','🧕','👦','👧','🧓','🦸','🦹','🥷','🧙','👑'];

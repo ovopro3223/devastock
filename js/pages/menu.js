@@ -13,6 +13,10 @@ export function initMenu(navigate) {
   document.getElementById('btn-modes')
     .addEventListener('click', () => navigate('modes'));
 
+  // زر المجتمع بجانب "ابدأ اللعب"
+  document.getElementById('btn-community-hero')
+    ?.addEventListener('click', () => navigate('community'));
+
   document.getElementById('btn-stock-menu')
     .addEventListener('click', () => {
       renderStock();

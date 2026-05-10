@@ -5,11 +5,17 @@ import { signInWithGoogle, getPlayers, getFriends, getIncomingRequests,
          getOutgoingRequests, sendFriendRequest, acceptFriendRequest,
          rejectFriendRequest, listenForIncomingRequests,
          listenForOutgoingRequests, getPlayerProfile,
-         sendChatMessage, listenForMessages } from '../core/firebase.js';
+         sendChatMessage, listenForMessages,
+         postOnWall, getWallPosts, deleteWallPost } from '../core/firebase.js';
 import { canAffordText, spendForText } from '../core/storage.js';
 import { incrementCounter } from '../core/achievements.js';
 import { getSeasonState, getSeasonLabel } from '../core/seasons.js';
 import { renderAvatarHtml } from '../core/avatar-helper.js';
+import { getLevel, getLifetimeTotal } from '../core/lifetime-storage.js';
+
+function _getMyLevel() {
+  try { return getLevel(getLifetimeTotal()); } catch { return 1; }
+}
 
 let _chatListenerUnsub = null;
 let _chatPartnerUid = null;
@@ -473,6 +479,14 @@ window._openAuthModal = function() {
 // ===== عرض بروفايل لاعب =====
 window._viewProfile = async function(uid) {
   if (!_currentUser) return;
+
+  // فحص اللفل: من له لفل أقل من 20 ممنوع من فتح البروفايلات
+  const myLevel = _getMyLevel();
+  if (myLevel < 20 && uid !== _currentUser.uid) {
+    alert(`🔒 يجب أن تكون لفل 20 على الأقل لفتح بروفايلات اللاعبين.\nأنت حالياً لفل ${myLevel}.`);
+    return;
+  }
+
   const modal = document.getElementById('player-profile-modal');
   const content = document.getElementById('player-profile-content');
   if (!modal || !content) return;
@@ -518,7 +532,17 @@ window._viewProfile = async function(uid) {
     ? `<span class="player-profile-prestige">⭐ بريستيج</span>`
     : '';
 
+  // غلاف + اقتباس من profile object
+  const userProf = profile.profile || {};
+  const quote = userProf.quote || '';
+  const coverHtml = quote
+    ? `<div class="player-profile-cover">
+         <div class="player-profile-quote">"${escapeHTML(quote)}"</div>
+       </div>`
+    : '';
+
   content.innerHTML = `
+    ${coverHtml}
     ${avatarHtml}
     <div class="player-profile-name">${profile.displayName}</div>
     <div class="player-profile-title" style="color: ${titleColor}">
@@ -526,6 +550,8 @@ window._viewProfile = async function(uid) {
       ${prestigeBadge}
     </div>
     <div class="player-profile-rank">${profile.rankLabel}</div>
+    <!-- جدار التعليقات -->
+    <div class="player-profile-wall" id="player-profile-wall" data-owner="${uid}"></div>
 
     <div class="player-profile-stats">
       <div class="player-profile-stat">
@@ -545,6 +571,93 @@ window._viewProfile = async function(uid) {
 
     ${actionsHTML}
   `;
+
+  // اعمل render للجدار بعد ما المحتوى الأساسي ينعرض
+  await _renderWall(uid, isSelf);
+};
+
+// ===== جدار البروفايل =====
+async function _renderWall(ownerUid, isOwner) {
+  const wallEl = document.getElementById('player-profile-wall');
+  if (!wallEl) return;
+  wallEl.innerHTML = `<div class="wall-loading">... جاري تحميل الحائط</div>`;
+
+  const posts = await getWallPosts(ownerUid, 30);
+  const formHtml = _currentUser
+    ? `<form class="wall-post-form" onsubmit="window._submitWallPost(event,'${ownerUid}')">
+         <textarea id="wall-post-input" placeholder="اكتب على حائط هذا اللاعب..." rows="2" maxlength="280"></textarea>
+         <button type="submit" class="btn btn-primary">نشر على الحائط</button>
+       </form>`
+    : `<div class="wall-login-prompt">سجّل دخول للنشر على الحائط</div>`;
+
+  const postsHtml = posts.length === 0
+    ? `<div class="wall-empty">لا توجد تعليقات على الحائط بعد</div>`
+    : posts.map(p => {
+        const dateLabel = p.createdAt.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' });
+        const canDelete = _currentUser && (
+          _currentUser.uid === p.authorUid || _currentUser.uid === ownerUid
+        );
+        const deleteBtn = canDelete
+          ? `<button class="wall-delete-btn" onclick="window._deleteWallPost('${ownerUid}','${p.id}')">×</button>`
+          : '';
+        return `
+          <div class="wall-post">
+            <div class="wall-post-header">
+              <span class="wall-post-author forum-clickable" onclick="window._viewProfile('${p.authorUid}')">${escapeHTML(p.authorName)}</span>
+              <span class="wall-post-date">${dateLabel}</span>
+              ${deleteBtn}
+            </div>
+            <div class="wall-post-content">${escapeHTML(p.content)}</div>
+          </div>
+        `;
+      }).join('');
+
+  wallEl.innerHTML = `
+    <div class="wall-header">📓 جدار التعليقات</div>
+    ${formHtml}
+    <div class="wall-posts-list">${postsHtml}</div>
+  `;
+}
+
+window._submitWallPost = async function(e, ownerUid) {
+  e.preventDefault();
+  if (!_currentUser) return;
+  const input = document.getElementById('wall-post-input');
+  if (!input) return;
+  const content = input.value.trim();
+  if (!content) return;
+
+  // فلتر الكلمات
+  const { applyTextFilter } = await import('../core/text-filter.js');
+  const filter = applyTextFilter(content);
+  if (filter.blocked) {
+    const penaltyMsg = filter.penaltyApplied
+      ? `\nخُصم ${filter.penaltyAmount} حرف من مخزنك كعقوبة.`
+      : '';
+    alert(`🚫 تم رفض المنشور — يحتوي على كلمة ممنوعة.${penaltyMsg}`);
+    return;
+  }
+
+  // الاسم من البروفايل
+  let myName = _currentUser.displayName || 'لاعب';
+  try {
+    const p = JSON.parse(localStorage.getItem('devastock_profile') || '{}');
+    if (p.name) myName = p.name;
+  } catch {}
+
+  const r = await postOnWall(ownerUid, _currentUser.uid, myName, content);
+  if (r.ok) {
+    input.value = '';
+    _renderWall(ownerUid, _currentUser.uid === ownerUid);
+  } else {
+    alert(`فشل النشر: ${r.error}`);
+  }
+};
+
+window._deleteWallPost = async function(ownerUid, postId) {
+  if (!confirm('حذف هذا التعليق؟')) return;
+  await deleteWallPost(ownerUid, postId);
+  _renderWall(ownerUid, _currentUser?.uid === ownerUid);
 };
 
 // ===== فتح الشات =====

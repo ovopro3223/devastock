@@ -3,6 +3,7 @@ import { MUSEUM_CATEGORIES, getLetterCost, canAfford } from '../core/museum-data
 import { isCollected, collectWord, getCategoryProgress } from '../core/museum-storage.js';
 import { getStock, spendLetters } from '../core/storage.js';
 import { incrementCounter } from '../core/achievements.js';
+import { playMuseumWordsOpeningSound } from '../core/audio.js';
 
 let _navigate   = null;
 let _currentCat = null;
@@ -131,6 +132,7 @@ function _renderCategory(cat) {
         card.querySelector('.word-collect-btn').addEventListener('click', () => {
           spendLetters(cost);
           collectWord(cat.id, word);
+          playMuseumWordsOpeningSound();
           incrementCounter('museum_words');
           _renderCategory(cat);
         });

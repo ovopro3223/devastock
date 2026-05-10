@@ -5,6 +5,7 @@ import { InputHandler } from './input.js';
 import { hitTest }      from '../../utils/helpers.js';
 import { LETTER_RAIN_CONFIG as CFG } from '../../core/config.js';
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
+import { playCollectSound, playLoseLifeSound, playGameOverSound, playIceFreezSound, playLetterGatheringRainSound, playRainSound } from '../../core/audio.js';
 
 export class LetterRainGame {
   // onQuit: دالة callback تُستدعى عند الخروج للقائمة
@@ -78,6 +79,7 @@ export class LetterRainGame {
     window.addEventListener('resize', this._resizeHandler);
 
     recordPlayStart('letter-rain');
+    playRainSound();
     this._loop();
   }
 
@@ -187,13 +189,17 @@ export class LetterRainGame {
       best.collected = true;
       const result = this._score.addLetter(best.char, best.spawnTag);
       best._double = (result.count >= 2);
+      playCollectSound();
+      playLetterGatheringRainSound();
       this._updateHudScore();
       this._addToStrip(best.char);
     } else if (best.type === 'bomb') {
       best.wasHit = true;
+      playLoseLifeSound();
       this._loseLife();
     } else if (best.type === 'snowflake') {
       best.collected = true;
+      playIceFreezSound();
       this._activateFreeze();
     }
   }
@@ -221,6 +227,7 @@ export class LetterRainGame {
   _gameOver() {
     this._running = false;
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+    playGameOverSound();
     recordPlayEnd('letter-rain', {
       score: this._score.getScore(),
       lettersCollected: this._score.getLettersCount(),

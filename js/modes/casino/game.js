@@ -1,7 +1,7 @@
 // ===== كازينو الأحرف 🎰 =====
 import { getStock, saveLetterToStock, spendLetters, getTotalLetters } from '../../core/storage.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
-import { playWinSound, playLoseLifeSound } from '../../core/audio.js';
+import { playWinSound, playLoseLifeSound, playJackpotSound, playLooseCasinoSound, playSpiningSound, playStopSound } from '../../core/audio.js';
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 import { incrementCounter } from '../../core/achievements.js';
 import { addSeasonPoints } from '../../core/seasons.js';
@@ -161,6 +161,7 @@ export class CasinoGame {
     this.spinning = true;
     this._setResult('', '');
     recordPlayStart('casino');
+    playSpiningSound();
 
     if (!this._deductBet(this.currentBet)) {
       this.spinning = false;
@@ -206,6 +207,7 @@ export class CasinoGame {
         reel.classList.add('stopped');
         const letterEl = reel.querySelector('.casino-reel-letter');
         if (letterEl) letterEl.textContent = finalReels[i];
+        playStopSound();
         setTimeout(() => reel.classList.remove('stopped'), 400);
       }
     }
@@ -246,12 +248,14 @@ export class CasinoGame {
       };
       this._setResult(`${labels[topCount]} اكسب ${reward} حرف "${topChar}"`, topCount >= 3 ? 'jackpot' : 'win');
       playWinSound();
+      if (topCount >= 3) playJackpotSound();
       this._celebrate(topCount);
     } else {
       // خسارة — سجل لكن بسكور 0 (ما يأثر على highScore)
       recordPlayEnd('casino', { score: 0, lettersCollected: 0, won: false });
       this._setResult(`💸 لم يحالفك الحظ — خسرت ${this.currentBet} حرف`, 'lose');
       playLoseLifeSound();
+      playLooseCasinoSound();
     }
   }
 

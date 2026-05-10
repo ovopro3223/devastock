@@ -42,6 +42,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // جدار البروفايل — تعليقات الزوار
+    // أي مسجل دخول يقرأ ويكتب، الكاتب أو صاحب الجدار أو الأدمن يحذف
+    match /walls/{ownerUid}/posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.authorUid == request.auth.uid;
+      allow delete: if request.auth != null && (
+        resource.data.authorUid == request.auth.uid ||
+        request.auth.uid == ownerUid ||
+        isAdmin()
+      );
+    }
+
     // المنتدى — الأدمن يقدر يحذف أي شي
     match /forumPosts/{postId} {
       allow read: if true;

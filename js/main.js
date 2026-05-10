@@ -8,6 +8,7 @@ import { initProfile } from './pages/profile.js';
 import { initForum }   from './pages/forum.js';
 import { initSettings } from './pages/settings.js';
 import { initChallenges, updateChallengesBadge, renderChallenges } from './pages/challenges.js';
+import { playPageOpeningSound } from './core/audio.js';
 import { initAchievements, renderAchievements } from './pages/achievements.js';
 import { initTrade, renderTrade } from './pages/trade.js';
 import { initHomeLeaderboard, refreshHomeLeaderboard } from './pages/home-leaderboard.js';
@@ -17,7 +18,8 @@ import { initFrames, renderFrames } from './pages/frames.js';
 import { initAdmin } from './pages/admin.js';
 import { checkForBroadcast, checkIfBanned } from './core/admin.js';
 import { signOutUser } from './core/firebase.js';
-import { initAudio }   from './core/audio.js';
+import { initAudio, startAmbient, stopAmbient, isMusicEnabled, isMuted }   from './core/audio.js';
+import { showGameNotification } from './core/notifications.js';
 import { startBgRain } from './utils/bg-rain.js';
 import { initAuth }    from './core/firebase.js';
 import { renderAuthButton } from './core/auth-ui.js';
@@ -59,12 +61,19 @@ const BACK_TARGETS = {
 let _currentPage = 'home';
 
 export function showPage(pageId) {
+  playPageOpeningSound();
   _currentPage = pageId;
   PAGE_IDS.forEach(id => {
     const el = document.getElementById(`page-${id}`);
     if (el) el.classList.toggle('active', id === pageId);
   });
-  document.body.classList.toggle('in-game', GAME_PAGES.includes(pageId));
+  const isGamePage = GAME_PAGES.includes(pageId);
+  document.body.classList.toggle('in-game', isGamePage);
+  if (isGamePage) {
+    stopAmbient();
+  } else if (isMusicEnabled() && !isMuted()) {
+    startAmbient();
+  }
   if (pageId === 'home') refreshHomeRank();
   if (pageId === 'menu') updateChallengesBadge();
   if (pageId === 'challenges') renderChallenges();
@@ -125,14 +134,14 @@ initAuth(async (user) => {
   if (user) {
     const banResult = await checkIfBanned();
     if (banResult.banned) {
-      alert(`🚫 حسابك محظور.${banResult.reason ? '\nالسبب: ' + banResult.reason : ''}`);
+      showGameNotification(`🚫 حسابك محظور.${banResult.reason ? '\nالسبب: ' + banResult.reason : ''}`, 'error');
       signOutUser();
       return;
     }
     // فحص الإعلانات الجديدة
     const announcement = await checkForBroadcast();
     if (announcement) {
-      setTimeout(() => alert(`📢 إعلان من الإدارة:\n\n${announcement}`), 1200);
+      setTimeout(() => showGameNotification(`📢 إعلان من الإدارة:\n\n${announcement}`, 'info'), 1200);
     }
   }
   // بعد سحب البيانات من السحابة، تأكد إن lifetime ≥ stock

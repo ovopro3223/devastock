@@ -82,12 +82,25 @@ document.addEventListener('click', (e) => {
 // إعداد معالجات الـ dropdown
 function setupAuthHandlers() {
   const logoutBtn = document.getElementById('auth-logout-btn');
+  const myProfileBtn = document.getElementById('auth-my-profile-btn');
 
   if (logoutBtn) {
     logoutBtn.onclick = (e) => {
       e.stopPropagation();
       if (confirm('هل تريد تسجيل الخروج؟')) {
         signOutUser();
+      }
+    };
+  }
+
+  if (myProfileBtn) {
+    myProfileBtn.onclick = (e) => {
+      e.stopPropagation();
+      const dropdown = document.getElementById('auth-dropdown');
+      if (dropdown) dropdown.hidden = true;
+      // افتح بروفايلي عبر window._viewProfile
+      if (_currentUser && window._viewProfile) {
+        window._viewProfile(_currentUser.uid);
       }
     };
   }

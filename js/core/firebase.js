@@ -541,3 +541,58 @@ export async function rejectFriendRequest(reqId) {
     console.error('Error rejecting request:', e);
   }
 }
+
+// ===== جدار البروفايل (تعليقات الزوار) =====
+// كل بروفايل عنده walls/{ownerUid}/posts/{postId}
+export async function postOnWall(ownerUid, authorUid, authorName, content) {
+  if (!ownerUid || !authorUid || !content?.trim()) {
+    return { ok: false, error: 'invalid_args' };
+  }
+  try {
+    const ref = await addDoc(collection(db, 'walls', ownerUid, 'posts'), {
+      authorUid,
+      authorName: authorName || 'لاعب',
+      content: content.trim(),
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+    });
+    return { ok: true, id: ref.id };
+  } catch (e) {
+    console.error('postOnWall:', e);
+    return { ok: false, error: e.message || 'unknown' };
+  }
+}
+
+export async function getWallPosts(ownerUid, limit = 30) {
+  try {
+    const q = query(
+      collection(db, 'walls', ownerUid, 'posts'),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    const posts = [];
+    snap.forEach(d => {
+      const data = d.data();
+      posts.push({
+        id: d.id,
+        authorUid: data.authorUid,
+        authorName: data.authorName || 'لاعب',
+        content: data.content || '',
+        createdAt: data.createdAt?.toDate() || new Date(data.createdAtMs || Date.now()),
+      });
+    });
+    return posts.slice(0, limit);
+  } catch (e) {
+    console.error('getWallPosts:', e);
+    return [];
+  }
+}
+
+export async function deleteWallPost(ownerUid, postId) {
+  try {
+    await deleteDoc(doc(db, 'walls', ownerUid, 'posts', postId));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
