@@ -1048,7 +1048,7 @@
           <div class="school-summary-value" id="school-student-count">0</div>
         </div>
         <div class="school-summary-card">
-          <div class="school-summary-label">حروف/ساعة</div>
+          <div class="school-summary-label">حروف/يوم</div>
           <div class="school-summary-value" id="school-hourly-rate">0</div>
         </div>
       </div>
@@ -1146,6 +1146,21 @@
       <div class="museum-words-list" id="museum-words-list"></div>
     </div>
   </section>
+
+  <!-- ===== مودال حوار عام (بديل alert/confirm/prompt) ===== -->
+  <div id="game-dialog-modal" class="game-dialog-modal" hidden>
+    <div class="game-dialog-overlay"></div>
+    <div class="game-dialog-box">
+      <div id="game-dialog-message" class="game-dialog-message"></div>
+      <div id="game-dialog-input-row" class="game-dialog-input-row" hidden>
+        <input type="text" id="game-dialog-input" class="game-dialog-input">
+      </div>
+      <div class="game-dialog-actions">
+        <button id="game-dialog-ok" class="btn btn-primary">موافق</button>
+        <button id="game-dialog-cancel" class="btn">إلغاء</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== Modals عامة (تظهر فوق أي صفحة) ===== -->
   <div id="notif-modal" class="auth-modal notif-modal" hidden>

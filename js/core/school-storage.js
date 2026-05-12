@@ -157,15 +157,16 @@ export function findOpenSlotGrade() {
 
 // ===== الإنتاج التلقائي =====
 // يحسب الفترة منذ آخر tick، ويضيف للمخزن إنتاج كل الطلاب
+// الإنتاج هو نفس القيمة السابقة لكن لكل يوم بدل ساعة (24× أبطأ)
 // يرجع { lettersAdded: { 'ا': N, ... }, hoursElapsed }
 export function tickIncome() {
   const state = _load();
   const now = Date.now();
   const elapsedMs = Math.max(0, now - state.lastTickAt);
   const hours = elapsedMs / (1000 * 60 * 60);
+  const days  = elapsedMs / (1000 * 60 * 60 * 24);
 
   if (hours < 0.0001) {
-    // أقل من ~0.36 ثانية، تجاهل
     return { lettersAdded: {}, hoursElapsed: 0 };
   }
 
@@ -173,9 +174,9 @@ export function tickIncome() {
   for (const [name, info] of Object.entries(state.students)) {
     const grade = GRADES.find(g => g.id === info.gradeId);
     if (!grade) continue;
-    const studentIncome = getStudentIncomePerHour(grade);  // { letter: rate, ... }
-    for (const [letter, ratePerHour] of Object.entries(studentIncome)) {
-      const earned = ratePerHour * hours;
+    const studentIncome = getStudentIncomePerHour(grade);  // الرقم نفسه — لكن نعتبره ratePerDay
+    for (const [letter, rate] of Object.entries(studentIncome)) {
+      const earned = rate * days;
       lettersAdded[letter] = (lettersAdded[letter] || 0) + earned;
     }
   }

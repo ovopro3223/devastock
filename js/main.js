@@ -100,6 +100,15 @@ export function showPage(pageId) {
 
 }
 
+// ===== زر التنقل العلوي (يمين) — يُربط أولاً ليضمن عمله حتى لو فشل أي init =====
+const topnavBtn = document.getElementById('topnav-btn');
+if (topnavBtn) {
+  topnavBtn.addEventListener('click', () => {
+    const target = BACK_TARGETS[_currentPage] || 'home';
+    showPage(target);
+  });
+}
+
 document.querySelectorAll('.btn-back').forEach(btn => {
   btn.addEventListener('click', () => {
     const target = btn.dataset.target;
@@ -107,31 +116,37 @@ document.querySelectorAll('.btn-back').forEach(btn => {
   });
 });
 
+// تشغيل init مع حماية: فشل أي وحدة لا يكسر البقية
+function _safeInit(label, fn) {
+  try { fn(); }
+  catch (e) { console.error(`[init:${label}]`, e); }
+}
+
 // مزامنة lifetime مع stock قبل أي شيء يعتمد على اللفل
-syncLifetimeWithStock();
+_safeInit('syncLifetime', () => syncLifetimeWithStock());
 
 // تهيئة الصفحات
-initHome(showPage);
-initMenu(showPage);
-initModes(showPage);
-initStock();
-initMuseum(showPage);
-initProfile(showPage);
-initSettings();
-initChallenges();
-initAchievements();
-initTrade();
-initHomeLeaderboard();
-initSchool(showPage);
-initFrames(showPage);
-initAdmin();
+_safeInit('home',         () => initHome(showPage));
+_safeInit('menu',         () => initMenu(showPage));
+_safeInit('modes',        () => initModes(showPage));
+_safeInit('stock',        () => initStock());
+_safeInit('museum',       () => initMuseum(showPage));
+_safeInit('profile',      () => initProfile(showPage));
+_safeInit('settings',     () => initSettings());
+_safeInit('challenges',   () => initChallenges());
+_safeInit('achievements', () => initAchievements());
+_safeInit('trade',        () => initTrade());
+_safeInit('homeLeaderboard', () => initHomeLeaderboard());
+_safeInit('school',       () => initSchool(showPage));
+_safeInit('frames',       () => initFrames(showPage));
+_safeInit('admin',        () => initAdmin());
 
 // تنفيذ tick أولي عند فتح التطبيق — يحسب الإنتاج التلقائي حتى أوفلاين
-tickIncome();
+_safeInit('tickIncome',   () => tickIncome());
 
 // Firebase — يعمل بشكل مستقل في الخلفية
-initAudio();
-initAuth(async (user) => {
+_safeInit('audio',        () => initAudio());
+_safeInit('auth',         () => initAuth(async (user) => {
   // فحص حظر اللاعب فور تسجيل دخوله
   if (user) {
     const banResult = await checkIfBanned();
@@ -150,23 +165,14 @@ initAuth(async (user) => {
   syncLifetimeWithStock();
   renderAuthButton(user);
   if (user) refreshHomeRank();
-});
+}));
 
-initForum(showPage);
-initCommunity(showPage);
-initNotifications(showPage);
-startBgRain('home-canvas');
-startBgRain('menu-canvas');
-showPage('home');
-
-// زر التنقل العلوي (يمين) — رجوع
-const topnavBtn = document.getElementById('topnav-btn');
-if (topnavBtn) {
-  topnavBtn.addEventListener('click', () => {
-    const target = BACK_TARGETS[_currentPage] || 'home';
-    showPage(target);
-  });
-}
+_safeInit('forum',         () => initForum(showPage));
+_safeInit('community',     () => initCommunity(showPage));
+_safeInit('notifications', () => initNotifications(showPage));
+_safeInit('bgRainHome',    () => startBgRain('home-canvas'));
+_safeInit('bgRainMenu',    () => startBgRain('menu-canvas'));
+_safeInit('showHome',      () => showPage('home'));
 
 const loader = document.getElementById('app-loading');
 if (loader) {

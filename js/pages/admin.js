@@ -7,6 +7,7 @@ import {
   sendBroadcast, adminDeleteForumPost, getRecentForumPosts,
 } from '../core/admin.js';
 import { getPlayers } from '../core/firebase.js';
+import { showGameConfirm, showGamePrompt } from '../core/dialogs.js';
 
 const ARABIC_LETTERS = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
 
@@ -168,7 +169,7 @@ async function _handlePlayerAction(action) {
   if (!target) { _setResult(result, '⚠️ حمّل بيانات لاعب أولاً', 'error'); return; }
 
   if (action === 'clear-stock') {
-    if (!confirm('تصفير مخزن اللاعب؟')) return;
+    if (!(await showGameConfirm('تصفير مخزن اللاعب؟'))) return;
     _setResult(result, '... جاري', 'pending');
     const r = await clearPlayerStock(target);
     _setResult(result, r.ok ? '✅ تم تصفير المخزن' : `❌ ${r.error}`, r.ok ? 'success' : 'error');
@@ -179,7 +180,7 @@ async function _handlePlayerAction(action) {
   if (action === 'set-lifetime') {
     const val = parseInt(document.getElementById('admin-set-lifetime-input')?.value || '0', 10);
     if (val < 0) { _setResult(result, '⚠️ قيمة غير صحيحة', 'error'); return; }
-    if (!confirm(`ضبط إجمالي حروف العمر للاعب على ${val.toLocaleString('ar-EG')}؟`)) return;
+    if (!(await showGameConfirm(`ضبط إجمالي حروف العمر للاعب على ${val.toLocaleString('ar-EG')}؟`))) return;
     _setResult(result, '... جاري', 'pending');
     const r = await setPlayerLifetimeTotal(target, val);
     _setResult(result, r.ok ? '✅ تم ضبط اللفل' : `❌ ${r.error}`, r.ok ? 'success' : 'error');
@@ -201,9 +202,9 @@ async function _handlePlayerAction(action) {
     const isBanned = !!_selectedPlayerData?.user?.banned;
     let reason = '';
     if (!isBanned) {
-      reason = prompt('سبب الحظر (اختياري):') || '';
+      reason = (await showGamePrompt('سبب الحظر (اختياري):')) || '';
     }
-    if (!confirm(isBanned ? 'فك حظر اللاعب؟' : 'حظر هذا اللاعب؟')) return;
+    if (!(await showGameConfirm(isBanned ? 'فك حظر اللاعب؟' : 'حظر هذا اللاعب؟'))) return;
     _setResult(result, '... جاري', 'pending');
     const r = await setPlayerBanned(target, !isBanned, reason);
     _setResult(result, r.ok ? `✅ ${isBanned ? 'تم فك الحظر' : 'تم الحظر'}` : `❌ ${r.error}`, r.ok ? 'success' : 'error');
@@ -217,7 +218,7 @@ async function _handleBroadcast() {
   const msg = document.getElementById('admin-broadcast-msg')?.value || '';
   const result = document.getElementById('admin-broadcast-result');
   if (!msg.trim()) { _setResult(result, '⚠️ اكتب رسالة', 'error'); return; }
-  if (!confirm('إرسال الإعلان لكل اللاعبين؟')) return;
+  if (!(await showGameConfirm('إرسال الإعلان لكل اللاعبين؟'))) return;
 
   _setResult(result, '... جاري', 'pending');
   const r = await sendBroadcast(msg);
@@ -263,7 +264,7 @@ async function _handleLoadForumPosts() {
 }
 
 async function _handleDeleteForumPost(postId) {
-  if (!confirm('حذف هذا المنشور نهائياً؟')) return;
+  if (!(await showGameConfirm('حذف هذا المنشور نهائياً؟'))) return;
   const result = document.getElementById('admin-forum-result');
   _setResult(result, '... جاري', 'pending');
   const r = await adminDeleteForumPost(postId);

@@ -34,8 +34,9 @@ export function renderStock() {
 
 export function initStock() {
   document.getElementById('btn-clear-stock')
-    ?.addEventListener('click', () => {
-      if (confirm('هل تريد مسح جميع الأحرف المخزّنة؟')) {
+    ?.addEventListener('click', async () => {
+      const { showGameConfirm } = await import('../core/dialogs.js');
+      if (await showGameConfirm('هل تريد مسح جميع الأحرف المخزّنة؟')) {
         clearStock();
         renderStock();
       }

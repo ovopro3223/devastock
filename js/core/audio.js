@@ -61,7 +61,8 @@ let _backgroundBuffer = null;
 let _backgroundBufferPromise = null;
 let _backgroundSource = null;
 let _backgroundGain = null;
-let _engineAudio = null;
+let _engineSource = null;
+let _engineGainNode = null;
 
 function _suppressMediaSession() {
   if (!('mediaSession' in navigator)) return;
@@ -97,16 +98,7 @@ async function _loadBackgroundBuffer() {
   return _backgroundBufferPromise;
 }
 
-function _createEngineAudio() {
-  if (_engineAudio) return;
-  const url = SOUND_FILES['engine-sound'];
-  if (!url) return;
-  _engineAudio = new Audio(encodeURI(url));
-  _engineAudio.loop = true;
-  _engineAudio.preload = 'auto';
-  _engineAudio.volume = Math.min(0.35, 0.16 * _volume);
-  _engineAudio.muted = _muted;
-}
+// engine-sound يستخدم Web Audio (لـ seamless loop بدون أي ثغرة صوتية)
 
 // تحميل ملف صوتي واحد
 async function _loadSound(key) {
@@ -327,14 +319,11 @@ export function setVolume(value) {
   if (_backgroundGain && _ctx) {
     _backgroundGain.gain.setValueAtTime(Math.min(0.3, 0.04 * volume), _ctx.currentTime);
   }
-  if (_engineAudio) {
-    _engineAudio.volume = Math.min(0.35, 0.16 * volume);
+  if (_engineGainNode && _ctx) {
+    _engineGainNode.gain.setValueAtTime(Math.min(0.35, 0.16 * volume), _ctx.currentTime);
   }
   if (_ambientGain && _ctx) {
     _ambientGain.gain.setValueAtTime(Math.min(0.35, 0.18 * volume), _ctx.currentTime);
-  }
-  if (_engineGain && _ctx) {
-    _engineGain.gain.setValueAtTime(Math.min(0.35, 0.16 * volume), _ctx.currentTime);
   }
   return _volume;
 }
@@ -488,22 +477,46 @@ export function stopAmbient() {
   }
 }
 
-export function startEngine() {
+export async function startEngine() {
   if (_muted) return;
-  _createEngineAudio();
+  if (!_ctx) return;
+  if (_engineSource) return; // already running
 
-  if (_engineAudio) {
-    _engineAudio.volume = Math.min(0.3, 0.08 * _volume);
-    _engineAudio.muted = _muted;
-    _engineAudio.play().catch(() => {});
+  let buffer = _loadedSounds.get('engine-sound');
+  if (!buffer) {
+    buffer = await _loadSound('engine-sound');
+  }
+  if (!buffer) return;
+  if (_muted) return;
+  if (_engineSource) return;
+
+  _engineSource = _ctx.createBufferSource();
+  _engineSource.buffer = buffer;
+  _engineSource.loop = true;
+
+  _engineGainNode = _ctx.createGain();
+  _engineGainNode.gain.setValueAtTime(Math.min(0.3, 0.08 * _volume), _ctx.currentTime);
+
+  _engineSource.connect(_engineGainNode);
+  _engineGainNode.connect(_ctx.destination);
+
+  _engineSource.onended = () => {
+    _engineSource = null;
+    _engineGainNode = null;
+  };
+
+  try {
+    _engineSource.start();
+  } catch {
+    _engineSource = null;
+    _engineGainNode = null;
   }
 }
 
 export function stopEngine() {
-  if (_engineAudio) {
-    try {
-      _engineAudio.pause();
-      _engineAudio.currentTime = 0;
-    } catch {}
+  if (_engineSource) {
+    try { _engineSource.stop(); } catch {}
+    _engineSource = null;
+    _engineGainNode = null;
   }
 }

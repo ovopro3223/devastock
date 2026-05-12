@@ -119,7 +119,7 @@ function _renderGrid() {
   });
 }
 
-function _handleAction(action, id) {
+async function _handleAction(action, id) {
   const frame = getFrameById(id);
   if (!frame) return;
 
@@ -127,15 +127,19 @@ function _handleAction(action, id) {
     const result = purchaseFrame(id);
     if (result.ok) {
       // اشتراها — اسأل المستخدم لو يريد ارتداها
-      if (confirm(`تم شراء "${frame.name}". هل تريد ارتداءه الآن؟`)) {
+      const { showGameConfirm } = await import('../core/dialogs.js');
+      const { showGameNotification } = await import('../core/notifications.js');
+      if (await showGameConfirm(`تم شراء "${frame.name}". هل تريد ارتداءه الآن؟`)) {
         equipFrame(id);
       }
       _renderSummary();
       _renderGrid();
     } else if (result.reason === 'not_enough_letters') {
-      alert(`بحاجة ${fmt(result.need)} حرف. عندك ${fmt(result.have || 0)}`);
+      const { showGameNotification } = await import('../core/notifications.js');
+      showGameNotification(`بحاجة ${fmt(result.need)} حرف. عندك ${fmt(result.have || 0)}`, 'warning');
     } else if (result.reason === 'already_owned') {
-      alert('هذا الإطار مملوك');
+      const { showGameNotification } = await import('../core/notifications.js');
+      showGameNotification('هذا الإطار مملوك', 'info');
     }
   } else if (action === 'unlock-level') {
     // مجاني — مالك تلقائي عند لفل معين، فقط ارتديه

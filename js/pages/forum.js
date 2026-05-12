@@ -8,6 +8,7 @@ import { incrementCounter } from '../core/achievements.js';
 import { getProfile } from '../core/profile-storage.js';
 import { renderAvatarHtml } from '../core/avatar-helper.js';
 import { applyTextFilter, BAD_WORDS_PENALTY } from '../core/text-filter.js';
+import { showGameNotification } from '../core/notifications.js';
 
 // 10 أقسام عامة
 export const FORUM_CATEGORIES = [
@@ -105,13 +106,13 @@ export function initForum(navigate) {
         const penaltyMsg = filter.penaltyApplied
           ? `\nخُصم ${filter.penaltyAmount} حرف من مخزنك كعقوبة.`
           : '';
-        alert(`🚫 تم رفض المنشور — يحتوي على كلمة ممنوعة.${penaltyMsg}`);
+        showGameNotification(`🚫 تم رفض المنشور — يحتوي على كلمة ممنوعة.${penaltyMsg}`, 'error');
         return;
       }
 
       const check = canAffordText(content);
       if (!check.ok) {
-        alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+        showGameNotification(`ما عندك حرف "${check.missing}" كافي بالمخزن. بدك ${check.need} ومعك ${check.have}.`, 'warning');
         return;
       }
       const result = await createForumPost(_currentUser.uid, _displayName(), content, category);
@@ -122,7 +123,7 @@ export function initForum(navigate) {
         renderForumPosts();
       } else {
         console.error('Forum post error:', result?.error);
-        alert(`تعذَّر إنشاء الموضوع، حاول مرة أخرى.\n${result?.error || ''}`);
+        showGameNotification(`تعذَّر إنشاء الموضوع: ${result?.error || ''}`, 'error');
       }
     });
   }
@@ -295,7 +296,7 @@ function renderForumPosts() {
 
 window._toggleForumLike = async function(postId) {
   if (!_currentUser) {
-    alert('سجل دخول لتتمكن من الإعجاب.');
+    showGameNotification('سجل دخول لتتمكن من الإعجاب.', 'info');
     return;
   }
   const likes = _postLikes[postId] || [];
@@ -308,26 +309,26 @@ window._toggleForumLike = async function(postId) {
 
 window._deleteForumPost = async function(postId) {
   if (!_currentUser) return;
-  const confirmed = confirm('هل أنت متأكد أنك تريد حذف هذا المنشور؟');
-  if (!confirmed) return;
+  const { showGameConfirm } = await import('../core/dialogs.js');
+  if (!(await showGameConfirm('هل أنت متأكد أنك تريد حذف هذا المنشور؟'))) return;
   const result = await deleteForumPost(postId, _currentUser.uid);
   if (!result?.success) {
     console.error('Delete forum post failed:', result?.error);
-    alert(`فشل حذف المنشور.\n${result?.error || ''}`);
+    showGameNotification(`فشل حذف المنشور: ${result?.error || ''}`, 'error');
   }
 };
 
 window._viewForumProfile = async function(uid) {
   if (!uid) return;
 
-  // فحص اللفل: لازم لفل 20+ لفتح بروفايل غيرك
+  // فحص اللفل: لازم لفل 2+ لفتح بروفايل غيرك
   const me = getAuth().currentUser;
   if (me && uid !== me.uid) {
     try {
       const { getLevel, getLifetimeTotal } = await import('../core/lifetime-storage.js');
       const myLevel = getLevel(getLifetimeTotal());
-      if (myLevel < 20) {
-        alert(`🔒 يجب أن تكون لفل 20 على الأقل لفتح بروفايلات اللاعبين.\nأنت حالياً لفل ${myLevel}.`);
+      if (myLevel < 2) {
+        showGameNotification(`🔒 يجب أن تكون لفل 2 على الأقل لفتح بروفايلات اللاعبين.\nأنت حالياً لفل ${myLevel}.`, 'warning');
         return;
       }
     } catch {}
@@ -388,7 +389,7 @@ window._viewForumProfile = async function(uid) {
 window._submitForumComment = async function(event, postId) {
   event.preventDefault();
   if (!_currentUser) {
-    alert('سجل دخول لتتمكن من التعليق.');
+    showGameNotification('سجل دخول لتتمكن من التعليق.', 'info');
     return;
   }
   const input = document.getElementById(`forum-comment-input-${postId}`);
@@ -402,13 +403,13 @@ window._submitForumComment = async function(event, postId) {
     const penaltyMsg = filter.penaltyApplied
       ? `\nخُصم ${filter.penaltyAmount} حرف من مخزنك كعقوبة.`
       : '';
-    alert(`🚫 تم رفض التعليق — يحتوي على كلمة ممنوعة.${penaltyMsg}`);
+    showGameNotification(`🚫 تم رفض التعليق — يحتوي على كلمة ممنوعة.${penaltyMsg}`, 'error');
     return;
   }
 
   const check = canAffordText(content);
   if (!check.ok) {
-    alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+    showGameNotification(`ما عندك حرف "${check.missing}" كافي بالمخزن. بدك ${check.need} ومعك ${check.have}.`, 'warning');
     return;
   }
   await addForumComment(postId, _currentUser.uid, _displayName(), content);

@@ -26,7 +26,10 @@ export async function signInWithGoogle() {
   } catch (e) {
     if (e.code !== 'auth/popup-closed-by-user') {
       console.error('login error:', e.code, e.message);
-      alert(`خطأ في تسجيل الدخول: ${e.message}`);
+      try {
+        const { showGameNotification } = await import('./notifications.js');
+        showGameNotification(`خطأ في تسجيل الدخول: ${e.message}`, 'error');
+      } catch {}
     }
   }
 }

@@ -10,6 +10,8 @@ import {
   getApplicants, tickApplicants, acceptApplicant, rejectApplicant, expelStudent,
 } from '../core/school-storage.js';
 import { getStock, getTotalLetters } from '../core/storage.js';
+import { showGameNotification } from '../core/notifications.js';
+import { showGameConfirm, showGamePrompt } from '../core/dialogs.js';
 
 let _showPage = null;
 let _activeTab = 'grades';
@@ -92,9 +94,9 @@ function _bulkRecruit() {
     const msg = stopReason === 'no_capacity'
       ? `قبلت ${recruited} طالب! 🎉 (الصفوف صارت ممتلئة — افتح صفاً جديداً)`
       : `قبلت ${recruited} طالب! 🎉`;
-    alert(msg);
+    showGameNotification(msg, 'success');
   } else {
-    alert('لا يوجد طالب متاح للقبول الآن');
+    showGameNotification('لا يوجد طالب متاح للقبول الآن', 'info');
   }
 }
 
@@ -199,7 +201,7 @@ function _renderApplicants() {
   });
 }
 
-function _handleAcceptApplicant(name) {
+async function _handleAcceptApplicant(name) {
   const result = acceptApplicant(name);
   if (result.ok) {
     _renderApplicants();
@@ -209,17 +211,17 @@ function _handleAcceptApplicant(name) {
     return;
   }
   if (result.reason === 'not_enough_letters') {
-    alert(`بحاجة ${result.need} من حرف "${result.missing}". عندك ${result.have}`);
+    showGameNotification(`بحاجة ${result.need} من حرف "${result.missing}". عندك ${result.have}`, 'warning');
     return;
   }
   if (result.reason === 'no_capacity') {
     const enrolled = Object.keys(getSchoolState().students);
     if (enrolled.length === 0) {
-      alert('لا يوجد طلاب لاستبدالهم');
+      showGameNotification('لا يوجد طلاب لاستبدالهم', 'warning');
       return;
     }
-    const list = enrolled.join('\n');
-    const target = prompt(`الصفوف ممتلئة! اكتب اسم الطالب اللي بدك تطرده مكانه:\n\n${list}`);
+    const list = enrolled.join('، ');
+    const target = await showGamePrompt(`الصفوف ممتلئة! اكتب اسم الطالب اللي بدك تطرده مكانه:\n\nالموجودون: ${list}`);
     if (!target) return;
     const r = acceptApplicant(name, target.trim());
     if (r.ok) {
@@ -228,12 +230,12 @@ function _handleAcceptApplicant(name) {
       if (_activeTab === 'grades') _renderGrades();
       else _renderRecruit();
     } else if (r.reason === 'not_enough_letters') {
-      alert(`بحاجة ${r.need} من حرف "${r.missing}". عندك ${r.have}`);
+      showGameNotification(`بحاجة ${r.need} من حرف "${r.missing}". عندك ${r.have}`, 'warning');
     } else {
-      alert('اسم غير صحيح أو فشل الاستبدال');
+      showGameNotification('اسم غير صحيح أو فشل الاستبدال', 'error');
     }
   } else {
-    alert('فشل قبول الطلب');
+    showGameNotification('فشل قبول الطلب', 'error');
   }
 }
 
@@ -282,7 +284,7 @@ function _renderSummary() {
           <span>الصف القادم: <b>${next.emoji} ${next.name}</b></span>
         </div>
         <div class="school-next-grade-stats">
-          <span>${incomePerStudent}/ساعة لكل تلميذ</span>
+          <span>${incomePerStudent}/يوم لكل تلميذ</span>
           <span>•</span>
           <span>${next.capacity} مكان</span>
         </div>
@@ -327,7 +329,7 @@ function _renderGrades() {
           </div>
           <div class="school-grade-stats">
             <div>سعة: ${capacity} طالب</div>
-            <div>${grade.letterCount} حرف × ${grade.ratePerHour}/ساعة</div>
+            <div>${grade.letterCount} حرف × ${grade.ratePerHour}/يوم</div>
           </div>
           ${blocked
             ? `<div class="school-grade-locked-msg">افتح الصف السابق أولاً</div>`
@@ -359,8 +361,8 @@ function _renderGrades() {
           <span class="school-grade-tag unlocked">${filled}/${capacity}</span>
         </div>
         <div class="school-grade-stats">
-          <div>${totalLetterRatePerStudent}/ساعة لكل طالب</div>
-          <div>إنتاج الصف: <b>${fmt(totalIncome)}</b>/ساعة</div>
+          <div>${totalLetterRatePerStudent}/يوم لكل طالب</div>
+          <div>إنتاج الصف: <b>${fmt(totalIncome)}</b>/يوم</div>
         </div>
         <div class="school-grade-letters">${lettersHtml}</div>
         <div class="school-grade-students">${studentsHtml}</div>
@@ -377,19 +379,19 @@ function _renderGrades() {
         _renderGrades();
         _renderSummary();
       } else if (result.reason === 'not_enough_letters') {
-        alert(`بحاجة ${fmt(result.need)} حرف. عندك ${fmt(result.have)}`);
+        showGameNotification(`بحاجة ${fmt(result.need)} حرف. عندك ${fmt(result.have)}`, 'warning');
       } else {
-        alert('غير قادر على فتح الصف');
+        showGameNotification('غير قادر على فتح الصف', 'error');
       }
     });
   });
 
   // ربط أزرار فصل الطلاب
   list.querySelectorAll('[data-expel]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const name = btn.dataset.expel;
-      if (!confirm(`فصل ${name} من المدرسة؟ يُلغى إنتاجه ويُتاح اسمه للقبول مجدداً.`)) return;
+      if (!(await showGameConfirm(`فصل ${name} من المدرسة؟ يُلغى إنتاجه ويُتاح اسمه للقبول مجدداً.`))) return;
       expelStudent(name);
       _renderGrades();
       _renderSummary();
@@ -485,9 +487,9 @@ function _renderRecruit() {
         _renderRecruit();
         _renderSummary();
       } else if (result.reason === 'no_capacity') {
-        alert('الصفوف ممتلئة — افتح صفاً جديداً');
+        showGameNotification('الصفوف ممتلئة — افتح صفاً جديداً', 'warning');
       } else if (result.reason === 'not_enough_letters') {
-        alert(`بحاجة ${result.need} من حرف ${result.missing}`);
+        showGameNotification(`بحاجة ${result.need} من حرف ${result.missing}`, 'warning');
       }
     });
   });

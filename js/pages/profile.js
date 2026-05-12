@@ -159,7 +159,9 @@ function _renderUnlocked(root) {
     const file = uploadInput.files?.[0];
     if (!file) return;
     if (file.size > MAX_AVATAR_SIZE) {
-      alert('الرجاء اختيار صورة أصغر من 1 ميجابايت.');
+      import('../core/notifications.js').then(({ showGameNotification }) => {
+        showGameNotification('الرجاء اختيار صورة أصغر من 1 ميجابايت.', 'warning');
+      });
       uploadInput.value = '';
       return;
     }

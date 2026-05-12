@@ -35,17 +35,20 @@ export function getLifetimeTotal() {
 }
 
 // ===== نظام اللفلات (Levels) =====
-// 1-100 — لا prestige. الوصول للفل 100 يتطلب 14 مليون حرف تراكمياً
+// 1-100 — لا prestige.
+// المعادلة: cum(N) = 5000 × (N-1)^1.5
+// - cum(2)   = 5,000           (لفل 2 = 5 آلاف حرف)
+// - cum(50)  ≈ 1,715,000
+// - cum(100) ≈ 4,925,000        ≈ ~7 شهور بمعدل ~23-24 ألف حرف باليوم
 export const MAX_LEVEL = 100;
-const TOTAL_LETTERS_AT_MAX = 14_000_000;
+const FIRST_LEVEL_COST = 5000;
+const LEVEL_POWER = 1.5;
+const TOTAL_LETTERS_AT_MAX = Math.round(FIRST_LEVEL_COST * Math.pow(MAX_LEVEL - 1, LEVEL_POWER));
 
-// منحنى تربيعي: cum(N) = 14M × ((N-1)/99)^2
-// يعطي تدرج طبيعي — البداية سهلة، النهاية صعبة
 function _cumLetters(level) {
   if (level <= 1) return 0;
   if (level >= MAX_LEVEL) return TOTAL_LETTERS_AT_MAX;
-  const t = (level - 1) / (MAX_LEVEL - 1);
-  return Math.round(TOTAL_LETTERS_AT_MAX * t * t);
+  return Math.round(FIRST_LEVEL_COST * Math.pow(level - 1, LEVEL_POWER));
 }
 
 // حروف مطلوبة من level → level+1

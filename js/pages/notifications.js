@@ -248,7 +248,8 @@ export function initNotifications(navigate) {
 
   if (clearAllBtn) {
     clearAllBtn.addEventListener('click', async () => {
-      if (!confirm('مسح كل إشعاراتك؟')) return;
+      const { showGameConfirm } = await import('../core/dialogs.js');
+      if (!(await showGameConfirm('مسح كل إشعاراتك؟'))) return;
       if (_currentUid) await clearAllNotifications(_currentUid);
       for (const g of _globalNotifs) _seenGlobalIds.add(g.id);
       _saveSeenGlobalIds();

@@ -12,6 +12,7 @@ import { incrementCounter } from '../core/achievements.js';
 import { getSeasonState, getSeasonLabel } from '../core/seasons.js';
 import { renderAvatarHtml } from '../core/avatar-helper.js';
 import { getLevel, getLifetimeTotal } from '../core/lifetime-storage.js';
+import { showGameNotification } from '../core/notifications.js';
 
 function _getMyLevel() {
   try { return getLevel(getLifetimeTotal()); } catch { return 1; }
@@ -446,7 +447,7 @@ window._addFriend = async function(toUid, toName) {
     _markRequestSent(_currentUser.uid, toUid);
     _outgoingRequests.push({ toUid, toName });
   } else {
-    alert('فشل إرسال طلب الصداقة، الرجاء التأكد من صلاحيات Firestore أو إعادة تحميل الصفحة.');
+    showGameNotification('فشل إرسال طلب الصداقة. أعد تحميل الصفحة أو تحقّق من الصلاحيات.', 'error');
   }
   renderAllPlayers();
 };
@@ -482,8 +483,8 @@ window._viewProfile = async function(uid) {
 
   // فحص اللفل: من له لفل أقل من 20 ممنوع من فتح البروفايلات
   const myLevel = _getMyLevel();
-  if (myLevel < 20 && uid !== _currentUser.uid) {
-    alert(`🔒 يجب أن تكون لفل 20 على الأقل لفتح بروفايلات اللاعبين.\nأنت حالياً لفل ${myLevel}.`);
+  if (myLevel < 2 && uid !== _currentUser.uid) {
+    showGameNotification(`🔒 يجب أن تكون لفل 2 على الأقل لفتح بروفايلات اللاعبين.\nأنت حالياً لفل ${myLevel}.`, 'warning');
     return;
   }
 
@@ -634,7 +635,7 @@ window._submitWallPost = async function(e, ownerUid) {
     const penaltyMsg = filter.penaltyApplied
       ? `\nخُصم ${filter.penaltyAmount} حرف من مخزنك كعقوبة.`
       : '';
-    alert(`🚫 تم رفض المنشور — يحتوي على كلمة ممنوعة.${penaltyMsg}`);
+    showGameNotification(`🚫 تم رفض المنشور — يحتوي على كلمة ممنوعة.${penaltyMsg}`, 'error');
     return;
   }
 
@@ -650,12 +651,13 @@ window._submitWallPost = async function(e, ownerUid) {
     input.value = '';
     _renderWall(ownerUid, _currentUser.uid === ownerUid);
   } else {
-    alert(`فشل النشر: ${r.error}`);
+    showGameNotification(`فشل النشر: ${r.error}`, 'error');
   }
 };
 
 window._deleteWallPost = async function(ownerUid, postId) {
-  if (!confirm('حذف هذا التعليق؟')) return;
+  const { showGameConfirm } = await import('../core/dialogs.js');
+  if (!(await showGameConfirm('حذف هذا التعليق؟'))) return;
   await deleteWallPost(ownerUid, postId);
   _renderWall(ownerUid, _currentUser?.uid === ownerUid);
 };
@@ -759,7 +761,7 @@ function _setupCommunityModalListeners() {
       const text = chatInput.value;
       const check = canAffordText(text);
       if (!check.ok) {
-        alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+        showGameNotification(`ما عندك حرف "${check.missing}" كافي بالمخزن. بدك ${check.need} ومعك ${check.have}.`, 'warning');
         return;
       }
       chatInput.value = '';
@@ -791,7 +793,7 @@ function _setupCommunityModalListeners() {
       const text = sidebarInput.value;
       const check = canAffordText(text);
       if (!check.ok) {
-        alert(`ما عندك حرف "${check.missing}" كافي بالمخزن.\nبدك ${check.need} ومعك ${check.have}.`);
+        showGameNotification(`ما عندك حرف "${check.missing}" كافي بالمخزن. بدك ${check.need} ومعك ${check.have}.`, 'warning');
         return;
       }
       sidebarInput.value = '';

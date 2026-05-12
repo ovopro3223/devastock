@@ -73,7 +73,8 @@ export function initMenu(navigate) {
     menuAuthBtn.addEventListener('click', async () => {
       const auth = getAuth();
       if (auth.currentUser) {
-        if (confirm('هل تريد تسجيل الخروج؟')) {
+        const { showGameConfirm } = await import('../core/dialogs.js');
+        if (await showGameConfirm('هل تريد تسجيل الخروج؟')) {
           await signOutUser();
         }
       } else {

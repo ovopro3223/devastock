@@ -85,9 +85,10 @@ function setupAuthHandlers() {
   const myProfileBtn = document.getElementById('auth-my-profile-btn');
 
   if (logoutBtn) {
-    logoutBtn.onclick = (e) => {
+    logoutBtn.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm('هل تريد تسجيل الخروج؟')) {
+      const { showGameConfirm } = await import('./dialogs.js');
+      if (await showGameConfirm('هل تريد تسجيل الخروج؟')) {
         signOutUser();
       }
     };

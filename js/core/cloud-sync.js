@@ -271,9 +271,9 @@ export async function pullFromCloud(db, uid) {
           try {
             await setDoc(doc(db, 'users', uid), { pendingGifts: {} }, { merge: true });
           } catch {}
-          // تنبيه بسيط للاعب
+          // تنبيه بسيط للاعب (داخل اللعبة، بدون مربعات المتصفح)
           try {
-            setTimeout(() => alert(`📦 استلمت هدية من الأدمن: ${totalGifted} حرف!`), 800);
+            setTimeout(() => showGameNotification(`📦 استلمت هدية من الأدمن: ${totalGifted} حرف!`, 'success'), 800);
           } catch {}
         }
       }

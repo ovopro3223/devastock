@@ -1,6 +1,7 @@
 // ===== متجر تبديل الأحرف =====
 import { getStock, saveLetterToStock, spendLetters } from '../core/storage.js';
 import { recordLetter } from '../core/lifetime-storage.js';
+import { showGameNotification } from '../core/notifications.js';
 
 const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'.split('');
 const TRADE_RATIO = 5;   // 5 من المصدر = 1 من الهدف
@@ -171,7 +172,7 @@ function _executeTrade() {
   if (!_fromLetter || !_toLetter || _fromLetter === _toLetter) return;
   const stock = getStock();
   if ((stock[_fromLetter] || 0) < _amount) {
-    alert('رصيدك غير كافي');
+    showGameNotification('رصيدك غير كافي', 'warning');
     return;
   }
   const target = Math.floor(_amount / TRADE_RATIO);
@@ -183,6 +184,6 @@ function _executeTrade() {
     // ملاحظة: ما نضيفها لـ lifetime لأنها تبديل، مش تجميع
   }
 
-  alert(`✅ تم التبديل: ${_amount}× ${_fromLetter} → ${target}× ${_toLetter}`);
+  showGameNotification(`✅ تم التبديل: ${_amount}× ${_fromLetter} → ${target}× ${_toLetter}`, 'success');
   renderTrade();
 }

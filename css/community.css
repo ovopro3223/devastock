@@ -448,6 +448,20 @@
 }
 
 /* ===== صفحة المنتدى ===== */
+#page-forum {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 1rem;
+  background: linear-gradient(160deg, #1A1A2E 0%, #0F0F1E 50%, #16213E 100%);
+}
+
+.forum-container {
+  width: 100%;
+  padding-bottom: 4rem;
+}
+
 /* شريط الأقسام (يسكرول أفقياً على الموبايل) */
 .forum-categories {
   display: flex;
