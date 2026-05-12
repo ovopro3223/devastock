@@ -129,8 +129,17 @@ export async function sendBroadcast(message) {
   if (!message || !message.trim()) return { ok: false, error: 'empty' };
   try {
     const db = getFirestore();
+    const trimmed = message.trim();
     await setDoc(doc(db, 'announcements', 'global'), {
-      message: message.trim(),
+      message: trimmed,
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+    });
+    // أنشئ إشعاراً عاماً يستلمه كل اللاعبين مباشرة
+    await setDoc(doc(collection(db, 'globalNotifications')), {
+      type: 'admin_broadcast',
+      message: trimmed,
+      fromName: 'الإدارة',
       createdAt: serverTimestamp(),
       createdAtMs: Date.now(),
     });

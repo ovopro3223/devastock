@@ -206,6 +206,10 @@
   <!-- زر الرجوع/الإيقاف — فوق يمين -->
   <div class="topnav-container">
     <button id="topnav-btn" class="topnav-btn" hidden>⏸</button>
+    <button id="notif-bell-btn" class="topnav-btn notif-bell-btn" title="الإشعارات" hidden>
+      🔔
+      <span id="notif-bell-badge" class="notif-bell-badge" hidden>0</span>
+    </button>
   </div>
 
   <!-- ===== الصفحة الرئيسية ===== -->
@@ -1144,6 +1148,21 @@
   </section>
 
   <!-- ===== Modals عامة (تظهر فوق أي صفحة) ===== -->
+  <div id="notif-modal" class="auth-modal notif-modal" hidden>
+    <div class="auth-modal-overlay"></div>
+    <div class="auth-modal-box notif-modal-box">
+      <button class="player-profile-close" id="notif-modal-close" aria-label="إغلاق">&times;</button>
+      <h2 class="notif-modal-title">🔔 الإشعارات</h2>
+      <div class="notif-modal-actions">
+        <button id="notif-mark-all-read" class="btn btn-sm">✓ تعليم الكل كمقروء</button>
+        <button id="notif-clear-all" class="btn btn-sm">🗑️ مسح الكل</button>
+      </div>
+      <div id="notif-list" class="notif-list">
+        <div class="notif-empty">⏳ جاري التحميل...</div>
+      </div>
+    </div>
+  </div>
+
   <div id="player-profile-modal" class="auth-modal" hidden>
     <div class="auth-modal-overlay"></div>
     <div class="auth-modal-box player-profile-box">

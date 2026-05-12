@@ -187,6 +187,11 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
       createdAt: serverTimestamp(),
     });
     console.log('✅ Friend request sent successfully:', newDoc.id);
+    // أرسل إشعار للطرف الآخر
+    pushNotification(toUid, {
+      type: 'friend_request',
+      fromName: fromName || 'لاعب',
+    }).catch(() => {});
     return true;
   } catch (e) {
     console.error('❌ Error sending request:', e.code, e.message);
@@ -223,6 +228,13 @@ export async function sendChatMessage(fromUid, toUid, fromName, text) {
       lastFromUid: fromUid,
       updatedAt: serverTimestamp(),
     }, { merge: true });
+
+    // إشعار للطرف الآخر
+    pushNotification(toUid, {
+      type: 'chat_message',
+      fromName: fromName || 'لاعب',
+      preview: text.trim().slice(0, 80),
+    }).catch(() => {});
   } catch (e) {
     console.error('Error sending message:', e);
   }
@@ -255,6 +267,123 @@ export function listenForMessages(uid1, uid2, callback) {
   } catch (e) {
     console.error('Error listening to messages:', e);
     return () => {};
+  }
+}
+
+// ===== الإشعارات (Notification Inbox) =====
+// أنواع الإشعار: friend_request, friend_accepted, wall_post, chat_message,
+// forum_like, forum_comment, admin_broadcast, admin_gift
+
+// كتابة إشعار لمستخدم آخر
+export async function pushNotification(targetUid, payload) {
+  try {
+    if (!targetUid || !payload) return;
+    if (!auth.currentUser) return;
+    if (targetUid === auth.currentUser.uid) return; // لا إشعار لنفسك
+    const ref = doc(collection(db, 'notifications', targetUid, 'items'));
+    await setDoc(ref, {
+      ...payload,
+      fromUid: auth.currentUser.uid,
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+      read: false,
+    });
+  } catch (e) {
+    console.warn('pushNotification failed:', e?.message);
+  }
+}
+
+// استماع مباشر للإشعارات (live updates)
+export function listenForNotifications(uid, callback) {
+  try {
+    const q = query(
+      collection(db, 'notifications', uid, 'items'),
+      orderBy('createdAtMs', 'desc')
+    );
+    return onSnapshot(q, (snap) => {
+      const items = [];
+      snap.forEach(d => {
+        const data = d.data();
+        items.push({
+          id: d.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(data.createdAtMs || Date.now()),
+        });
+      });
+      callback(items);
+    }, (err) => {
+      console.warn('listenForNotifications error:', err?.message);
+    });
+  } catch (e) {
+    console.error('listenForNotifications error:', e);
+    return () => {};
+  }
+}
+
+// استماع للإشعارات العامة (بث الأدمن)
+export function listenForGlobalNotifications(callback) {
+  try {
+    const q = query(collection(db, 'globalNotifications'), orderBy('createdAtMs', 'desc'));
+    return onSnapshot(q, (snap) => {
+      const items = [];
+      snap.forEach(d => {
+        const data = d.data();
+        items.push({
+          id: d.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(data.createdAtMs || Date.now()),
+        });
+      });
+      callback(items);
+    }, (err) => {
+      console.warn('listenForGlobalNotifications error:', err?.message);
+    });
+  } catch (e) {
+    console.error('listenForGlobalNotifications error:', e);
+    return () => {};
+  }
+}
+
+// تعليم إشعار كمقروء
+export async function markNotificationRead(uid, notifId) {
+  try {
+    await updateDoc(doc(db, 'notifications', uid, 'items', notifId), { read: true });
+  } catch (e) {
+    console.warn('markNotificationRead failed:', e?.message);
+  }
+}
+
+// تعليم كل الإشعارات كمقروءة
+export async function markAllNotificationsRead(uid) {
+  try {
+    const q = query(collection(db, 'notifications', uid, 'items'), where('read', '==', false));
+    const snap = await getDocs(q);
+    const promises = [];
+    snap.forEach(d => promises.push(updateDoc(d.ref, { read: true })));
+    await Promise.all(promises);
+  } catch (e) {
+    console.warn('markAllNotificationsRead failed:', e?.message);
+  }
+}
+
+// حذف إشعار
+export async function deleteNotification(uid, notifId) {
+  try {
+    await deleteDoc(doc(db, 'notifications', uid, 'items', notifId));
+  } catch (e) {
+    console.warn('deleteNotification failed:', e?.message);
+  }
+}
+
+// مسح كل الإشعارات
+export async function clearAllNotifications(uid) {
+  try {
+    const snap = await getDocs(collection(db, 'notifications', uid, 'items'));
+    const promises = [];
+    snap.forEach(d => promises.push(deleteDoc(d.ref)));
+    await Promise.all(promises);
+  } catch (e) {
+    console.warn('clearAllNotifications failed:', e?.message);
   }
 }
 
@@ -487,6 +616,19 @@ export async function addForumComment(postId, authorUid, authorName, content) {
       content: content.trim(),
       createdAt: serverTimestamp(),
     });
+    // إشعار لصاحب المنشور
+    try {
+      const postSnap = await getDoc(doc(db, 'forumPosts', postId));
+      const postAuthor = postSnap.exists() ? postSnap.data().authorUid : null;
+      if (postAuthor && postAuthor !== authorUid) {
+        pushNotification(postAuthor, {
+          type: 'forum_comment',
+          fromName: authorName || 'لاعب',
+          preview: content.trim().slice(0, 80),
+          postId,
+        }).catch(() => {});
+      }
+    } catch {}
     return commentRef.id;
   } catch (e) {
     console.error('Error adding forum comment:', e);
@@ -500,6 +642,20 @@ export async function likeForumPost(postId, userUid) {
     await setDoc(doc(db, 'forumPosts', postId, 'likes', userUid), {
       createdAt: serverTimestamp(),
     });
+    // إشعار لصاحب المنشور
+    try {
+      const postSnap = await getDoc(doc(db, 'forumPosts', postId));
+      if (!postSnap.exists()) return;
+      const postData = postSnap.data();
+      const postAuthor = postData.authorUid;
+      if (!postAuthor || postAuthor === userUid) return;
+      const myName = auth.currentUser?.displayName || 'لاعب';
+      pushNotification(postAuthor, {
+        type: 'forum_like',
+        fromName: myName,
+        postId,
+      }).catch(() => {});
+    } catch {}
   } catch (e) {
     console.error('Error liking forum post:', e);
   }
@@ -528,6 +684,13 @@ export async function acceptFriendRequest(reqId, fromUid, toUid) {
     await setDoc(doc(db, 'users', fromUid), {
       friends: arrayUnion(toUid),
     }, { merge: true });
+
+    // أبلغ صاحب الطلب أن طلبه قُبل (auth.currentUser هو toUid)
+    const myName = auth.currentUser?.displayName || 'لاعب';
+    pushNotification(fromUid, {
+      type: 'friend_accepted',
+      fromName: myName,
+    }).catch(() => {});
   } catch (e) {
     console.error('Error accepting request:', e);
   }
@@ -556,6 +719,12 @@ export async function postOnWall(ownerUid, authorUid, authorName, content) {
       createdAt: serverTimestamp(),
       createdAtMs: Date.now(),
     });
+    // إشعار لصاحب الحائط
+    pushNotification(ownerUid, {
+      type: 'wall_post',
+      fromName: authorName || 'لاعب',
+      preview: content.trim().slice(0, 80),
+    }).catch(() => {});
     return { ok: true, id: ref.id };
   } catch (e) {
     console.error('postOnWall:', e);

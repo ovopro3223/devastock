@@ -44,12 +44,14 @@ function isImgReady(img) {
 // حالات الشبكة
 const NET_IDLE = 'idle';        // في القارب
 const NET_CASTING = 'casting';  // تنزل
-const NET_WAITING = 'waiting';  // تنتظر السمك في القاع
-const NET_BITE = 'bite';        // طُعم! انتفاضة
+const NET_WAITING = 'waiting';  // ثابتة بالقاع، السمك يدخلها لما يمر
 const NET_PULLING = 'pulling';  // يسحب الشبكة
 const NET_SHOWING = 'showing';  // يعرض النتيجة
 
 const GAME_DURATION = 90; // ثانية - أطول لأن كل قذفة تأخذ وقت
+const WAIT_TIMEOUT = 900;     // ~15 ثانية (60fps) — أقصى وقت قبل السحب الذاتي
+const CATCH_RADIUS = 48;      // نصف قطر منطقة الإمساك (داخل صورة الشبكة)
+const MAX_FISH_IN_NET = 8;    // الحد الأقصى قبل سحب ذاتي
 
 export class FishingGame {
   constructor(onExit) {
@@ -70,11 +72,11 @@ export class FishingGame {
       y: 0,
       targetY: 0,
       state: NET_IDLE,
-      shake: 0,         // قوة الانتفاضة (للأنميشن عند الطُعم)
-      waitTimer: 0,     // عد تنازلي للطُعم
-      biteTimer: 0,     // عد تنازلي للسحب
+      shake: 0,         // اهتزاز خفيف لما تدخل سمكة الشبكة
+      waitTimer: 0,     // عد تنازلي قبل السحب الذاتي
       pullSpeed: 4,
       result: null,     // النتيجة بعد السحب
+      caughtFish: [],   // الأسماك اللي دخلت الشبكة فعلاً
     };
 
     // حركة القارب الجانبية
@@ -134,8 +136,8 @@ export class FishingGame {
     if (this.net.state === NET_IDLE) {
       this._castNet(x, y);
     }
-    // إذا في حالة طُعم → اسحب الشبكة بسرعة
-    else if (this.net.state === NET_BITE) {
+    // أثناء الانتظار: الضغطة تسحب الشبكة بما فيها
+    else if (this.net.state === NET_WAITING) {
       this._startPulling();
     }
     // إذا تعرض نتيجة → اضغط لإغلاقها
@@ -144,7 +146,6 @@ export class FishingGame {
       this.net.result = null;
       this.statusText = '';
     }
-    // أثناء WAITING يتجاهل النقرات
   }
 
   _castNet(x, y) {
@@ -159,6 +160,7 @@ export class FishingGame {
     this.net.state = NET_CASTING;
     this.net.shake = 0;
     this.net.result = null;
+    this.net.caughtFish = [];
     document.getElementById('fishing-instructions').classList.add('hidden');
     playFishingNetThrewSound();
     playSplashSound();
@@ -170,26 +172,28 @@ export class FishingGame {
     this._addRipple(this.net.x, seaY + 12);
   }
 
-  _startBiteWait() {
+  _startWaiting() {
     this.net.state = NET_WAITING;
-    // وقت عشوائي 2-7 ثوانٍ
-    this.net.waitTimer = 120 + Math.random() * 300;  // فريم ≈ 60fps
-    this.statusText = '⏳ في انتظار السمك...';
-  }
-
-  _triggerBite() {
-    this.net.state = NET_BITE;
-    this.net.shake = 0;
-    this.net.biteTimer = 240; // 4 ثوان للسحب وإلا تختفي السمكة
-    this.statusText = '🐟 طُعم! اسحب الآن!';
-    playSplashSound();
+    this.net.waitTimer = WAIT_TIMEOUT;
+    this.statusText = '⏳ خلّيها بمكانها والسمك بيدخلها...';
   }
 
   _startPulling() {
     this.net.state = NET_PULLING;
-    // احسب النتيجة
-    this.net.result = this._rollResult();
+    this.net.result = this._calculateResult();
     this.statusText = '⚓ نسحب الشبكة...';
+  }
+
+  _calculateResult() {
+    const count = this.net.caughtFish.length;
+    if (count === 0) return null;
+    // فرصة 6% خسارة لما الشبكة تتحمّل كتير
+    if (count >= 5 && Math.random() < 0.06) {
+      return this._lossResult();
+    }
+    if (count >= 6) return this._bigPack();
+    if (count >= 3) return this._mediumPack();
+    return this._smallPack();
   }
 
   _showResult() {
@@ -225,30 +229,6 @@ export class FishingGame {
       this.statusText = `🐟 صيد: ${parts.join(' + ')}`;
       playCollectSound();
     }
-  }
-
-  // ===== خوارزمية النتيجة العشوائية =====
-  _rollResult() {
-    const r = Math.random();
-
-    // 5% خسارة
-    if (r < 0.05) {
-      return this._lossResult();
-    }
-    // 8% فارغ
-    if (r < 0.13) {
-      return null;
-    }
-    // 8% صيد كبير
-    if (r < 0.21) {
-      return this._bigPack();
-    }
-    // 32% صيد متوسط
-    if (r < 0.53) {
-      return this._mediumPack();
-    }
-    // 47% صيد عادي
-    return this._smallPack();
   }
 
   _smallPack() {
@@ -446,7 +426,7 @@ export class FishingGame {
       vy: isOctopus ? -0.15 - Math.random() * 0.15 : 0,  // الأخطبوط يطلع بطيء للأعلى
       bob: Math.random() * Math.PI * 2,
       bobSpeed: 0.03 + Math.random() * 0.025,
-      size: isOctopus ? 50 + Math.random() * 14 : 38 + Math.random() * 18,
+      size: isOctopus ? 34 + Math.random() * 10 : 24 + Math.random() * 12,
     });
   }
 
@@ -530,19 +510,41 @@ export class FishingGame {
       this.net.y += 7;
       if (this.net.y >= this.net.targetY) {
         this.net.y = this.net.targetY;
-        this._startBiteWait();
+        this._startWaiting();
       }
     } else if (this.net.state === NET_WAITING) {
       this.net.waitTimer--;
-      if (this.net.waitTimer <= 0) {
-        this._triggerBite();
+      // اهتزاز خفيف ينتهي تدريجياً
+      this.net.shake *= 0.88;
+      // افحص تصادم السمك مع الشبكة
+      for (let i = this.fish.length - 1; i >= 0; i--) {
+        const f = this.fish[i];
+        const dx = f.x - this.net.x;
+        const dy = f.y - this.net.y;
+        if (Math.sqrt(dx * dx + dy * dy) < CATCH_RADIUS) {
+          // امسك هذه السمكة
+          this.net.caughtFish.push({
+            def: f.def,
+            offsetX: dx * 0.3 + (Math.random() - 0.5) * 18,
+            offsetY: dy * 0.3 + (Math.random() - 0.5) * 18,
+            size: f.size,
+            bob: Math.random() * Math.PI * 2,
+          });
+          this.fish.splice(i, 1);
+          this.net.shake = 5;
+          playSplashSound();
+          for (let b = 0; b < 4; b++) {
+            this._addBubble(this.net.x + (Math.random() - 0.5) * 30, this.net.y);
+          }
+        }
       }
-    } else if (this.net.state === NET_BITE) {
-      this.net.shake = Math.sin(this.t * 0.6) * 4;
-      this.net.biteTimer--;
-      if (this.net.biteTimer <= 0) {
-        // لم يسحب → سحب تلقائي بنتيجة فارغة
-        this.net.result = null;
+      // عدّ السمك بالشبكة في الستاتس
+      const inNet = this.net.caughtFish.length;
+      if (inNet > 0) {
+        this.statusText = `🐟 ${inNet} ${inNet === 1 ? 'سمكة' : 'سمكات'} بالشبكة — اضغط للسحب`;
+      }
+      // سحب ذاتي عند امتلاء الشبكة أو انتهاء الوقت
+      if (inNet >= MAX_FISH_IN_NET || this.net.waitTimer <= 0) {
         this._startPulling();
       }
     } else if (this.net.state === NET_PULLING) {
@@ -926,15 +928,13 @@ export class FishingGame {
     if (this.net.state !== NET_IDLE && isImgReady(bobImg)) {
       const bobW = 28;
       const bobH = bobW * (bobImg.naturalHeight / bobImg.naturalWidth);
-      const bobBob = Math.sin(this.t * 0.08) * 2 + (this.net.state === NET_BITE ? Math.sin(this.t * 0.7) * 4 : 0);
+      const bobBob = Math.sin(this.t * 0.08) * 2 + (this.net.state === NET_WAITING && this.net.shake > 0.5 ? Math.sin(this.t * 0.7) * 3 : 0);
       ctx.drawImage(bobImg, x - bobW / 2, seaY - bobH * 0.7 + bobBob, bobW, bobH);
     }
 
     // ===== الشبكة =====
     if (isImgReady(netImg)) {
-      // اهتزاز عند الطُعم
-      const shakeY = this.net.state === NET_BITE ? Math.sin(this.t * 0.8) * 3 : 0;
-      ctx.drawImage(netImg, x - netW / 2, y - netH * 0.45 + shakeY, netW, netH);
+      ctx.drawImage(netImg, x - netW / 2, y - netH * 0.45, netW, netH);
     } else {
       // احتياطي بسيط لو الصورة ما تحمّلت
       ctx.fillStyle = 'rgba(60, 80, 95, 0.4)';
@@ -943,27 +943,27 @@ export class FishingGame {
       ctx.fill();
     }
 
-    // ===== مؤشرات الحالة فوق الشبكة =====
-    if (this.net.state === NET_BITE) {
-      ctx.font = 'bold 22px Cairo, Arial';
+    // ===== السمك المُمسَك داخل الشبكة =====
+    if ((this.net.state === NET_WAITING || this.net.state === NET_PULLING) && this.net.caughtFish.length > 0) {
+      for (const cf of this.net.caughtFish) {
+        const img = cf.def?.img;
+        if (!isImgReady(img)) continue;
+        cf.bob += 0.08;
+        const aspect = img.naturalWidth / img.naturalHeight;
+        const fw = cf.size * 1.4;
+        const fh = fw / aspect;
+        const fx = x + cf.offsetX + Math.sin(cf.bob) * 1.5;
+        const fy = y + cf.offsetY + Math.cos(cf.bob * 0.7) * 1.2;
+        ctx.drawImage(img, fx - fw / 2, fy - fh / 2, fw, fh);
+      }
+      // علامة سبارك صغيرة فوق الشبكة
+      ctx.font = 'bold 18px Cairo, Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = '#000';
-      ctx.shadowBlur = 5;
+      ctx.shadowBlur = 4;
       ctx.fillStyle = '#FFD700';
-      ctx.fillText('🐟', x, y + netH * 0.1);
-      ctx.shadowBlur = 0;
-    }
-
-    if ((this.net.state === NET_PULLING || this.net.state === NET_SHOWING)
-        && this.net.result && this.net.result.letters && this.net.result.type !== 'loss') {
-      ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 22px Cairo, Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#000';
-      ctx.shadowBlur = 5;
-      ctx.fillText('✨', x, y + netH * 0.1);
+      ctx.fillText('✨', x, y - netH * 0.55);
       ctx.shadowBlur = 0;
     }
 

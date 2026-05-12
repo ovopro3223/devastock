@@ -7,6 +7,7 @@ import { initMuseum }  from './pages/museum.js';
 import { initProfile } from './pages/profile.js';
 import { initForum }   from './pages/forum.js';
 import { initCommunity } from './pages/community.js';
+import { initNotifications } from './pages/notifications.js';
 import { initSettings } from './pages/settings.js';
 import { initChallenges, updateChallengesBadge, renderChallenges } from './pages/challenges.js';
 import { playPageOpeningSound } from './core/audio.js';
@@ -92,7 +93,7 @@ export function showPage(pageId) {
       topnavBtn.hidden = true;
     } else {
       topnavBtn.hidden = false;
-      topnavBtn.textContent = '←'; // سهم رجوع
+      topnavBtn.textContent = 'رجوع';
       topnavBtn.title = 'رجوع';
     }
   }
@@ -153,6 +154,7 @@ initAuth(async (user) => {
 
 initForum(showPage);
 initCommunity(showPage);
+initNotifications(showPage);
 startBgRain('home-canvas');
 startBgRain('menu-canvas');
 showPage('home');
