@@ -147,6 +147,8 @@ export function initForum(navigate) {
   });
 }
 
+let _catsDelegationAttached = false;
+
 function _renderCategories() {
   const container = document.getElementById('forum-categories');
   if (!container) return;
@@ -155,13 +157,17 @@ function _renderCategories() {
       ${c.label}
     </button>
   `).join('');
-  container.querySelectorAll('.forum-cat-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      _activeCategory = btn.dataset.cat;
+  // event delegation — يثبت مرة واحدة فقط، حتى لو re-render
+  if (!_catsDelegationAttached) {
+    container.addEventListener('click', (e) => {
+      const tab = e.target.closest('.forum-cat-tab');
+      if (!tab || !tab.dataset.cat) return;
+      _activeCategory = tab.dataset.cat;
       _renderCategories();
       renderForumPosts();
     });
-  });
+    _catsDelegationAttached = true;
+  }
 }
 
 function updateForumAuthState() {

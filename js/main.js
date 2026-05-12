@@ -100,20 +100,19 @@ export function showPage(pageId) {
 
 }
 
-// ===== زر التنقل العلوي (يمين) — يُربط أولاً ليضمن عمله حتى لو فشل أي init =====
-const topnavBtn = document.getElementById('topnav-btn');
-if (topnavBtn) {
-  topnavBtn.addEventListener('click', () => {
+// ===== زر التنقل العلوي (يمين) — event delegation على document لضمان العمل دائماً =====
+document.addEventListener('click', (e) => {
+  // زر "رجوع" العلوي
+  if (e.target.closest('#topnav-btn')) {
     const target = BACK_TARGETS[_currentPage] || 'home';
     showPage(target);
-  });
-}
-
-document.querySelectorAll('.btn-back').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.target;
-    if (target) showPage(target);
-  });
+    return;
+  }
+  // أي زر داخلي بكلاس .btn-back
+  const backEl = e.target.closest('.btn-back');
+  if (backEl && backEl.dataset.target) {
+    showPage(backEl.dataset.target);
+  }
 });
 
 // تشغيل init مع حماية: فشل أي وحدة لا يكسر البقية

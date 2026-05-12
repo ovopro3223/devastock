@@ -467,10 +467,12 @@
   display: flex;
   gap: 0.4rem;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 0.5rem 0.2rem 0.85rem;
   margin-bottom: 0.85rem;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  touch-action: pan-x;
 }
 
 .forum-categories::-webkit-scrollbar {
@@ -495,6 +497,7 @@
   transition: background 0.2s, color 0.2s, border-color 0.2s;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 
 .forum-cat-tab:hover {

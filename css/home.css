@@ -342,7 +342,6 @@ body.in-game .topnav-container {
   right: 0.8rem;
   z-index: 1000;
   display: flex;
-  flex-direction: row-reverse;
   gap: 0.5rem;
   align-items: center;
 }
@@ -628,6 +627,8 @@ body.in-game .topnav-container {
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
   font-family: var(--font);
+  touch-action: manipulation;
+  pointer-events: auto;
 }
 
 .topnav-btn:hover {
