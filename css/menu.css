@@ -176,6 +176,13 @@
   box-shadow: 0 4px 16px rgba(93, 211, 211, 0.35);
   padding: 1rem 2.2rem;
   font-size: clamp(1rem, 3.5vw, 1.2rem);
+  position: relative;
+}
+
+.btn-community-hero .notification-badge {
+  position: absolute;
+  top: -6px;
+  inset-inline-end: -6px;
 }
 
 .btn-community-hero:hover {

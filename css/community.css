@@ -2,10 +2,10 @@
 #page-community {
   background: linear-gradient(160deg, #1A1A2E 0%, #0F0F1E 50%, #16213E 100%);
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
   padding: 1rem;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .community-container {
@@ -940,11 +940,17 @@
 }
 
 /* ===== بروفايل لاعب ===== */
+#player-profile-modal {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .player-profile-box {
   max-width: 380px;
   width: 90%;
   text-align: center;
   position: relative;
+  margin: auto;
 }
 
 .player-profile-close {

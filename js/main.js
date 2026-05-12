@@ -6,6 +6,7 @@ import { initStock }   from './pages/stock.js';
 import { initMuseum }  from './pages/museum.js';
 import { initProfile } from './pages/profile.js';
 import { initForum }   from './pages/forum.js';
+import { initCommunity } from './pages/community.js';
 import { initSettings } from './pages/settings.js';
 import { initChallenges, updateChallengesBadge, renderChallenges } from './pages/challenges.js';
 import { playPageOpeningSound } from './core/audio.js';
@@ -151,6 +152,7 @@ initAuth(async (user) => {
 });
 
 initForum(showPage);
+initCommunity(showPage);
 startBgRain('home-canvas');
 startBgRain('menu-canvas');
 showPage('home');

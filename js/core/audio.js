@@ -57,18 +57,44 @@ const SOUND_FILES = {
 };
 
 let _loadedSounds = new Map();
-let _backgroundAudio = null;
+let _backgroundBuffer = null;
+let _backgroundBufferPromise = null;
+let _backgroundSource = null;
+let _backgroundGain = null;
 let _engineAudio = null;
 
-function _createBackgroundAudio() {
-  if (_backgroundAudio) return;
+function _suppressMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+    ['play','pause','stop','seekbackward','seekforward','seekto','previoustrack','nexttrack']
+      .forEach(action => {
+        try { navigator.mediaSession.setActionHandler(action, null); } catch {}
+      });
+  } catch {}
+}
+
+async function _loadBackgroundBuffer() {
+  if (_backgroundBuffer) return _backgroundBuffer;
+  if (_backgroundBufferPromise) return _backgroundBufferPromise;
+  if (!_ctx) return null;
   const url = SOUND_FILES['background-music'];
-  if (!url) return;
-  _backgroundAudio = new Audio(encodeURI(url));
-  _backgroundAudio.loop = true;
-  _backgroundAudio.preload = 'auto';
-  _backgroundAudio.volume = Math.min(0.35, 0.18 * _volume);
-  _backgroundAudio.muted = _muted;
+  if (!url) return null;
+  _backgroundBufferPromise = (async () => {
+    try {
+      const response = await fetch(encodeURI(url));
+      const arrayBuffer = await response.arrayBuffer();
+      _backgroundBuffer = await _ctx.decodeAudioData(arrayBuffer);
+      return _backgroundBuffer;
+    } catch (error) {
+      console.warn('Failed to load background music', error);
+      return null;
+    } finally {
+      _backgroundBufferPromise = null;
+    }
+  })();
+  return _backgroundBufferPromise;
 }
 
 function _createEngineAudio() {
@@ -104,12 +130,12 @@ async function _loadSound(key) {
 // تحميل جميع الملفات الصوتية
 export async function loadAllSounds() {
   if (!_ctx) return;
-  
+
   const promises = Object.keys(SOUND_FILES)
     .filter(key => key !== 'background-music')
     .map(key => _loadSound(key));
   await Promise.all(promises);
-  _createBackgroundAudio();
+  // موسيقى الخلفية تُحمَّل lazy عند أول startAmbient (لتجنب تحميل ملف ضخم وقت الإقلاع)
   console.log('All sounds loaded');
 }
 
@@ -250,6 +276,7 @@ export function initAudio() {
   _applySettingsFromState();
   _attachSettingsListener();
   _createContext();
+  _suppressMediaSession();
   loadAllSounds(); // تحميل جميع الملفات الصوتية
 }
 
@@ -297,8 +324,8 @@ export function setMusicEnabled(value) {
 export function setVolume(value) {
   const volume = Math.min(1, Math.max(0, Number(value)));
   _saveSettings({ volume });
-  if (_backgroundAudio) {
-    _backgroundAudio.volume = Math.min(0.35, 0.18 * volume);
+  if (_backgroundGain && _ctx) {
+    _backgroundGain.gain.setValueAtTime(Math.min(0.3, 0.04 * volume), _ctx.currentTime);
   }
   if (_engineAudio) {
     _engineAudio.volume = Math.min(0.35, 0.16 * volume);
@@ -420,22 +447,44 @@ export function playKeySfxSound() {
   _playSoundFile('key-sfx', 0.6);
 }
 
-export function startAmbient() {
+export async function startAmbient() {
   if (_muted || !_musicEnabled) return;
-  _createBackgroundAudio();
+  if (!_ctx) return;
+  if (_backgroundSource) return; // already playing
 
-  if (_backgroundAudio) {
-    _backgroundAudio.volume = Math.min(0.3, 0.04 * _volume);
-    _backgroundAudio.muted = _muted;
-    _backgroundAudio.play().catch(() => {});
+  const buffer = await _loadBackgroundBuffer();
+  if (!buffer) return;
+  if (_muted || !_musicEnabled) return; // re-check بعد await
+  if (_backgroundSource) return;
+
+  _backgroundSource = _ctx.createBufferSource();
+  _backgroundSource.buffer = buffer;
+  _backgroundSource.loop = true;
+
+  _backgroundGain = _ctx.createGain();
+  _backgroundGain.gain.setValueAtTime(Math.min(0.3, 0.04 * _volume), _ctx.currentTime);
+
+  _backgroundSource.connect(_backgroundGain);
+  _backgroundGain.connect(_ctx.destination);
+
+  _backgroundSource.onended = () => {
+    _backgroundSource = null;
+    _backgroundGain = null;
+  };
+
+  try {
+    _backgroundSource.start();
+  } catch {
+    _backgroundSource = null;
+    _backgroundGain = null;
   }
 }
 
 export function stopAmbient() {
-  if (_backgroundAudio) {
-    try {
-      _backgroundAudio.pause();
-    } catch {}
+  if (_backgroundSource) {
+    try { _backgroundSource.stop(); } catch {}
+    _backgroundSource = null;
+    _backgroundGain = null;
   }
 }
 

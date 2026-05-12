@@ -2,7 +2,6 @@
 import { renderStock }      from './stock.js';
 import { renderMuseumMain } from './museum.js';
 import { renderProfile }    from './profile.js';
-import { initCommunity }    from './community.js';
 import { initForum }        from './forum.js';
 import { listenForIncomingRequests, signInWithGoogle, signOutUser } from '../core/firebase.js';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -34,15 +33,6 @@ export function initMenu(navigate) {
       renderProfile();
       navigate('profile');
     });
-
-  // زر المجتمع
-  const communityBtn = document.getElementById('btn-community-menu');
-  if (communityBtn) {
-    communityBtn.addEventListener('click', () => {
-      initCommunity(navigate);
-      navigate('community');
-    });
-  }
 
   // زر المنتدى
   const forumBtn = document.getElementById('btn-forum-menu');

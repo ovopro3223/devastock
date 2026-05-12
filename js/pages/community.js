@@ -720,8 +720,8 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
-// إعداد الـ chat modal والبروفايل
-document.addEventListener('DOMContentLoaded', () => {
+// إعداد الـ chat modal والبروفايل — يُستدعى مباشرة (الـ module يحمّل بعد تحليل HTML)
+function _setupCommunityModalListeners() {
   const profileCloseBtn = document.getElementById('player-profile-close-btn');
   const profileModal = document.getElementById('player-profile-modal');
   const profileOverlay = profileModal?.querySelector('.auth-modal-overlay');
@@ -801,4 +801,10 @@ document.addEventListener('DOMContentLoaded', () => {
       incrementCounter('chat_messages_sent');
     };
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _setupCommunityModalListeners);
+} else {
+  _setupCommunityModalListeners();
+}

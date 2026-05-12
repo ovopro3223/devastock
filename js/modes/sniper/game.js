@@ -2,7 +2,7 @@
 import { saveLetterToStock } from '../../core/storage.js';
 import { awardLetter } from '../../core/rare-letters.js';
 import { recordLetter } from '../../core/lifetime-storage.js';
-import { playShotSound, playCollectSound, playLoseLifeSound, playHitSound, playMissSound, playLooseSound, playScopeOnSound } from '../../core/audio.js';
+import { playShotSound, playCollectSound, playLoseLifeSound, playHitSound, playMissSound, playLooseSound, playScopeOnSound, playWinSound } from '../../core/audio.js';
 import { recordPlayStart, recordPlayEnd } from '../../core/game-stats.js';
 import { incrementCounter } from '../../core/achievements.js';
 
