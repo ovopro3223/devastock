@@ -235,6 +235,11 @@ export function initNotifications(navigate) {
   if (closeBtn) closeBtn.addEventListener('click', _closeModal);
   if (overlay) overlay.addEventListener('click', _closeModal);
 
+  // backup: لو document delegation فتح المودال، نعرض القائمة
+  document.addEventListener('notif-open', () => {
+    _renderList();
+  });
+
   if (markAllBtn) {
     markAllBtn.addEventListener('click', async () => {
       if (_currentUid) await markAllNotificationsRead(_currentUid);

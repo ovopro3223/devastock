@@ -100,8 +100,15 @@ export function showPage(pageId) {
 
 }
 
-// ===== زر التنقل العلوي (يمين) — event delegation على document لضمان العمل دائماً =====
+// ===== event delegation على document — لضمان عمل أزرار التنقل والجرس دائماً =====
 document.addEventListener('click', (e) => {
+  // جرس الإشعارات — يفتح المودال
+  if (e.target.closest('#notif-bell-btn')) {
+    const modal = document.getElementById('notif-modal');
+    if (modal) modal.hidden = false;
+    document.dispatchEvent(new CustomEvent('notif-open'));
+    return;
+  }
   // زر "رجوع" العلوي
   if (e.target.closest('#topnav-btn')) {
     const target = BACK_TARGETS[_currentPage] || 'home';
