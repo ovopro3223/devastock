@@ -9,6 +9,8 @@ import {
   clearAllNotifications,
 } from '../core/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
+import { showGameConfirm } from '../core/dialogs.js';
+import { showGameNotification } from '../core/notifications.js';
 
 let _userNotifs = [];
 let _globalNotifs = [];
@@ -119,22 +121,26 @@ function _renderList() {
     `;
   }).join('');
 
-  // ربط أزرار الحذف
-  list.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.del;
-      if (_currentUid) await deleteNotification(_currentUid, id);
-    });
-  });
-
-  // ربط النقر على الإشعار
-  list.querySelectorAll('.notif-item').forEach(itm => {
-    itm.addEventListener('click', async () => {
-      const id = itm.dataset.id;
-      const isGlobal = itm.dataset.global === '1';
-      const type = itm.dataset.type;
-      const fromUid = itm.dataset.from;
+  // event delegation — يثبت مرة واحدة
+  if (!list._delegationAttached) {
+    list.addEventListener('click', async (e) => {
+      // زر الحذف الفردي
+      const delBtn = e.target.closest('[data-del]');
+      if (delBtn) {
+        e.stopPropagation();
+        const id = delBtn.dataset.del;
+        if (_currentUid && id) {
+          await deleteNotification(_currentUid, id);
+        }
+        return;
+      }
+      // نقر على إشعار كامل
+      const item = e.target.closest('.notif-item');
+      if (!item) return;
+      const id = item.dataset.id;
+      const isGlobal = item.dataset.global === '1';
+      const type = item.dataset.type;
+      const fromUid = item.dataset.from;
 
       if (isGlobal) {
         _seenGlobalIds.add(id);
@@ -144,11 +150,10 @@ function _renderList() {
       } else if (_currentUid) {
         await markNotificationRead(_currentUid, id);
       }
-
-      // تنقّل بحسب النوع
       _openNotificationContext(type, fromUid);
     });
-  });
+    list._delegationAttached = true;
+  }
 }
 
 function _formatText(n) {
@@ -253,13 +258,19 @@ export function initNotifications(navigate) {
 
   if (clearAllBtn) {
     clearAllBtn.addEventListener('click', async () => {
-      const { showGameConfirm } = await import('../core/dialogs.js');
-      if (!(await showGameConfirm('مسح كل إشعاراتك؟'))) return;
-      if (_currentUid) await clearAllNotifications(_currentUid);
-      for (const g of _globalNotifs) _seenGlobalIds.add(g.id);
-      _saveSeenGlobalIds();
-      _renderBadge();
-      _renderList();
+      const ok = await showGameConfirm('مسح كل إشعاراتك؟');
+      if (!ok) return;
+      try {
+        if (_currentUid) await clearAllNotifications(_currentUid);
+        for (const g of _globalNotifs) _seenGlobalIds.add(g.id);
+        _saveSeenGlobalIds();
+        // تحديث فوري للواجهة (الـsnapshot listener رح يحدّث _userNotifs لاحقاً)
+        _userNotifs = [];
+        _renderBadge();
+        _renderList();
+      } catch (e) {
+        showGameNotification('فشل المسح — تأكد من الاتصال', 'error');
+      }
     });
   }
 

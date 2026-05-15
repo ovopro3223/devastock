@@ -50,6 +50,10 @@ html, body {
   pointer-events: none;
 }
 
+.app-loading[hidden] {
+  display: none !important;
+}
+
 .app-loading-card {
   display: flex;
   align-items: center;

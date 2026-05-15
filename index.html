@@ -1167,10 +1167,12 @@
     <div class="auth-modal-overlay"></div>
     <div class="auth-modal-box notif-modal-box">
       <button class="player-profile-close" id="notif-modal-close" aria-label="إغلاق">&times;</button>
-      <h2 class="notif-modal-title">🔔 الإشعارات</h2>
-      <div class="notif-modal-actions">
-        <button id="notif-mark-all-read" class="btn btn-sm">✓ تعليم الكل كمقروء</button>
-        <button id="notif-clear-all" class="btn btn-sm">🗑️ مسح الكل</button>
+      <div class="notif-modal-header">
+        <div class="notif-modal-actions">
+          <button id="notif-mark-all-read" class="notif-icon-btn" title="تعليم الكل كمقروء" aria-label="تعليم الكل كمقروء">✓</button>
+          <button id="notif-clear-all" class="notif-icon-btn" title="مسح الكل" aria-label="مسح الكل">🗑️</button>
+        </div>
+        <h2 class="notif-modal-title">🔔 الإشعارات</h2>
       </div>
       <div id="notif-list" class="notif-list">
         <div class="notif-empty">⏳ جاري التحميل...</div>
