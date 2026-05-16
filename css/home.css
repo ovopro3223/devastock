@@ -391,9 +391,20 @@ body.in-game .topnav-container {
 
 /* ===== مودال الإشعارات ===== */
 #notif-modal {
-  z-index: 2100;
+  z-index: 6000;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* تجنّب bug Flex+overflow على iOS: ابدأ من الأعلى وحاذِ مع padding */
+  align-items: flex-start;
+  padding: 4.5rem 0 1rem;
+}
+
+/* أخفِ الجرس وزر التنقل وقت ما المودال مفتوح حتى ما يطلعوا فوقه */
+body:has(#notif-modal:not([hidden])) .topnav-container,
+body:has(#notif-modal:not([hidden])) .auth-container,
+body.notif-open .topnav-container,
+body.notif-open .auth-container {
+  display: none;
 }
 
 /* زر إغلاق المودال — فوق يسار بسيط */
@@ -408,12 +419,17 @@ body.in-game .topnav-container {
 .notif-modal-box {
   max-width: 460px;
   width: 92%;
-  max-height: 85vh;
+  max-height: 85dvh; /* dvh يحترم شريط العنوان على iOS */
   display: flex;
   flex-direction: column;
   padding: 1.2rem 1rem;
   position: relative;
-  margin: auto;
+  margin: 0 auto;
+}
+
+/* fallback لأجهزة قديمة ما تدعم dvh */
+@supports not (height: 1dvh) {
+  .notif-modal-box { max-height: 80vh; }
 }
 
 .notif-modal-header {

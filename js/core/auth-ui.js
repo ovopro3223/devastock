@@ -39,7 +39,8 @@ export function renderAuthButton(user) {
       isSelf: true,
       wrapperClass: 'auth-avatar-wrap',
     });
-    btn.innerHTML = `${avatarHtml}<span class="auth-name">${name}</span>`;
+    const _esc = (s) => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
+    btn.innerHTML = `${avatarHtml}<span class="auth-name">${_esc(name)}</span>`;
     btn.classList.add('logged-in');
     btn.title = 'اضغط لفتح القائمة';
 

@@ -509,7 +509,7 @@ window._viewProfile = async function(uid) {
   if (!isSelf && isFriend) {
     actionsHTML = `
       <div class="player-profile-actions">
-        <button class="btn btn-primary" onclick="window._openChat('${uid}', '${profile.displayName}')">💬 محادثة</button>
+        <button class="btn btn-primary" data-action="open-chat" data-uid="${escapeHTML(uid)}" data-name="${escapeHTML(profile.displayName || '')}">💬 محادثة</button>
       </div>
     `;
   } else if (!isSelf && !isFriend) {
@@ -517,7 +517,7 @@ window._viewProfile = async function(uid) {
     if (hasSent) {
       actionsHTML = `<div class="player-profile-actions"><button class="btn" disabled>⏱ طلب مرسل</button></div>`;
     } else {
-      actionsHTML = `<div class="player-profile-actions"><button class="btn btn-primary" onclick="window._addFriend('${uid}', '${profile.displayName}')">إضافة صديق</button></div>`;
+      actionsHTML = `<div class="player-profile-actions"><button class="btn btn-primary" data-action="add-friend" data-uid="${escapeHTML(uid)}" data-name="${escapeHTML(profile.displayName || '')}">إضافة صديق</button></div>`;
     }
   }
 
@@ -545,14 +545,14 @@ window._viewProfile = async function(uid) {
   content.innerHTML = `
     ${coverHtml}
     ${avatarHtml}
-    <div class="player-profile-name">${profile.displayName}</div>
+    <div class="player-profile-name">${escapeHTML(profile.displayName || '')}</div>
     <div class="player-profile-title" style="color: ${titleColor}">
-      ${profile.rankEmoji} ${profile.rankTitle || ''}
+      ${profile.rankEmoji || ''} ${escapeHTML(profile.rankTitle || '')}
       ${prestigeBadge}
     </div>
-    <div class="player-profile-rank">${profile.rankLabel}</div>
+    <div class="player-profile-rank">${escapeHTML(profile.rankLabel || '')}</div>
     <!-- جدار التعليقات -->
-    <div class="player-profile-wall" id="player-profile-wall" data-owner="${uid}"></div>
+    <div class="player-profile-wall" id="player-profile-wall" data-owner="${escapeHTML(uid)}"></div>
 
     <div class="player-profile-stats">
       <div class="player-profile-stat">
@@ -565,13 +565,24 @@ window._viewProfile = async function(uid) {
       </div>
     </div>
 
-    ${userProfile.bio ? `<div class="player-profile-bio">"${userProfile.bio}"</div>` : ''}
-    ${userProfile.city ? `<div style="color:#888;font-size:0.85rem">📍 ${userProfile.city}</div>` : ''}
-    ${userProfile.age ? `<div style="color:#888;font-size:0.85rem">🎂 العمر: ${userProfile.age}</div>` : ''}
-    ${userProfile.hobbies ? `<div style="color:#888;font-size:0.85rem">⭐ الهوايات: ${userProfile.hobbies}</div>` : ''}
+    ${userProfile.bio ? `<div class="player-profile-bio">"${escapeHTML(userProfile.bio)}"</div>` : ''}
+    ${userProfile.city ? `<div style="color:#888;font-size:0.85rem">📍 ${escapeHTML(userProfile.city)}</div>` : ''}
+    ${userProfile.age ? `<div style="color:#888;font-size:0.85rem">🎂 العمر: ${escapeHTML(String(userProfile.age))}</div>` : ''}
+    ${userProfile.hobbies ? `<div style="color:#888;font-size:0.85rem">⭐ الهوايات: ${escapeHTML(userProfile.hobbies)}</div>` : ''}
 
     ${actionsHTML}
   `;
+
+  // ربط أحداث الأزرار بدل onclick inline — حماية من XSS عبر displayName
+  content.querySelectorAll('[data-action]').forEach(btn => {
+    const action = btn.dataset.action;
+    const targetUid = btn.dataset.uid;
+    const targetName = btn.dataset.name;
+    btn.addEventListener('click', () => {
+      if (action === 'open-chat' && window._openChat) window._openChat(targetUid, targetName);
+      else if (action === 'add-friend' && window._addFriend) window._addFriend(targetUid, targetName);
+    });
+  });
 
   // اعمل render للجدار بعد ما المحتوى الأساسي ينعرض
   await _renderWall(uid, isSelf);

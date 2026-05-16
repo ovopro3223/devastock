@@ -97,10 +97,10 @@ export function initMenu(navigate) {
     if (menuAuthBtn) {
       if (user) {
         const name = user.displayName?.split(' ')[0] || 'لاعب';
-        menuAuthBtn.innerHTML = `🚪 خروج (${name})`;
+        menuAuthBtn.textContent = `🚪 خروج (${name})`;
         menuAuthBtn.classList.add('logged-in');
       } else {
-        menuAuthBtn.innerHTML = '🔑 تسجيل الدخول';
+        menuAuthBtn.textContent = '🔑 تسجيل الدخول';
         menuAuthBtn.classList.remove('logged-in');
       }
     }

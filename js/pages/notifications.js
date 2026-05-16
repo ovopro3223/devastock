@@ -199,12 +199,14 @@ function _openModal() {
   const modal = document.getElementById('notif-modal');
   if (!modal) return;
   modal.hidden = false;
+  document.body.classList.add('notif-open'); // fallback لمتصفحات ما تدعم :has()
   _renderList();
 }
 
 function _closeModal() {
   const modal = document.getElementById('notif-modal');
   if (modal) modal.hidden = true;
+  document.body.classList.remove('notif-open');
 }
 
 function _stopListeners() {
@@ -242,6 +244,7 @@ export function initNotifications(navigate) {
 
   // backup: لو document delegation فتح المودال، نعرض القائمة
   document.addEventListener('notif-open', () => {
+    document.body.classList.add('notif-open');
     _renderList();
   });
 
