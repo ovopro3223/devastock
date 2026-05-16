@@ -5,12 +5,8 @@ import {
   listenForGlobalNotifications,
   markNotificationRead,
   markAllNotificationsRead,
-  deleteNotification,
-  clearAllNotifications,
 } from '../core/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { showGameConfirm } from '../core/dialogs.js';
-import { showGameNotification } from '../core/notifications.js';
 
 let _userNotifs = [];
 let _globalNotifs = [];
@@ -108,7 +104,6 @@ function _renderList() {
     const icon = ICONS[n.type] || '🔔';
     const text = _formatText(n);
     const unread = n.read ? '' : 'unread';
-    const delBtn = n._isGlobal ? '' : `<button class="notif-item-delete" data-del="${n.id}" title="حذف">×</button>`;
     return `
       <div class="notif-item ${unread}" data-id="${n.id}" data-global="${n._isGlobal ? '1' : '0'}" data-type="${n.type || ''}" data-from="${n.fromUid || ''}">
         <div class="notif-item-icon">${icon}</div>
@@ -116,7 +111,6 @@ function _renderList() {
           <div class="notif-item-text">${text}</div>
           <div class="notif-item-time">${_timeAgo(n.createdAt)}</div>
         </div>
-        ${delBtn}
       </div>
     `;
   }).join('');
@@ -124,17 +118,6 @@ function _renderList() {
   // event delegation — يثبت مرة واحدة
   if (!list._delegationAttached) {
     list.addEventListener('click', async (e) => {
-      // زر الحذف الفردي
-      const delBtn = e.target.closest('[data-del]');
-      if (delBtn) {
-        e.stopPropagation();
-        const id = delBtn.dataset.del;
-        if (_currentUid && id) {
-          await deleteNotification(_currentUid, id);
-        }
-        return;
-      }
-      // نقر على إشعار كامل
       const item = e.target.closest('.notif-item');
       if (!item) return;
       const id = item.dataset.id;
@@ -199,14 +182,12 @@ function _openModal() {
   const modal = document.getElementById('notif-modal');
   if (!modal) return;
   modal.hidden = false;
-  document.body.classList.add('notif-open'); // fallback لمتصفحات ما تدعم :has()
   _renderList();
 }
 
 function _closeModal() {
   const modal = document.getElementById('notif-modal');
   if (modal) modal.hidden = true;
-  document.body.classList.remove('notif-open');
 }
 
 function _stopListeners() {
@@ -236,7 +217,6 @@ export function initNotifications(navigate) {
   const closeBtn = document.getElementById('notif-modal-close');
   const overlay = modal?.querySelector('.auth-modal-overlay');
   const markAllBtn = document.getElementById('notif-mark-all-read');
-  const clearAllBtn = document.getElementById('notif-clear-all');
 
   if (bell) bell.addEventListener('click', _openModal);
   if (closeBtn) closeBtn.addEventListener('click', _closeModal);
@@ -244,7 +224,6 @@ export function initNotifications(navigate) {
 
   // backup: لو document delegation فتح المودال، نعرض القائمة
   document.addEventListener('notif-open', () => {
-    document.body.classList.add('notif-open');
     _renderList();
   });
 
@@ -256,24 +235,6 @@ export function initNotifications(navigate) {
       _saveSeenGlobalIds();
       _renderBadge();
       _renderList();
-    });
-  }
-
-  if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', async () => {
-      const ok = await showGameConfirm('مسح كل إشعاراتك؟');
-      if (!ok) return;
-      try {
-        if (_currentUid) await clearAllNotifications(_currentUid);
-        for (const g of _globalNotifs) _seenGlobalIds.add(g.id);
-        _saveSeenGlobalIds();
-        // تحديث فوري للواجهة (الـsnapshot listener رح يحدّث _userNotifs لاحقاً)
-        _userNotifs = [];
-        _renderBadge();
-        _renderList();
-      } catch (e) {
-        showGameNotification('فشل المسح — تأكد من الاتصال', 'error');
-      }
     });
   }
 

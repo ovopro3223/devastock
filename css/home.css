@@ -320,8 +320,8 @@
 /* ===== حاوية الدخول — فوق يسار ===== */
 .auth-container {
   position: fixed;
-  top: 0.8rem;
-  left: 0.8rem;
+  top: calc(0.8rem + env(safe-area-inset-top, 0px));
+  left: calc(0.8rem + env(safe-area-inset-left, 0px));
   z-index: 1000;
 }
 
@@ -331,35 +331,61 @@ body.in-game .auth-container {
 }
 
 /* إخفاء زر التنقل العلوي داخل الألعاب (لها أزرارها الخاصة) */
-body.in-game .topnav-container {
+body.in-game .topnav-container,
+body.in-game .notif-container {
   display: none;
 }
 
-/* ===== حاوية التنقل (إيقاف/رجوع) — فوق يمين ===== */
+/* ===== حاوية زر الرجوع — فوق يمين (مستقلة تماماً) ===== */
 .topnav-container {
   position: fixed;
-  top: 0.8rem;
-  right: 0.8rem;
+  top: calc(0.8rem + env(safe-area-inset-top, 0px));
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
   z-index: 5000;
-  display: flex;
-  gap: 0.9rem;
-  align-items: center;
   pointer-events: auto;
+}
+
+/* ===== حاوية جرس الإشعارات — تحت زر الرجوع (مستقلة تماماً) ===== */
+.notif-container {
+  position: fixed;
+  top: calc(4rem + env(safe-area-inset-top, 0px)); /* تحت زر الرجوع */
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
+  z-index: 5000;
+  pointer-events: auto;
+}
+
+/* لما زر الرجوع مخفي (مثلاً في الصفحة الرئيسية) — ارفع الجرس للأعلى */
+.topnav-container:has(#topnav-btn[hidden]) ~ .notif-container,
+body:has(#topnav-btn[hidden]) .notif-container {
+  top: calc(0.8rem + env(safe-area-inset-top, 0px));
 }
 
 /* جرس الإشعارات — أكبر شوي ليسهل النقر على الموبايل */
 .notif-bell-btn {
   position: relative;
-  padding: 0 !important;
-  width: 48px !important;
-  min-width: 48px !important;
-  height: 48px !important;
-  font-size: 1.5rem !important;
-  font-weight: normal !important;
-  background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(243,156,18,0.12)) !important;
-  border: 1px solid rgba(255,215,0,0.45) !important;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 1.5rem;
+  font-weight: normal;
+  background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(243,156,18,0.12));
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 999px;
+  color: var(--color-text);
   cursor: pointer;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  pointer-events: auto;
+  transition: transform 0.15s, background 0.2s;
+}
+
+.notif-bell-btn:hover {
+  background: linear-gradient(135deg, rgba(255,215,0,0.28), rgba(243,156,18,0.20));
 }
 
 .notif-bell-btn:active {
@@ -391,20 +417,12 @@ body.in-game .topnav-container {
 
 /* ===== مودال الإشعارات ===== */
 #notif-modal {
-  z-index: 6000;
+  z-index: 6000; /* فوق topnav (5000) و auth (1000) — لا حاجة لإخفائهم */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* تجنّب bug Flex+overflow على iOS: ابدأ من الأعلى وحاذِ مع padding */
+  /* تجنّب bug Flex+overflow على iOS: ابدأ من الأعلى مع padding */
   align-items: flex-start;
   padding: 4.5rem 0 1rem;
-}
-
-/* أخفِ الجرس وزر التنقل وقت ما المودال مفتوح حتى ما يطلعوا فوقه */
-body:has(#notif-modal:not([hidden])) .topnav-container,
-body:has(#notif-modal:not([hidden])) .auth-container,
-body.notif-open .topnav-container,
-body.notif-open .auth-container {
-  display: none;
 }
 
 /* زر إغلاق المودال — فوق يسار بسيط */
@@ -543,21 +561,6 @@ body.notif-open .auth-container {
   font-size: 0.72rem;
   color: var(--color-dim);
   margin-top: 0.2rem;
-}
-
-.notif-item-delete {
-  background: transparent;
-  border: none;
-  color: var(--color-dim);
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0 0.3rem;
-  line-height: 1;
-  align-self: flex-start;
-}
-
-.notif-item-delete:hover {
-  color: #E74C3C;
 }
 
 .notif-empty {

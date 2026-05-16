@@ -203,14 +203,17 @@
     </div>
   </div>
 
-  <!-- زر الرجوع/الإيقاف — فوق يمين -->
+  <!-- زر الرجوع — فوق يمين (مستقل) -->
   <div class="topnav-container">
-    <button id="notif-bell-btn" class="topnav-btn notif-bell-btn" title="الإشعارات" hidden
-            onclick="var m=document.getElementById('notif-modal');if(m){m.hidden=false;document.dispatchEvent(new CustomEvent('notif-open'));}">
+    <button id="topnav-btn" class="topnav-btn" hidden>⏸</button>
+  </div>
+
+  <!-- جرس الإشعارات — مستقل تماماً عن زر الرجوع -->
+  <div class="notif-container">
+    <button id="notif-bell-btn" class="notif-bell-btn" title="الإشعارات" hidden>
       🔔
       <span id="notif-bell-badge" class="notif-bell-badge" hidden>0</span>
     </button>
-    <button id="topnav-btn" class="topnav-btn" hidden>⏸</button>
   </div>
 
   <!-- ===== الصفحة الرئيسية ===== -->
@@ -1172,7 +1175,6 @@
         <h2 class="notif-modal-title">الإشعارات</h2>
         <div class="notif-modal-actions">
           <button id="notif-mark-all-read" class="notif-icon-btn" title="تعليم الكل كمقروء" aria-label="تعليم الكل كمقروء">✓</button>
-          <button id="notif-clear-all" class="notif-icon-btn" title="مسح الكل" aria-label="مسح الكل">🗑️</button>
         </div>
       </div>
       <div id="notif-list" class="notif-list">

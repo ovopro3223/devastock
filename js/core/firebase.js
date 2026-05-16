@@ -369,27 +369,6 @@ export async function markAllNotificationsRead(uid) {
   }
 }
 
-// حذف إشعار
-export async function deleteNotification(uid, notifId) {
-  try {
-    await deleteDoc(doc(db, 'notifications', uid, 'items', notifId));
-  } catch (e) {
-    console.warn('deleteNotification failed:', e?.message);
-  }
-}
-
-// مسح كل الإشعارات
-export async function clearAllNotifications(uid) {
-  try {
-    const snap = await getDocs(collection(db, 'notifications', uid, 'items'));
-    const promises = [];
-    snap.forEach(d => promises.push(deleteDoc(d.ref)));
-    await Promise.all(promises);
-  } catch (e) {
-    console.warn('clearAllNotifications failed:', e?.message);
-  }
-}
-
 // الحصول على بروفايل لاعب من leaderboard + users
 export async function getPlayerProfile(uid) {
   try {
