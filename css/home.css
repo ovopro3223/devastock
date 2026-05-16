@@ -342,19 +342,28 @@ body.in-game .topnav-container {
   right: 0.8rem;
   z-index: 5000;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.9rem;
   align-items: center;
   pointer-events: auto;
 }
 
-/* جرس الإشعارات */
+/* جرس الإشعارات — أكبر شوي ليسهل النقر على الموبايل */
 .notif-bell-btn {
   position: relative;
   padding: 0 !important;
-  width: 44px !important;
-  min-width: 44px !important;
-  font-size: 1.3rem !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  font-size: 1.5rem !important;
   font-weight: normal !important;
+  background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(243,156,18,0.12)) !important;
+  border: 1px solid rgba(255,215,0,0.45) !important;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.notif-bell-btn:active {
+  transform: scale(0.9);
 }
 
 .notif-bell-btn[hidden] { display: none !important; }
