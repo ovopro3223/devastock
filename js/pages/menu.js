@@ -34,14 +34,14 @@ export function initMenu(navigate) {
       navigate('profile');
     });
 
-  // زر المنتدى
-  const forumBtn = document.getElementById('btn-forum-menu');
-  if (forumBtn) {
-    forumBtn.addEventListener('click', () => {
-      initForum(navigate);
-      navigate('forum');
-    });
-  }
+  // زر المنتدى — معطّل مؤقتاً (قريباً)
+  // const forumBtn = document.getElementById('btn-forum-menu');
+  // if (forumBtn) {
+  //   forumBtn.addEventListener('click', () => {
+  //     initForum(navigate);
+  //     navigate('forum');
+  //   });
+  // }
 
   // زر الإنجازات
   const achievementsBtn = document.getElementById('btn-achievements-menu');

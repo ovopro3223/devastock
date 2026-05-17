@@ -132,6 +132,22 @@
   animation: contentFadeIn 0.2s ease forwards;
 }
 
+/* ===== عدد الأعضاء فوق القائمة ===== */
+.community-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(243,156,18,0.06));
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 999px;
+  color: var(--color-gold);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.community-count[hidden] { display: none !important; }
+
 @keyframes contentFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }

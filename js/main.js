@@ -122,6 +122,28 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ===== Global error boundary — يلتقط أي خطأ غير محتجز ====
+let _lastErrorAt = 0;
+function _showFatalError(msg) {
+  // throttle: لا تعرض إشعار أكثر من مرة كل 5 ثواني
+  const now = Date.now();
+  if (now - _lastErrorAt < 5000) return;
+  _lastErrorAt = now;
+  try {
+    import('./core/notifications.js').then(({ showGameNotification }) => {
+      showGameNotification(`⚠️ ${msg}`, 'error');
+    }).catch(() => {});
+  } catch {}
+}
+window.addEventListener('error', (e) => {
+  console.error('[uncaught]', e.error || e.message);
+  _showFatalError('حدث خطأ غير متوقع — جرّب إعادة تحميل الصفحة');
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[unhandled rejection]', e.reason);
+  // لا تعرض إشعار للمستخدم لأن غالبية الـ rejections من Firebase auth-popup-closed
+});
+
 // تشغيل init مع حماية: فشل أي وحدة لا يكسر البقية
 function _safeInit(label, fn) {
   try { fn(); }
@@ -173,7 +195,7 @@ _safeInit('auth',         () => initAuth(async (user) => {
   if (user) refreshHomeRank();
 }));
 
-_safeInit('forum',         () => initForum(showPage));
+// _safeInit('forum',         () => initForum(showPage)); // معطّل مؤقتاً
 _safeInit('community',     () => initCommunity(showPage));
 _safeInit('notifications', () => initNotifications(showPage));
 _safeInit('bgRainHome',    () => startBgRain('home-canvas'));

@@ -69,7 +69,6 @@ async function ensureLeaderboardEntry(user) {
         rankLabel: 'مبتدئ',
         updatedAt: serverTimestamp(),
       });
-      console.log('Leaderboard entry created for:', user.displayName);
     }
   } catch (e) {
     console.error('Error ensuring leaderboard entry:', e);
@@ -146,9 +145,7 @@ export async function getFriends(uid) {
 
 // إرسال طلب صداقة
 export async function sendFriendRequest(fromUid, toUid, fromName) {
-  console.log('📨 Sending friend request from', fromUid, 'to', toUid, 'name:', fromName);
   if (fromUid === toUid) {
-    console.log('⚠️ Cannot send request to self');
     return;
   }
   try {
@@ -162,7 +159,6 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
     const reverseSnap = await getDocs(reverseQuery);
     if (!reverseSnap.empty) {
       const reverseDoc = reverseSnap.docs[0];
-      console.log('✨ Mutual request detected - auto-accepting', reverseDoc.id);
       await acceptFriendRequest(reverseDoc.id, toUid, fromUid);
       return true;
     }
@@ -176,7 +172,6 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
     );
     const existingSnap = await getDocs(existingQuery);
     if (!existingSnap.empty) {
-      console.log('⚠️ Request already sent');
       return false;
     }
 
@@ -189,7 +184,6 @@ export async function sendFriendRequest(fromUid, toUid, fromName) {
       status: 'pending',
       createdAt: serverTimestamp(),
     });
-    console.log('✅ Friend request sent successfully:', newDoc.id);
     // أرسل إشعار للطرف الآخر
     pushNotification(toUid, {
       type: 'friend_request',
@@ -402,7 +396,6 @@ export async function getPlayerProfile(uid) {
 
 // مراقبة طلبات الصداقة في الوقت الفعلي
 export function listenForIncomingRequests(uid, callback) {
-  console.log('🔔 Setting up requests listener for uid:', uid);
   try {
     const q = query(
       collection(db, 'friendRequests'),
@@ -411,18 +404,15 @@ export function listenForIncomingRequests(uid, callback) {
     );
 
     return onSnapshot(q, (snap) => {
-      console.log('🔔 Received requests snapshot. Size:', snap.size);
       const requests = [];
       snap.forEach((doc) => {
         const data = doc.data();
-        console.log('🔔 Found request:', doc.id, data);
         requests.push({
           id: doc.id,
           fromUid: data.from,
           fromName: data.fromName || 'لاعب',
         });
       });
-      console.log('🔔 Total pending requests:', requests.length);
       callback(requests);
     }, (error) => {
       console.error('❌ Error listening for requests:', error.code, error.message);

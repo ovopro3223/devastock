@@ -2,8 +2,39 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ديفاستوك</title>
+
+  <!-- ===== PWA Meta Tags ===== -->
+  <meta name="description" content="لعبة جمع الحروف العربية — العب، التقط، اجمع">
+  <meta name="theme-color" content="#FFD700">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ديفاستوك">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
+  <!-- Android / Chrome -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png">
+
+  <!-- Open Graph (للمشاركة الاجتماعية) -->
+  <meta property="og:title" content="ديفاستوك">
+  <meta property="og:description" content="لعبة جمع الحروف العربية">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/icons/icon-512.png">
+
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+      });
+    }
+  </script>
 
   <!-- Firebase SDK — importmap -->
   <script type="importmap">
@@ -54,6 +85,7 @@
   </div>
 
   <!-- زر تسجيل الدخول — فوق يسار -->
+   
   <div class="auth-container">
     <button id="auth-btn" class="auth-btn"></button>
     <!-- dropdown خروج -->
@@ -301,9 +333,10 @@
               <span class="menu-card-icon">👤</span>
               <span class="menu-card-label">ملفي</span>
             </button>
-            <button id="btn-forum-menu" class="menu-card menu-card-forum">
+            <button id="btn-forum-menu" class="menu-card menu-card-forum menu-card-disabled" disabled>
               <span class="menu-card-icon">📝</span>
               <span class="menu-card-label">المنتدى</span>
+              <span class="menu-card-soon">قريباً</span>
             </button>
           </div>
         </div>
@@ -791,6 +824,7 @@
 
           <!-- قائمة اللاعبين (الكل) -->
           <div class="community-tab-content" data-content="all" style="display: block;">
+            <div id="community-all-count" class="community-count">👥 <span id="community-all-count-number">0</span> عضو</div>
             <div id="community-all-list" class="community-list"></div>
           </div>
 

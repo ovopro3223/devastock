@@ -128,7 +128,6 @@ export async function loadAllSounds() {
     .map(key => _loadSound(key));
   await Promise.all(promises);
   // موسيقى الخلفية تُحمَّل lazy عند أول startAmbient (لتجنب تحميل ملف ضخم وقت الإقلاع)
-  console.log('All sounds loaded');
 }
 
 function _playBuffer(buffer, volumeMultiplier = 1) {

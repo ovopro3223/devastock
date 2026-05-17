@@ -241,6 +241,38 @@
   box-shadow: 0 6px 20px rgba(150,110,220,0.22);
 }
 
+/* ===== بطاقة معطّلة + شارة "قريباً" ===== */
+.menu-card-disabled {
+  position: relative;
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  filter: grayscale(0.3);
+  pointer-events: auto; /* خلي الـ hover يعرض الـ tooltip */
+}
+.menu-card-disabled:hover {
+  background: inherit !important;
+  border-color: inherit !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.menu-card-disabled:active {
+  transform: none !important;
+}
+.menu-card-soon {
+  position: absolute;
+  top: 6px;
+  inset-inline-start: 6px;
+  background: linear-gradient(135deg, #FFD700, #F39C12);
+  color: #1A1A2E;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
 .menu-card .notification-badge {
   position: absolute;
   top: 6px;

@@ -13,6 +13,7 @@ import { getSeasonState, getSeasonLabel } from '../core/seasons.js';
 import { renderAvatarHtml } from '../core/avatar-helper.js';
 import { getLevel, getLifetimeTotal } from '../core/lifetime-storage.js';
 import { showGameNotification } from '../core/notifications.js';
+import { sanitizeUserInput, sanitizeName } from '../core/sanitize.js';
 
 function _getMyLevel() {
   try { return getLevel(getLifetimeTotal()); } catch { return 1; }
@@ -72,7 +73,6 @@ export function initCommunity(showPage) {
   // الاستماع لتغييرات حالة المستخدم بشكل دائم
   onAuthStateChanged(auth, (user) => {
     _currentUser = user;
-    console.log('Community auth state changed:', user ? `Logged in as ${user.displayName}` : 'Logged out');
 
     // أوقف الاستماع السابق
     if (_requestsListenerUnsub) {
@@ -163,7 +163,6 @@ function renderNotLoggedIn() {
 }
 
 async function loadCommunityData() {
-  console.log('Loading community data...');
 
   // إخفاء الـ modal بعد تسجيل الدخول
   const modal = document.getElementById('community-auth-modal');
@@ -180,17 +179,14 @@ async function loadCommunityData() {
 
   // احصل على جميع اللاعبين
   _allPlayers = await getPlayers();
-  console.log('Players loaded:', _allPlayers.length);
 
   // احصل على أصدقاء المستخدم الحالي
   if (_currentUser) {
     _userFriends = await getFriends(_currentUser.uid);
-    console.log('Friends loaded:', _userFriends.length);
 
     // احصل على طلبات الصداقة الواردة
     try {
       _incomingRequests = await getIncomingRequests(_currentUser.uid);
-      console.log('Requests loaded:', _incomingRequests.length);
     } catch (e) {
       console.error('Error loading requests:', e.message);
       _incomingRequests = [];
@@ -199,7 +195,6 @@ async function loadCommunityData() {
     // احصل على طلبات الصداقة المرسلة
     try {
       _outgoingRequests = await getOutgoingRequests(_currentUser.uid);
-      console.log('Outgoing requests loaded:', _outgoingRequests.length);
     } catch (e) {
       console.error('Error loading outgoing requests:', e.message);
       _outgoingRequests = [];
@@ -231,7 +226,6 @@ function getSearchQuery() {
 }
 
 function renderTab(tabName) {
-  console.log('Rendering tab:', tabName);
   if (tabName === 'all') {
     renderAllPlayers();
   } else if (tabName === 'friends') {
@@ -318,6 +312,19 @@ function renderAllPlayers() {
   const searchQuery = getSearchQuery();
   const filtered = _allPlayers.filter(p => p.displayName.toLowerCase().includes(searchQuery));
 
+  // تحديث عدد الأعضاء
+  const countEl = document.getElementById('community-all-count-number');
+  const countWrap = document.getElementById('community-all-count');
+  if (countEl) {
+    const total = _allPlayers.length;
+    if (searchQuery && filtered.length !== total) {
+      countEl.textContent = `${filtered.length} / ${total}`;
+    } else {
+      countEl.textContent = total;
+    }
+  }
+  if (countWrap) countWrap.hidden = _allPlayers.length === 0;
+
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="community-empty">
@@ -328,7 +335,6 @@ function renderAllPlayers() {
     return;
   }
 
-  console.log('Rendering', filtered.length, 'players');
 
   container.innerHTML = filtered.map(player => {
     const isSelf = _currentUser && player.uid === _currentUser.uid;
@@ -636,7 +642,10 @@ window._submitWallPost = async function(e, ownerUid) {
   if (!_currentUser) return;
   const input = document.getElementById('wall-post-input');
   if (!input) return;
-  const content = input.value.trim();
+
+  // تنقية المدخل (Unicode tricks + طول + control chars)
+  const { sanitizeUserInput, sanitizeName } = await import('../core/sanitize.js');
+  const content = sanitizeUserInput(input.value, 280);
   if (!content) return;
 
   // فلتر الكلمات
@@ -650,12 +659,13 @@ window._submitWallPost = async function(e, ownerUid) {
     return;
   }
 
-  // الاسم من البروفايل
+  // الاسم من البروفايل (مع تنقية)
   let myName = _currentUser.displayName || 'لاعب';
   try {
     const p = JSON.parse(localStorage.getItem('devastock_profile') || '{}');
     if (p.name) myName = p.name;
   } catch {}
+  myName = sanitizeName(myName, 24);
 
   const r = await postOnWall(ownerUid, _currentUser.uid, myName, content);
   if (r.ok) {
@@ -768,15 +778,16 @@ function _setupCommunityModalListeners() {
   if (chatForm) {
     chatForm.onsubmit = async (e) => {
       e.preventDefault();
-      if (!_currentUser || !_chatPartnerUid || !chatInput.value.trim()) return;
-      const text = chatInput.value;
+      if (!_currentUser || !_chatPartnerUid) return;
+      const text = sanitizeUserInput(chatInput.value, 500);
+      if (!text) return;
       const check = canAffordText(text);
       if (!check.ok) {
         showGameNotification(`ما عندك حرف "${check.missing}" كافي بالمخزن. بدك ${check.need} ومعك ${check.have}.`, 'warning');
         return;
       }
       chatInput.value = '';
-      const fromName = _currentUser.displayName || 'لاعب';
+      const fromName = sanitizeName(_currentUser.displayName || 'لاعب', 24);
       await sendChatMessage(_currentUser.uid, _chatPartnerUid, fromName, text);
       spendForText(text);
       incrementCounter('chat_messages_sent');
@@ -800,15 +811,16 @@ function _setupCommunityModalListeners() {
   if (sidebarForm) {
     sidebarForm.onsubmit = async (e) => {
       e.preventDefault();
-      if (!_currentUser || !_chatPartnerUid || !sidebarInput?.value.trim()) return;
-      const text = sidebarInput.value;
+      if (!_currentUser || !_chatPartnerUid) return;
+      const text = sanitizeUserInput(sidebarInput?.value || '', 500);
+      if (!text) return;
       const check = canAffordText(text);
       if (!check.ok) {
         showGameNotification(`ما عندك حرف "${check.missing}" كافي بالمخزن. بدك ${check.need} ومعك ${check.have}.`, 'warning');
         return;
       }
       sidebarInput.value = '';
-      const fromName = _currentUser.displayName || 'لاعب';
+      const fromName = sanitizeName(_currentUser.displayName || 'لاعب', 24);
       await sendChatMessage(_currentUser.uid, _chatPartnerUid, fromName, text);
       spendForText(text);
       incrementCounter('chat_messages_sent');
